@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>DotNetReleaser</RootNamespace>
+    <AssemblyName>dotnet-releaser</AssemblyName>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="dotnet-releaser.targets" />
+    <Content Include="dotnet-releaser.targets">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
+    <PackageReference Include="MSBuild.StructuredLogger" Version="2.1.545" />
+    <PackageReference Include="Octokit" Version="0.50.0" />
+    <PackageReference Include="Tomlyn" Version="0.10.0" />
+    <PackageReference Include="CliWrap" Version="3.4.0" />
+  </ItemGroup>
+
+</Project>

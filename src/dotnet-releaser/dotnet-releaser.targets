@@ -1,0 +1,51 @@
+﻿<Project>
+  <ItemGroup>
+    <PackageReference Include="Packaging.Targets" Version="0.1.220">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>compile;build</IncludeAssets>
+      <ExcludeAssets>runtime;contentFiles;native</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!--<Target Name="CreateSetup" AfterTargets="Publish">
+    <PropertyGroup>
+      <PublishDirFullPath>$([System.IO.Path]::GetFullPath('$(PublishDir)'))</PublishDirFullPath>
+      <PublishSetupName>$(AssemblyName).$(PackageVersion).$(RuntimeIdentifier).setup</PublishSetupName>
+      <PublishPackagePath>$([System.IO.Path]::GetFullPath('$(PublishDirFullPath)..\'))</PublishPackagePath>
+    </PropertyGroup>
+    <Exec Command="iscc.exe /DMyAppVersion=$(PackageVersion) /DMyAppSource=&quot;$(PublishDirFullPath)*&quot; /O&quot;$(PublishPackagePath)&quot; /F$(PublishSetupName) kalk-setup.iss" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+  </Target>-->
+
+  <Target Name="DotNetReleaserGetPackageInfo" Outputs="@(_DotNetReleaserGetPackageInfo)">
+    <ItemGroup>
+      <_DotNetReleaserGetPackageInfo Include="$(PackageId)" Kind="PackageId"/>
+      <_DotNetReleaserGetPackageInfo Include="$(PackageDescription)" Kind="PackageDescription"/>
+      <_DotNetReleaserGetPackageInfo Include="$(PackageVersion)" Kind="PackageVersion"/>
+      <_DotNetReleaserGetPackageInfo Include="$(PackageLicenseExpression)" Kind="PackageLicenseExpression"/>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="DotNetReleaserPackAndGetNuGetPackOutput" Outputs="@(NuGetPackOutput)" DependsOnTargets="Pack">
+  </Target>
+
+  <Target Name="DotNetReleaserPublishAndCreateDeb" Outputs="@(_DotNetReleaserPublishAndCreateDeb)" DependsOnTargets="CreateDeb">
+    <ItemGroup>
+      <_DotNetReleaserPublishAndCreateDeb Include="$(DebPath)" Kind="DebPath"/>
+    </ItemGroup>
+  </Target>
+  <Target Name="DotNetReleaserPublishAndCreateRpm" Outputs="@(_DotNetReleaserPublishAndCreateRpm)" DependsOnTargets="CreateRpm">
+    <ItemGroup>
+      <_DotNetReleaserPublishAndCreateRpm Include="$(RpmPath)" Kind="RpmPath"/>
+    </ItemGroup>
+  </Target>
+  <Target Name="DotNetReleaserPublishAndCreateZip" Outputs="@(_DotNetReleaserPublishAndCreateZip)" DependsOnTargets="CreateZip">
+    <ItemGroup>
+      <_DotNetReleaserPublishAndCreateZip Include="$(ZipPath)" Kind="ZipPath"/>
+    </ItemGroup>
+  </Target>
+  <Target Name="DotNetReleaserPublishAndCreateTar" Outputs="@(_DotNetReleaserPublishAndCreateTar)" DependsOnTargets="CreateTarball">
+    <ItemGroup>
+      <_DotNetReleaserPublishAndCreateTar Include="$(TarballPath)" Kind="TarballPath"/>
+    </ItemGroup>
+  </Target>
+</Project>

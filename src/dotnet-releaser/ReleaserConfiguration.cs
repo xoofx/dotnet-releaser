@@ -1,0 +1,358 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
+using DotNetReleaser.Logging;
+using Microsoft.Extensions.Logging;
+using Tomlyn;
+using Tomlyn.Model;
+using Tomlyn.Syntax;
+
+namespace DotNetReleaser;
+
+public class ReleaserConfiguration
+{
+    public ReleaserConfiguration()
+    {
+        ArtifactsFolder = "artifacts-dotnet-releaser";
+        Packs = new List<Packaging>();
+        MSBuild = new MSBuildConfiguration();
+        Changelog = new ChangelogConfiguration();
+        GitHub = new GitHubPublisher();
+        NuGet = new NuGetPublisher();
+        Brew = new BrewPublisher();
+    }
+
+    public string? Description { get; set; }
+    
+    public string? Home { get; set; }
+
+    public ProfileKind Profile { get; set; }
+
+    public string ArtifactsFolder { get; set; }
+
+    public MSBuildConfiguration MSBuild { get; }
+
+    [DataMember(Name="github")]
+    public GitHubPublisher GitHub { get; }
+
+    public ChangelogConfiguration Changelog { get; }
+
+    [DataMember(Name = "nuget")]
+    public NuGetPublisher NuGet { get; }
+
+    public BrewPublisher Brew { get; }
+
+    [DataMember(Name = "pack")]
+    public List<Packaging> Packs { get; }
+
+    private bool Initialize(string configurationDirectory, ISimpleLogger logger)
+    {
+        ArtifactsFolder = Path.Combine(configurationDirectory, ArtifactsFolder);
+
+        // Make sure that the path is absolute
+        MSBuild.Project = Path.Combine(configurationDirectory, MSBuild.Project);
+        if (!File.Exists(MSBuild.Project))
+        {
+            logger.Error($"The MSBuild project file `{MSBuild.Project}` was not found.");
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(Home))
+        {
+            Home = $"https://github.com/{GitHub.User}/{GitHub.Repo}";
+        }
+
+        // Check changelog
+        if (Changelog.Publish)
+        {
+            if (Changelog.Path is null)
+            {
+                logger.Error("The changelog.path was not setup");
+            }
+            else
+            {
+                Changelog.Path = Path.Combine(configurationDirectory, Changelog.Path);
+                if (!File.Exists(Changelog.Path))
+                {
+                    logger.Error($"The changelog file {Changelog.Path} was not found.");
+                    return false;
+                }
+            }
+        }
+
+        if (Profile == ProfileKind.Default)
+        {
+            AddPackages(new List<Packaging>()
+            {
+                new() { RuntimeIdentifiers = { "win-x64", "win-arm", "win-arm64" }, Kinds = { PackageKind.Zip } },
+                new() { RuntimeIdentifiers = { "linux-x64", "linux-arm", "linux-arm64" }, Kinds = { PackageKind.Deb, PackageKind.Tar } },
+                new() { RuntimeIdentifiers = { "rhel-x64" }, Kinds = { PackageKind.Rpm, PackageKind.Tar } },
+                new() { RuntimeIdentifiers = { "osx-x64", "osx-arm64" }, Kinds = { PackageKind.Tar } },
+            }, logger);
+        }
+
+        return true;
+    }
+
+    private void AddPackages(List<Packaging> packages, ISimpleLogger logger)
+    {
+        var builder = new StringBuilder();
+        foreach (var packaging in packages)
+        {
+            foreach (var rid in packaging.RuntimeIdentifiers)
+            {
+                if (Packs.Any(x => x.RuntimeIdentifiers.Contains(rid)))
+                {
+                    builder.AppendLine($"Skipping {Profile.ToString().ToLowerInvariant()} profile for {Packaging.ToStringRidAndKinds(new () { rid }, packaging.Kinds)} because there is a custom entry in the configuration file");
+                }
+                else
+                {
+                    var singleRid = new Packaging()
+                    {
+                        RuntimeIdentifiers = { rid },
+                    };
+                    singleRid.Kinds.AddRange(packaging.Kinds);
+                    Packs.Add(singleRid);
+                    builder.AppendLine($"Adding {Profile.ToString().ToLowerInvariant()} profile for {Packaging.ToStringRidAndKinds(new() { rid }, packaging.Kinds)}");
+                }
+            }
+        }
+
+        if (builder.Length > 0)
+        {
+            logger.Info(builder.ToString());
+        }
+    }
+
+    /// <summary>
+    /// MSBuild Configuration.
+    /// </summary>
+    public class MSBuildConfiguration
+    {
+        public MSBuildConfiguration()
+        {
+            Project = string.Empty;
+            Configuration = "Release";
+
+            // Default properties for publishing a native app
+            Properties = new Dictionary<string, object>()
+            {
+                { "PublishTrimmed", true },
+                { "TrimmerDefaultAction", "link" },
+                { "TrimMode", "Link" },
+                { "PublishSingleFile", true },
+                { "SelfContained", true },
+                { "PublishReadyToRun", true },
+                { "PublishReadyToRunComposite", true },
+                { "CopyOutputSymbolsToPublishDirectory", false },
+                { "SkipCopyingSymbolsToOutputDirectory", true }
+            };
+        }
+
+        /// <summary>
+        /// Gets or sets the path to the project that contains the app to build.
+        /// </summary>
+        public string Project { get; set; }
+        
+        /// <summary>
+        /// The configuration to compile
+        /// </summary>
+        public string Configuration { get; set; }
+
+        /// <summary>
+        /// Gets the extra properties that will be passed to MSBuild.
+        /// </summary>
+        public Dictionary<string, object> Properties { get; }
+
+        public override string ToString()
+        {
+            return $"{nameof(Project)}: {Project}, {nameof(Configuration)}: {Configuration}, {nameof(Properties)} Count = {Properties.Count}";
+        }
+    }
+    
+    /// <summary>
+    /// Configuration for GitHub.
+    /// </summary>
+    public class GitHubPublisher : PublisherBase
+    {
+        public GitHubPublisher()
+        {
+            VersionPrefix = string.Empty;
+            Base = "https://github.com";
+        }
+
+        public string Base { get; set; }
+
+        public string? User { get; set; }
+
+        public string? Repo { get; set; }
+
+        public string VersionPrefix { get; set; }
+
+        public string GetUrl() => $"{Base.Trim('/')}/{User}/{Repo}";
+
+        public override string ToString()
+        {
+            return $"{base.ToString()}, {nameof(User)}: {User}, {nameof(Repo)}: {Repo}, {nameof(VersionPrefix)}: {VersionPrefix}, Url: {GetUrl()}";
+        }
+    }
+
+    public class ChangelogConfiguration : PublisherBase
+    {
+        public ChangelogConfiguration()
+        {
+            Version = @"^##\s+v?((\d+\.)*(\d+))";
+        }
+
+        public string? Path { get; set; }
+
+        public string Version { get; set; }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()}, {nameof(Path)}: {Path}, {nameof(Version)}: {Version}";
+        }
+    }
+
+    public class NuGetPublisher : PublisherBase
+    {
+        public NuGetPublisher()
+        {
+            Source = "https://api.nuget.org/v3/index.json";
+        }
+
+        public string Source { get; set; }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()}, {nameof(Source)}: {Source}";
+        }
+    }
+
+    public class BrewPublisher : PublisherBase
+    {
+    }
+
+    public class Packaging : PublisherBase
+    {
+        public Packaging()
+        {
+            RuntimeIdentifiers = new List<string>();
+            Kinds = new List<PackageKind>();
+        }
+
+        [DataMember(Name = "rid")]
+        public List<string> RuntimeIdentifiers { get; }
+
+        [DataMember(Name = "kinds")]
+        public List<PackageKind> Kinds { get; }
+
+        public static string ToStringRidAndKinds(List<string> rids, List<PackageKind> kinds) => $"platform{(rids.Count > 1 ? "s" : string.Empty)} [{string.Join(", ", rids)}] with [{string.Join(", ", kinds)}] package{(kinds.Count > 1 ? "s" : string.Empty)}";
+        
+        public override string ToString()
+        {
+            return $"{base.ToString()}, {ToStringRidAndKinds(RuntimeIdentifiers, Kinds)}";
+        }
+    }
+    
+    public static async Task<ReleaserConfiguration?> From(string filePath, ISimpleLogger logger)
+    {
+        ReleaserConfiguration? configuration = null;
+        try
+        {
+            logger.Info($"Loading configuration from {filePath}");
+            var content = await File.ReadAllTextAsync(filePath);
+
+            if (Toml.TryToModel(content, out configuration, out var diagnostics, filePath))
+            {
+                if (!configuration.Initialize(Path.GetDirectoryName(filePath) ?? Environment.CurrentDirectory, logger))
+                {
+                    return null;
+                }
+
+                return configuration;
+            }
+
+            // Log any messages
+            foreach (var message in diagnostics!)
+            {
+                if (message.Kind == DiagnosticMessageKind.Error)
+                {
+                    logger.Error(message.ToString());
+                }
+                else if (message.Kind == DiagnosticMessageKind.Warning)
+                {
+                    logger.Warn(message.ToString());
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error($"Unexpected exception while trying to load configuration from `{filePath}`. Reason: {ex.Message}");
+        }
+
+        return configuration;
+    }
+
+    private static void TransferValue<T>(TomlTable table, string name, ILogger log, ref bool hasErrors, Action<T> setter, bool canBeNull = false)
+    {
+        if (!table.TryGetValue(name, out var value) || value == null)
+        {
+            if (!canBeNull)
+            {
+                hasErrors = true;
+                log.LogError($"Missing entry `{name}` in configuration.");
+            }
+        }
+        else if (value is T valueT)
+        {
+            setter(valueT);
+        }
+        else
+        {
+            hasErrors = true;
+            log.LogError($"Entry `{name}` in configuration is not of type {typeof(T).Name.ToLowerInvariant()}.");
+        }
+    }
+
+    public abstract class PublisherBase
+    {
+        protected PublisherBase()
+        {
+            Publish = true;
+        }
+
+        public bool Publish { get; set; }
+
+        public override string ToString()
+        {
+            return $"{nameof(Publish)}: {Publish}";
+        }
+    }
+}
+
+public enum PackageKind
+{
+    Zip,
+    Tar,
+    Deb,
+    Rpm,
+    Setup,
+}
+
+public enum ProfileKind
+{
+    /// <summary>
+    /// Target all supported platforms and architecture with NuGet + all packages (debian/rpm) + Homebrew.
+    /// </summary>
+    Default,
+
+    /// <summary>
+    /// Explicitly user defined.
+    /// </summary>
+    Custom,
+}

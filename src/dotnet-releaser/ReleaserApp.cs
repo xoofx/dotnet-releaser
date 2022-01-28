@@ -1,0 +1,326 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using DotNetReleaser.Logging;
+using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.Logging;
+using Octokit;
+
+namespace DotNetReleaser;
+
+/// <summary>
+/// Main app that handles
+/// - Update release from changelog
+/// - Build NuGet package
+/// - Build single exe file with archives and packages
+/// - Update Release on GitHub with all assets
+/// - Update homebrew
+/// - Push the NuGet package
+/// - Push all platform packages
+/// </summary>
+public partial class ReleaserApp : ISimpleLogger
+{
+    private static readonly string DotNetReleaserConfigFile = Path.Combine(AppContext.BaseDirectory, ReleaserConstants.DotNetReleaserFileName);
+    
+    private readonly ISimpleLogger _logger;
+    private string _githubApiToken;
+    private string _nugetApiToken;
+    private string _configurationFile;
+    private bool _forceArtifactsFolder;
+    private BuildKind _buildKind;
+    private ReleaserConfiguration _config;
+
+    private ReleaserApp(ISimpleLogger logger)
+    {
+        _githubApiToken = string.Empty;
+        _nugetApiToken = string.Empty;
+        _configurationFile = string.Empty;
+        _logger = logger;
+        _config = new ReleaserConfiguration();
+    }
+
+    /// <summary>
+    /// Main entry for the releaser. Parser the argument and delegate to <see cref="RunImpl"/>
+    /// </summary>
+    /// <param name="args">The command line arguments</param>
+    /// <returns>0 if successful; 1 otherwise.</returns>
+    public static async Task<int> Run(string[] args)
+    {
+        // Create our log
+        using var factory = LoggerFactory.Create(builder =>
+        {
+            builder.AddSimpleConsole(configure: options =>
+            {
+                //options.SingleLine = true;
+            });
+        });
+
+        var exeName = Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly()?.Location)?.ToLowerInvariant();
+        var logger = SimpleLogger.CreateConsoleLogger(factory, exeName);
+        var appReleaser = new ReleaserApp(logger);
+        var version = typeof(ReleaserApp).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?.?.?";
+
+        var app = new CommandLineApplication
+        {
+            Name = exeName,
+        };
+
+        app.VersionOption("--version", $"{app.Name} {version} - {DateTime.Now.Year} (c) Copyright Alexandre Mutel", version);
+        app.HelpOption(inherited: true);
+        app.Command("publish", AddPublishOrBuildArgs);
+        app.Command("build", AddPublishOrBuildArgs);
+
+        void AddPublishOrBuildArgs(CommandLineApplication cmd)
+        {
+            CommandOption<string>? githubToken = null;
+            CommandOption<string>? nugetToken = null;
+
+            if (cmd.Name == "publish")
+            {
+                githubToken = cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
+                nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
+            }
+
+            var forceOption = cmd.Option<bool>("--force", "Force deleting and recreating the artifacts folder.", CommandOptionType.NoValue);
+            var configurationFileArg = cmd.Argument<string>("app_configuration_file.toml", "TOML configuration file").IsRequired();
+
+            cmd.OnExecuteAsync(async (token) =>
+            {
+                appReleaser._forceArtifactsFolder = forceOption.ParsedValue;
+
+                // Check configuration file
+                var configurationFilePath = configurationFileArg.ParsedValue;
+                configurationFilePath = Path.Combine(Environment.CurrentDirectory, configurationFilePath);
+                if (!File.Exists(configurationFilePath))
+                {
+                    throw new AppException($"Configuration file `{configurationFilePath}' not found.");
+                }
+                appReleaser._configurationFile = configurationFilePath;
+                
+                appReleaser._buildKind = cmd.Name == "publish" ? BuildKind.Publish : BuildKind.Build;
+                if (githubToken is not null) appReleaser._githubApiToken = githubToken.ParsedValue;
+                if (nugetToken is not null) appReleaser._nugetApiToken = nugetToken.ParsedValue;
+                var result = await appReleaser.RunImpl();
+                return result ? 0 : 1;
+            });
+        }
+
+        app.OnExecute(() =>
+        {
+            Console.WriteLine("Specify a sub-command");
+            app.ShowHelp();
+            return 1;
+        });
+
+        int result = 0;
+        try
+        {
+            result = await app.ExecuteAsync(args);
+        }
+        catch (Exception exception)
+        {
+            var backColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Red;
+
+            if (exception is UnrecognizedCommandParsingException unrecognizedCommandParsingException)
+            {
+                await Console.Out.WriteLineAsync($"{unrecognizedCommandParsingException.Message} for command {unrecognizedCommandParsingException.Command.Name}");
+            }
+            else
+            {
+                await Console.Out.WriteLineAsync($"Unexpected error {exception.Message}");
+            }
+            Console.ForegroundColor = backColor;
+            result = 1;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Runs the releaser app
+    /// </summary>
+    private async Task<bool> RunImpl()
+    {
+        // ------------------------------------------------------------------
+        // Load Configuration
+        // ------------------------------------------------------------------
+        var configuration = await ReleaserConfiguration.From(_configurationFile, this);
+        if (configuration is null) return false;
+        _config = configuration;
+
+        if (!EnsureArtifactsFolders()) return false;
+
+        // ------------------------------------------------------------------
+        // Load Package Information from MSBuild project
+        // ------------------------------------------------------------------
+        var packageInfo = await LoadPackageInfo();
+        if (packageInfo is null) return false;
+
+        Info($"Package to build: {packageInfo}");
+
+        // ------------------------------------------------------------------
+        // Validate Publish parameters
+        // ------------------------------------------------------------------
+        GitHubClient? gitHubClient = null;
+        if (_buildKind == BuildKind.Publish)
+        {
+            if (_config.GitHub.Publish)
+            {
+                if (string.IsNullOrEmpty(_githubApiToken))
+                {
+                    Error("Publishing to GitHub requires to pass --github-token");
+                    return false;
+                }
+                else
+                {
+                    gitHubClient = await ConnectGitHubClient();
+                    if (gitHubClient is null)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            if (_config.NuGet.Publish && string.IsNullOrEmpty(_nugetApiToken))
+            {
+                Error("Publishing to NuGet requires to pass --nuget-token");
+                return false;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Parse Changelog
+        // ------------------------------------------------------------------
+        string? changelog = null;
+        if (_config.Changelog.Publish)
+        {
+            changelog = await LoadChangeLog(packageInfo);
+            if (changelog is not null)
+            {
+                Info($"Changelog found:{Environment.NewLine}{changelog}");
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Build NuGet package
+        // ------------------------------------------------------------------
+        if (!await BuildNuGetPackage()) return false;
+
+        // ------------------------------------------------------------------
+        // Build executable packages (deb, zip, rpm, tar...)
+        // ------------------------------------------------------------------
+        var entries = new List<PackageEntry>();
+
+        var builder = new StringBuilder();
+        bool hasPackagesToBuild = false;
+        foreach (var pack in _config.Packs)
+        {
+            foreach (var rid in pack.RuntimeIdentifiers)
+            {
+                if (pack.Publish) hasPackagesToBuild = true;
+                builder.AppendLine($"Build configured for {ReleaserConfiguration.Packaging.ToStringRidAndKinds(new () { rid }, pack.Kinds)}");
+            }
+        }
+        Info(builder.ToString());
+
+        if (hasPackagesToBuild)
+        {
+            Info("Begin building platform packages...");
+            foreach (var pack in _config.Packs)
+            {
+                foreach (var rid in pack.RuntimeIdentifiers)
+                {
+                    var list = await PackPlatform(pack.Publish, rid, pack.Kinds.ToArray());
+                    if (list is not null)
+                    {
+                        entries.AddRange(list);
+                    }
+                }
+            }
+
+            if (HasErrors)
+            {
+                Error("Error while building platform packages.");
+            }
+            else
+            {
+                Info("End building platform packages successful.");
+            }
+        }
+        else
+        {
+            Info("No packages to build");
+        }
+
+        // Exit if we have any errors.
+        if (HasErrors)
+        {
+            return false;
+        }
+
+        // ------------------------------------------------------------------
+        // Publish all packages NuGet + (deb, zip, rpm, tar...)
+        // ------------------------------------------------------------------
+        if (_buildKind == BuildKind.Publish)
+        {
+            if (_config.NuGet.Publish)
+            {
+                await PublishNuGet(packageInfo, _nugetApiToken);
+            }
+
+            // Don't try to continue publishing if we had errors with NuGet publishing
+            // Otherwise publish any packages that we have generated before
+            if (!HasErrors && gitHubClient is not null && entries.Count > 0)
+            {
+                await UpdateGitHub(gitHubClient, packageInfo, changelog, entries);
+
+                if (!HasErrors && _config.Brew.Publish)
+                {
+                    await UploadBrewFormula(gitHubClient, packageInfo, entries);
+                }
+
+
+            }
+        }
+
+        return !HasErrors;
+    }
+
+
+    public bool HasErrors => _logger.HasErrors;
+
+    public void Info(string message)
+    {
+        _logger.Info(message);
+    }
+
+    public void Warn(string message)
+    {
+        _logger.Warn(message);
+    }
+
+    public void Error(string message)
+    {
+        _logger.Error(message);
+    }
+
+    enum BuildKind
+    {
+        None,
+        Publish,
+        Build,
+    }
+
+    private class AppException : Exception
+    {
+        public AppException(string message) : base(message)
+        {
+        }
+    }
+}
