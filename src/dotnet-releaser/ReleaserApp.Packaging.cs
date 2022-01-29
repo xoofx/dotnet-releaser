@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -34,6 +35,7 @@ public partial class ReleaserApp
             { "RuntimeIdentifier", rid }, // Make sure that we have the last word on the target platform
         };
 
+        var clock = Stopwatch.StartNew();
         var entries = new List<PackageEntry>();
         foreach (var kind in kinds)
         {
@@ -66,6 +68,7 @@ public partial class ReleaserApp
             }
 
             Info($"Building target platform [{rid}] / [{kind.ToString().ToLowerInvariant()}] package");
+            clock.Restart();
 
             // We need to explicitly restore the platform RID before trying to build it
             var restoreResult = await RunMSBuild("Restore", properties);
@@ -99,7 +102,7 @@ public partial class ReleaserApp
             
             entries.Add(entry);
 
-            Info($"Build successful for platform [{rid}] / [{kind.ToString().ToLowerInvariant()}] package: {entry.Path}");
+            Info($"Build successful in {clock.Elapsed.TotalSeconds}s for platform [{rid}] / [{kind.ToString().ToLowerInvariant()}] package: {entry.Path}");
         }
 
         return entries;

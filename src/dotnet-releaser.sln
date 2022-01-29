@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\readme.md = ..\readme.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetReleaser.Tests", "DotNetReleaser.Tests\DotNetReleaser.Tests.csproj", "{B34D6239-0F5A-429D-B710-D571CE6BE58B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +27,10 @@ Global
 		{81605EE5-3740-49BD-9DA3-FF0A51AC027F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81605EE5-3740-49BD-9DA3-FF0A51AC027F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81605EE5-3740-49BD-9DA3-FF0A51AC027F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B34D6239-0F5A-429D-B710-D571CE6BE58B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B34D6239-0F5A-429D-B710-D571CE6BE58B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B34D6239-0F5A-429D-B710-D571CE6BE58B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B34D6239-0F5A-429D-B710-D571CE6BE58B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

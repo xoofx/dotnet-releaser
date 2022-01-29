@@ -26,14 +26,14 @@ jobs:
       with:
         dotnet-version: '6.0.x'
 
-    - name: Build (Release)
-      run: dotnet build src -c Release -p:DotNetReleaserBinCi=true
+    - name: Build and Test (Release)
+      run: dotnet test src -c Release -p:DotNetReleaserBinCi=true
 
-    - name: Self test and Publish (if tagged)
+    - name: Publish
       if: github.event_name == 'push'
       run: |
           if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+" ) {
               ./src/dotnet-releaser/bin-ci/Release/net6.0/dotnet-releaser publish --github-token=${{secrets.TOKEN_GITHUB}} --nuget-token=${{secrets.NUGET_TOKEN}} ./src/dotnet-releaser.toml
           } else {
-              ./src/dotnet-releaser/bin-ci/Release/net6.0/dotnet-releaser build ./src/dotnet-releaser.toml
+              echo "publish is only enabled by tagging with a release tag"
           }
