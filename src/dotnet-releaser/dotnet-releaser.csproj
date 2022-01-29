@@ -48,6 +48,13 @@
     <PackageReference Include="CliWrap" Version="3.4.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <TrimmableAssembly Include="McMaster.Extensions.CommandLineUtils" />
+    <TrimmableAssembly Include="Octokit" />
+    <TrimmableAssembly Include="Tomlyn" />
+    <TrimmableAssembly Include="CliWrap" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(GITHUB_ACTIONS)' != ''">
     <!-- git versioning -->
     <PackageReference Include="MSBuildGitHash" Version="2.0.2">
