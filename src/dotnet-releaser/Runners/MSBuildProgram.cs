@@ -21,7 +21,7 @@ public class MSBuildRunner : DotNetRunnerBase
         Arguments.AddRange(new List<string>()
         {
             "-nologo",
-            $"-logger:{nameof(Microsoft.Build.Logging.BinaryLogger)},\"{typeof(Microsoft.Build.Logging.StructuredLogger.StructuredLogger).Assembly.Location}\";\"{_binlogPath}\"",
+            $"-logger:{nameof(Microsoft.Build.Logging.BinaryLogger)},\"{Path.Combine(AppContext.BaseDirectory, "StructuredLogger.dll")}\";\"{_binlogPath}\"",
         });
         Targets = new List<string>();
         Project = string.Empty;
