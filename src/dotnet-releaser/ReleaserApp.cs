@@ -60,7 +60,7 @@ public partial class ReleaserApp : ISimpleLogger
             });
         });
 
-        var exeName = Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly()?.Location)?.ToLowerInvariant();
+        var exeName = "dotnet-releaser";
         var logger = SimpleLogger.CreateConsoleLogger(factory, exeName);
         var appReleaser = new ReleaserApp(logger);
         var version = typeof(ReleaserApp).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?.?.?";

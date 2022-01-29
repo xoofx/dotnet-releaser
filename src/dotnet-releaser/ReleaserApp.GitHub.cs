@@ -101,7 +101,10 @@ public partial class ReleaserApp
                     {
                         assets = await github.Repository.Release.GetAllAssets(userGitHub, repoGitHub, release.Id, ApiOptions.None);
                         var assetToDelete = assets.FirstOrDefault(x => x.Name == filename);
-                        await github.Repository.Release.DeleteAsset(userGitHub, repoGitHub, assetToDelete.Id);
+                        if (assetToDelete != null)
+                        {
+                            await github.Repository.Release.DeleteAsset(userGitHub, repoGitHub, assetToDelete.Id);
+                        }
 
                         // Refresh the list of the assets
                         assets = await github.Repository.Release.GetAllAssets(userGitHub, repoGitHub, release.Id, ApiOptions.None);

@@ -28,13 +28,14 @@
 
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)../../img/$(AssemblyName).png" Pack="true" PackagePath="/" />
-    <None Include="$(MSBuildThisFileDirectory)../../readme.md" Pack="true" PackagePath="/"/>
+    <None Include="$(MSBuildThisFileDirectory)../../readme.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
   <ItemGroup>
     <None Remove="dotnet-releaser.targets" />
     <Content Include="dotnet-releaser.targets">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
   </ItemGroup>
 
@@ -42,17 +43,29 @@
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
-    <PackageReference Include="MSBuild.StructuredLogger" Version="2.1.545" />
+    <PackageReference Include="MSBuild.StructuredLogger" Version="2.1.545" GeneratePathProperty="true" />
     <PackageReference Include="Octokit" Version="0.50.0" />
     <PackageReference Include="Tomlyn" Version="0.10.0" />
     <PackageReference Include="CliWrap" Version="3.4.0" />
   </ItemGroup>
 
+  <!-- Workaround to allow to publish StruturedLogger.dll as dotnet-releaser-binary-logger.dll and make sure single file/self contained will not removed it -->
+  <PropertyGroup>
+    <DotNetReleaserStructuredLoggerFile>dotnet-releaser-binary-logger.dll</DotNetReleaserStructuredLoggerFile>
+    <IntermediateDotNetReleaserStructuredLoggerFile>obj/$(DotNetReleaserStructuredLoggerFile)</IntermediateDotNetReleaserStructuredLoggerFile>
+  </PropertyGroup>
+
+  <Target Name="AddContentStructuredLogger" AfterTargets="CollectPackageReferences" Condition="'$(PkgMSBuild_StructuredLogger)' != ''" Inputs="$(PkgMSBuild_StructuredLogger)\lib\netstandard2.0\StructuredLogger.dll" Outputs="$(IntermediateDotNetReleaserStructuredLoggerFile)">
+    <Copy DestinationFiles="$(IntermediateDotNetReleaserStructuredLoggerFile)" SourceFiles="$(PkgMSBuild_StructuredLogger)\lib\netstandard2.0\StructuredLogger.dll" SkipUnchangedFiles="true" />
+  </Target>
+
   <ItemGroup>
-    <TrimmableAssembly Include="McMaster.Extensions.CommandLineUtils" />
-    <TrimmableAssembly Include="Octokit" />
-    <TrimmableAssembly Include="Tomlyn" />
-    <TrimmableAssembly Include="CliWrap" />
+    <Content Include="$(IntermediateDotNetReleaserStructuredLoggerFile)">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <Link>$(DotNetReleaserStructuredLoggerFile)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
   </ItemGroup>
 
   <ItemGroup Condition="'$(GITHUB_ACTIONS)' != ''">

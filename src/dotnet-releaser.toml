@@ -1,6 +1,8 @@
 # configuration file for dotnet-releaser
 [msbuild]
 project = "./dotnet-releaser/dotnet-releaser.csproj"
+# Disable ReadyToRun crashing with dotnet-releaser
+properties.PublishReadyToRun = false 
 [github]
 user = "xoofx"
 repo = "dotnet-releaser"

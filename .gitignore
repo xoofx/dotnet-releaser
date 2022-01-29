@@ -367,3 +367,6 @@ Cargo.lock
 # Tmp folders
 tmp/
 [Tt]emp/
+
+# Remove artifacts produced by dotnet-releaser
+artifacts-dotnet-releaser/

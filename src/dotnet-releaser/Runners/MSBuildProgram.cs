@@ -21,13 +21,13 @@ public class MSBuildRunner : DotNetRunnerBase
         Arguments.AddRange(new List<string>()
         {
             "-nologo",
-            $"-logger:{nameof(Microsoft.Build.Logging.BinaryLogger)},\"{Path.Combine(AppContext.BaseDirectory, "StructuredLogger.dll")}\";\"{_binlogPath}\"",
+            $"-logger:{nameof(Microsoft.Build.Logging.BinaryLogger)},\"{Path.Combine(AppContext.BaseDirectory, "dotnet-releaser-binary-logger.dll")}\";\"{_binlogPath}\"",
         });
         Targets = new List<string>();
         Project = string.Empty;
         Configuration = "Release";
     }
-    
+
     public string Project { get; set; }
 
     public string Configuration { get; set; }

@@ -142,12 +142,10 @@ public class ReleaserConfiguration
             Properties = new Dictionary<string, object>()
             {
                 { "PublishTrimmed", true },
-                { "TrimmerDefaultAction", "link" },
-                { "TrimMode", "Link" },
                 { "PublishSingleFile", true },
                 { "SelfContained", true },
                 { "PublishReadyToRun", true },
-                { "PublishReadyToRunComposite", true },
+                //{ "PublishReadyToRunComposite", true }, // not by default
                 { "CopyOutputSymbolsToPublishDirectory", false },
                 { "SkipCopyingSymbolsToOutputDirectory", true }
             };
