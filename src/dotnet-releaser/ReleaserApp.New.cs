@@ -55,7 +55,7 @@ public partial class ReleaserApp
 project = ""{projectFile.Replace('\\', '/')}""
 [github]
 user = ""{user ?? "github_user_or_org_here"}""
-repo = ""{user ?? "github_repo_here"}""
+repo = ""{repo ?? "github_repo_here"}""
 ";
         if (changeLogPath is not null)
         {
