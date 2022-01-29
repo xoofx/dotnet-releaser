@@ -27,7 +27,11 @@ jobs:
         dotnet-version: '6.0.x'
 
     - name: Build and Test (Debug)
-      run: dotnet test src -c Test -p:DotNetReleaserBinCi=true
+      run: dotnet test src -c Debug -p:DotNetReleaserBinCi=true
+
+    - name: Pack
+      run: |
+          dotnet pack src -c Release
 
     - name: Publish
       if: github.event_name == 'push'
