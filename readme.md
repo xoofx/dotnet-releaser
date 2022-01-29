@@ -120,11 +120,21 @@ And put an appropriate expiration date.
 
 ## Documentation
 
-For more details and advanced usage, please visit the [documentation](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md).
+For more details and advanced usages, please visit the [documentation](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md).
 ## License
 
 This software is released under the [BSD-Clause 2 license](https://opensource.org/licenses/BSD-2-Clause). 
 
+## Credits
+
+`dotnet-releaser` is just a modest wrapper around many amazing OSS libraries:
+
+- [CommandLineUtils](https://github.com/natemcmaster/CommandLineUtils) for handling parsing command line arguments
+- [Microsoft.Extensions.Logging](https://github.com/dotnet/runtime/) for logging to the console.
+- [MSBuildStructuredLog](https://github.com/KirillOsenkov/MSBuildStructuredLog) for interacting with MSBuild.
+- [Octokit.NET](https://github.com/octokit/octokit.net) for interacting with GitHub.
+- [Tomlyn](https://github.com/xoofx/Tomlyn) for parsing the TOML configuration file.
+- [CliWrap](https://github.com/Tyrrrz/CliWrap) for easily wrap and launch executable.
 ## Author
 
 Alexandre Mutel aka [xoofx](http://xoofx.com).
