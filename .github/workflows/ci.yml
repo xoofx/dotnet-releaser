@@ -27,7 +27,7 @@ jobs:
         dotnet-version: '6.0.x'
 
     - name: Build (Release)
-      run: dotnet build src -c Release -p DotNetReleaserBinCi=true
+      run: dotnet build src -c Release -p:DotNetReleaserBinCi=true
 
     - name: Pack and Publish
       if: github.event_name == 'push'
