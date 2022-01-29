@@ -75,6 +75,24 @@ public partial class ReleaserApp : ISimpleLogger
         app.Command("publish", AddPublishOrBuildArgs);
         app.Command("build", AddPublishOrBuildArgs);
 
+        app.Command("new", newCommand =>
+            {
+                newCommand.Description = "Create a dotnet-releaser TOML configuration file for a specified project.";
+                var configurationFileArg = newCommand.Argument("dotnet-releaser.toml", "TOML configuration file path to create. Default is: dotnet-releaser.toml");
+                var projectOption = newCommand.Option<string>("--project <project_file>", "A - relative - path to project file (csproj, vbproj, fsproj)", CommandOptionType.SingleValue).IsRequired();
+                var userOption = newCommand.Option<string>("--user <GitHub_user/org>", "The GitHub user/org where the packages will be published", CommandOptionType.SingleValue);
+                var repoOption = newCommand.Option<string>("--repo <GitHub_repo>", "The GitHub repo name where the packages will be published", CommandOptionType.SingleValue);
+                var forceOption = newCommand.Option<bool>("--force", "Force overwriting the existing TOML configuration file.", CommandOptionType.NoValue);
+
+                newCommand.OnExecuteAsync(async token =>
+                    {
+                        var result = await appReleaser.CreateConfigurationFile(configurationFileArg.Value, projectOption.ParsedValue, userOption.ParsedValue, repoOption.ParsedValue, forceOption.ParsedValue);
+                        return result ? 0 : 1;
+                    }
+                );
+            }
+        );
+
         void AddPublishOrBuildArgs(CommandLineApplication cmd)
         {
             CommandOption<string>? githubToken = null;
@@ -82,12 +100,17 @@ public partial class ReleaserApp : ISimpleLogger
 
             if (cmd.Name == "publish")
             {
+                cmd.Description = "Build and publish the project.";
                 githubToken = cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
                 nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
             }
+            else
+            {
+                cmd.Description = "Build only the project.";
+            }
 
             var forceOption = cmd.Option<bool>("--force", "Force deleting and recreating the artifacts folder.", CommandOptionType.NoValue);
-            var configurationFileArg = cmd.Argument<string>("app_configuration_file.toml", "TOML configuration file").IsRequired();
+            var configurationFileArg = cmd.Argument<string>("dotnet-releaser.toml", "TOML configuration file").IsRequired();
 
             cmd.OnExecuteAsync(async (token) =>
             {
