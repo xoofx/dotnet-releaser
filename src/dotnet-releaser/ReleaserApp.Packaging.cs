@@ -22,6 +22,7 @@ public partial class ReleaserApp
         var packageDescription = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageDescription)?.ItemSpec;
         var packageLicenseExpression = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageLicenseExpression)?.ItemSpec;
         var packageOutputType = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.ItemSpec;
+        var packageProjectUrl = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageProjectUrl)?.ItemSpec ?? $"{_config.GitHub.GetUrl()}";
 
         // Check that the output type is actually an exe
         if (packageOutputType is null || !packageOutputType.Contains("exe", StringComparison.OrdinalIgnoreCase))
@@ -30,7 +31,7 @@ public partial class ReleaserApp
             return null;
         }
 
-        return new PackageInfo(packageId, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found");
+        return new PackageInfo(packageId, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl);
     }
 
     /// <summary>
@@ -200,5 +201,5 @@ public partial class ReleaserApp
         return true;
     }
 
-    private record PackageInfo(string Name, string Version, string Description, string License);
+    private record PackageInfo(string Name, string Version, string Description, string License, string ProjectUrl);
 }

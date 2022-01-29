@@ -25,11 +25,6 @@ public class ReleaserConfiguration
         NuGet = new NuGetPublisher();
         Brew = new BrewPublisher();
     }
-
-    public string? Description { get; set; }
-    
-    public string? Home { get; set; }
-
     public ProfileKind Profile { get; set; }
 
     public string ArtifactsFolder { get; set; }
@@ -59,11 +54,6 @@ public class ReleaserConfiguration
         {
             logger.Error($"The MSBuild project file `{MSBuild.Project}` was not found.");
             return false;
-        }
-
-        if (string.IsNullOrEmpty(Home))
-        {
-            Home = $"https://github.com/{GitHub.User}/{GitHub.Repo}";
         }
 
         // Check changelog

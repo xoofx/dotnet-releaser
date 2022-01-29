@@ -46,7 +46,7 @@ public partial class ReleaserApp
         formulaBuilder.Append($@"# This file was generated automatically by dotnet-releaser - DO NOT EDIT
 class {appName} < Formula
   desc ""{EscapeRuby(packageInfo.Description)}""
-  homepage ""{url}""
+  homepage ""{packageInfo.ProjectUrl}""
   version ""{packageInfo.Version}""
   license ""{packageInfo.License}""
 ");
@@ -70,7 +70,7 @@ class {appName} < Formula
         {
             Info($"Creating Homebrew repository {user}/{homebrew}");
             var newRepository = new NewRepository(homebrew);
-            newRepository.Description = $"Homebrew repository for {_config.Home}";
+            newRepository.Description = $"Homebrew repository for {packageInfo.ProjectUrl}";
             newRepository.AutoInit = true;
             newRepository.LicenseTemplate = packageInfo.License;
             existingRepository = await github.Repository.Create(newRepository);
