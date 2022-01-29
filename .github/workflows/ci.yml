@@ -9,6 +9,7 @@ on:
     - 'doc/**'
     - 'img/**'
     - 'changelog.md'
+    - 'license.txt'
     - 'readme.md'
   pull_request:
 
@@ -32,7 +33,7 @@ jobs:
       if: github.event_name == 'push'
       run: |
           if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+" ) {
-              ./src/dotnet-releaser/bin/net6.0/dotnet-releaser publish --github-token=${{secrets.TOKEN_GITHUB}} --nuget-token=${{secrets.NUGET_TOKEN}} ./src/dotnet-releaser.toml
+              ./src/dotnet-releaser/bin/Release/net6.0/dotnet-releaser publish --github-token=${{secrets.TOKEN_GITHUB}} --nuget-token=${{secrets.NUGET_TOKEN}} ./src/dotnet-releaser.toml
           } else {
-              ./src/dotnet-releaser/bin/net6.0/dotnet-releaser build ./src/dotnet-releaser.toml
+              ./src/dotnet-releaser/bin/Release/net6.0/dotnet-releaser build ./src/dotnet-releaser.toml
           }
