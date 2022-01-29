@@ -30,6 +30,7 @@ public partial class ReleaserApp
 
     private async Task<List<string>?> BuildNuGetPackageImpl()
     {
+        Info($"Building NuGet Package");
         var outputs = await RunMSBuild(ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput);
         if (outputs is null) return null;
 
