@@ -1,0 +1,8 @@
+# configuration file for dotnet-releaser
+[msbuild]
+project = "./dotnet-releaser/dotnet-releaser.csproj"
+[github]
+user = "xoofx"
+repo = "xoofx"
+[changelog]
+path = "../../changelog.md"

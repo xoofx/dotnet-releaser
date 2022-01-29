@@ -1,8 +1,7 @@
 name: ci
 
 env:
-  PROJECT_NAME: GrpcCurl
-  LIB_NAME: DynamicGrpc
+  PROJECT_NAME: dotnet-releaser
 
 on:
   push:
@@ -26,28 +25,14 @@ jobs:
       with:
         dotnet-version: '6.0.x'
 
-    - name: Build & test (Release)
-      run: dotnet test src -c Release
+    - name: Build (Release)
+      run: dotnet build src -c Release
 
-    - name: Coveralls
-      run: dotnet test src -c Release -f net6.0 /p:Include=\"[${{env.LIB_NAME}}]*\" /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
-
-    #- name: Coveralls Upload
-    #  uses: coverallsapp/github-action@v1.0.1
-    #  if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    #  with:
-    #    github-token: ${{ secrets.GITHUB_TOKEN }}
-    #    path-to-lcov: src/${{env.PROJECT_NAME}}.Tests/coverage.info
-
-    - name: Pack
-      run: |
-          dotnet pack src -c Release
-
-    - name: Publish
+    - name: Pack and Publish
       if: github.event_name == 'push'
       run: |
           if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+" ) {
-              dotnet nuget push src\**\*.nupkg -s nuget.org -k ${{secrets.NUGET_TOKEN}}
+              ./src/dotnet-releaser/bin/net6.0/dotnet-releaser publish --github-token=${{secrets.TOKEN_GITHUB}} --nuget-token=${{secrets.NUGET_TOKEN}} ./src/dotnet-releaser.toml
           } else {
-              echo "publish is only enabled by tagging with a release tag"
+              ./src/dotnet-releaser/bin/net6.0/dotnet-releaser build ./src/dotnet-releaser.toml
           }

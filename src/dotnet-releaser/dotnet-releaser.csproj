@@ -1,14 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <VersionPrefix>1.0.0</VersionPrefix>
     <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>DotNetReleaser</RootNamespace>
     <AssemblyName>dotnet-releaser</AssemblyName>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
+    <MSBuildGitHashSuppressDirtyWarning>True</MSBuildGitHashSuppressDirtyWarning>
   </PropertyGroup>
+
+  <!-- Package properties -->
+  <PropertyGroup>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Copyright>Alexandre Mutel</Copyright>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <Authors>Alexandre Mutel</Authors>
+    <PackageTags>releaser;packaging;deb;rpm;tool</PackageTags>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <PackageReleaseNotes>https://github.com/xoofx/$(AssemblyName)/blob/master/changelog.md</PackageReleaseNotes>
+    <PackageIcon>grpc-curl.png</PackageIcon>
+    <PackageProjectUrl>https://github.com/xoofx/$(AssemblyName)</PackageProjectUrl>
+    <PackageLicenseExpression>BSD-2-Clause</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../../img/$(AssemblyName).png" Pack="true" PackagePath="/" />
+    <None Include="$(MSBuildThisFileDirectory)../../readme.md" Pack="true" PackagePath="/"/>
+  </ItemGroup>
 
   <ItemGroup>
     <None Remove="dotnet-releaser.targets" />
@@ -25,6 +44,16 @@
     <PackageReference Include="Octokit" Version="0.50.0" />
     <PackageReference Include="Tomlyn" Version="0.10.0" />
     <PackageReference Include="CliWrap" Version="3.4.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GITHUB_ACTIONS)' != ''">
+    <!-- git versioning -->
+    <PackageReference Include="MSBuildGitHash" Version="2.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <!--Add support for sourcelink-->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.*" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
