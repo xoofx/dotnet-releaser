@@ -242,7 +242,7 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Build executable packages (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
-        var entries = new List<PackageEntry>();
+        var entriesToPublish = new List<PackageEntry>();
 
         var builder = new StringBuilder();
         bool hasPackagesToBuild = false;
@@ -264,9 +264,9 @@ public partial class ReleaserApp : ISimpleLogger
                 foreach (var rid in pack.RuntimeIdentifiers)
                 {
                     var list = await PackPlatform(pack.Publish, rid, pack.Kinds.ToArray());
-                    if (list is not null)
+                    if (list is not null && pack.Publish)
                     {
-                        entries.AddRange(list);
+                        entriesToPublish.AddRange(list);
                     }
                 }
             }
@@ -303,13 +303,13 @@ public partial class ReleaserApp : ISimpleLogger
 
             // Don't try to continue publishing if we had errors with NuGet publishing
             // Otherwise publish any packages that we have generated before
-            if (!HasErrors && gitHubClient is not null && entries.Count > 0)
+            if (!HasErrors && gitHubClient is not null)
             {
-                await UpdateGitHub(gitHubClient, packageInfo, changelog, entries);
+                await UpdateGitHub(gitHubClient, packageInfo, changelog, entriesToPublish);
 
                 if (!HasErrors && _config.Brew.Publish)
                 {
-                    await UploadBrewFormula(gitHubClient, packageInfo, entries);
+                    await UploadBrewFormula(gitHubClient, packageInfo, entriesToPublish);
                 }
 
 
