@@ -21,6 +21,14 @@ public partial class ReleaserApp
         var packageVersion = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageVersion).ItemSpec;
         var packageDescription = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageDescription)?.ItemSpec;
         var packageLicenseExpression = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageLicenseExpression)?.ItemSpec;
+        var packageOutputType = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.ItemSpec;
+
+        // Check that the output type is actually an exe
+        if (packageOutputType is null || !packageOutputType.Contains("exe", StringComparison.OrdinalIgnoreCase))
+        {
+            Error($"The project is not an executable but is of type {packageOutputType}. This tool supports only packaging executables.");
+            return null;
+        }
 
         return new PackageInfo(packageId, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found");
     }

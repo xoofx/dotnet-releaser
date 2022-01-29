@@ -20,4 +20,5 @@ static class ReleaserConstants
     public const string PackageVersion = nameof(PackageVersion);
     public const string PackageDescription = nameof(PackageDescription);
     public const string PackageLicenseExpression = nameof(PackageLicenseExpression);
+    public const string PackageOutputType = nameof(PackageOutputType);
 }
