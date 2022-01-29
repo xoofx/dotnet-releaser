@@ -1,8 +1,8 @@
 # configuration file for dotnet-releaser
 [msbuild]
 project = "./dotnet-releaser/dotnet-releaser.csproj"
-# Disable ReadyToRun crashing with dotnet-releaser
-properties.PublishReadyToRun = false 
+# Disable default packs - It will only publish NuGet and the Changelog
+profile = "custom"
 [github]
 user = "xoofx"
 repo = "dotnet-releaser"
