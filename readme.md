@@ -2,7 +2,7 @@
 
 <img align="right" width="160px" height="160px" src="https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/img/dotnet-releaser.png">
 
-`dotnet-releaser` is a command line tool to easily package and publish your command line single file application to GitHub. 
+`dotnet-releaser` is a command line tool to easily cross-compile, package and publish your command line single file application to GitHub.
 
 ## Features
 

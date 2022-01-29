@@ -6,6 +6,8 @@
     <AssemblyName>dotnet-releaser</AssemblyName>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <Description>dotnet-releaser is a command line tool to easily cross-compile, package and publish your command line single file application to GitHub.</Description>
     <MSBuildGitHashSuppressDirtyWarning>True</MSBuildGitHashSuppressDirtyWarning>
     <!-- This is to allow to compile dotnet-releaser on itself in the CI otherwise it cannot overwrite its self executable -->
     <BaseOutputPath Condition="'$(DotNetReleaserBinCi)' == 'true'">bin-ci</BaseOutputPath>
