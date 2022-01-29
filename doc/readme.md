@@ -59,7 +59,7 @@ Options:
 
 Example:
 
-```shell
+```sh
 $ dotnet-releaser new --project HelloWorld.csproj --user xoofx --repo HelloWorld
 ``` 
 
@@ -83,7 +83,7 @@ Options:
 
 Example:
 
-```shell
+```sh
 $ dotnet-releaser build --project HelloWorld.csproj --user xoofx --repo HelloWorld
 ``` 
 
@@ -418,11 +418,11 @@ In order to use `dotnet-releaser` on your GitHub CI, you need:
 
 1. To install `dotnet 6.0`
 2. To install the global tool `dotnet-releaser`
-  ```shell
+  ```sh
   dotnet tool install --global dotnet-releaser --version 0.1.0
   ```
 3. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
-  ```shell
+  ```sh
   dotnet-releaser publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
   ```
 
