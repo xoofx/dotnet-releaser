@@ -115,8 +115,7 @@ You should tick the `public_repo` in the list:
 
 And put an appropriate expiration date.
 
-
-![](img/github_new_personal_access_token.png)
+![GitHub Setup of Personal access token](https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/img/github_new_personal_access_token.png)
 
 ## User Guide
 
