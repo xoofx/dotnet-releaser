@@ -14,6 +14,8 @@
   - [2.6) Homebrew](#26-homebrew)
   - [2.7) Changelog](#27-changelog)
 - [3) Adding dotnet-releaser to your CI on GitHub](#3-adding-dotnet-releaser-to-your-ci-on-github)
+  - [3.1) Steps for a GitHub CI Integration](#31-steps-for-a-github-ci-integration)
+  - [3.2) Example of a GitHub CI Integration](#32-example-of-a-github-ci-integration)
 
 ## 0) General usage
 
@@ -410,17 +412,21 @@ version = `^##\s+v?((\d+\.)*(\d+))` # This is the default
 
 You can easily replace the step of using `nuget push` with `dotnet-releaser` to automate entirely the publication of your package.
 
+### 3.1) Steps for a GitHub CI Integration
+
 In order to use `dotnet-releaser` on your GitHub CI, you need:
 
-- To install `dotnet 6.0`
-- To install the global tool
+1. To install `dotnet 6.0`
+2. To install the global tool `dotnet-releaser`
+  ```shell
+  dotnet tool install --global dotnet-releaser --version 0.1.0
   ```
-  `dotnet-releaser`: `dotnet tool install --global dotnet-releaser --version 0.1.0 `
-  ```
-- To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
-  ```
+3. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
+  ```shell
   dotnet-releaser publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
   ```
+
+### 3.2) Example of a GitHub CI Integration
 
 An example of a setup with GitHub Actions:
 
