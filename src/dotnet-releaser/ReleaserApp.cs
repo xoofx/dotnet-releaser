@@ -311,8 +311,6 @@ public partial class ReleaserApp : ISimpleLogger
                 {
                     await UploadBrewFormula(gitHubClient, packageInfo, entriesToPublish);
                 }
-
-
             }
         }
 

@@ -32,7 +32,7 @@ When publishing, `dotnet-releaser` will automatically:
 - **Upload all the package artifacts and your changelog to GitHub** on the tag associated with your package version (e.g your package is `1.0.0`, it will try to find a git tag `v1.0.0` or `1.0.0`).
 - **Create a Homebrew repository and formula**  (e.g `user_or_org/homebrew-your-app-name`) for all the tar files associated with the targets for Linux and MacOS.
 
-See the [documentation](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md) on how to setup this differently for your application.
+See the [user guide](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md) on how to setup this differently for your application.
 ## Getting started
 
 ### 1. Install dotnet-releaser
@@ -118,9 +118,9 @@ And put an appropriate expiration date.
 
 ![](img/github_new_personal_access_token.png)
 
-## Documentation
+## User Guide
 
-For more details and advanced usages, please visit the [documentation](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md).
+For more details and advanced usages, please visit the [user guide](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md).
 ## License
 
 This software is released under the [BSD-Clause 2 license](https://opensource.org/licenses/BSD-2-Clause). 
