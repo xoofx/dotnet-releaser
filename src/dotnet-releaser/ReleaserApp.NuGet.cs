@@ -31,6 +31,12 @@ public partial class ReleaserApp
     private async Task<List<string>?> BuildNuGetPackageImpl()
     {
         Info($"Building NuGet Package");
+        var restoreResult = await RunMSBuild("Restore");
+        if (restoreResult is null)
+        {
+            return null;
+        }
+
         var outputs = await RunMSBuild(ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput);
         if (outputs is null) return null;
 
