@@ -124,6 +124,12 @@ For more details and advanced usages, please visit the [user guide](https://gith
 
 This software is released under the [BSD-Clause 2 license](https://opensource.org/licenses/BSD-2-Clause). 
 
+## Who is using `dotnet-releaser`?
+
+It's brand new, so only the author for now! :D
+
+You can see it's usage on the project [grpc-curl here](https://github.com/xoofx/grpc-curl/releases/tag/1.3.2).
+
 ## Credits
 
 `dotnet-releaser` is just a modest wrapper around many amazing OSS libraries:
