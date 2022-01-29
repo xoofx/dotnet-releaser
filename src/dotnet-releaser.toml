@@ -5,4 +5,4 @@ project = "./dotnet-releaser/dotnet-releaser.csproj"
 user = "xoofx"
 repo = "dotnet-releaser"
 [changelog]
-path = "../../changelog.md"
+path = "../changelog.md"
