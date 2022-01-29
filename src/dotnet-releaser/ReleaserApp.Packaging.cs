@@ -24,11 +24,14 @@ public partial class ReleaserApp
         return new PackageInfo(packageId, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found");
     }
 
+    /// <summary>
+    /// This is the part that handles the packaging for tar, zip, deb, rpm
+    /// </summary>
     private async Task<List<PackageEntry>?> PackPlatform(bool publish, string rid, params PackageKind[] kinds)
     {
         var properties = new Dictionary<string, object>(_config.MSBuild.Properties)
         {
-            { "RuntimeIdentifier", rid },
+            { "RuntimeIdentifier", rid }, // Make sure that we have the last word on the target platform
         };
 
         var entries = new List<PackageEntry>();
@@ -55,7 +58,7 @@ public partial class ReleaserApp
                     mime = "application/gzip";
                     break;
                 case PackageKind.Setup:
-                    target = ReleaserConstants.DotNetReleaserPublishAndCreateSetup;
+                    target = ReleaserConstants.DotNetReleaserPublishAndCreateSetup; // not yet supported
                     mime = "application/vnd.microsoft.portable-executable";
                     break;
                 default:
@@ -185,7 +188,6 @@ public partial class ReleaserApp
 
         return true;
     }
-
 
     private record PackageInfo(string Name, string Version, string Description, string License);
 }

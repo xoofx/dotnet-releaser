@@ -228,6 +228,10 @@ public partial class ReleaserApp : ISimpleLogger
             {
                 Info($"Changelog found:{Environment.NewLine}{changelog}");
             }
+            else
+            {
+                Warn("No changelog found or configured.");
+            }
         }
 
         // ------------------------------------------------------------------

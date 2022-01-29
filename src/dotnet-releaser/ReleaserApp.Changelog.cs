@@ -10,7 +10,7 @@ public partial class ReleaserApp
 {
     private async Task<string?> LoadChangeLog(PackageInfo info)
     {
-        if (_config.Changelog.Path is null) return null;
+        if (string.IsNullOrEmpty(_config.Changelog.Path)) return null;
 
         var lines = await File.ReadAllLinesAsync(_config.Changelog.Path);
 
@@ -41,7 +41,7 @@ public partial class ReleaserApp
 
         if (!versionFound)
         {
-            throw new InvalidOperationException($"Unable to find version {info.Version} from changelog.md");
+            throw new AppException($"Unable to find version {info.Version} from changelog.md");
         }
 
         return builder.ToString().Trim();
