@@ -118,7 +118,7 @@ public partial class ReleaserApp : ISimpleLogger
 
                 // Check configuration file
                 var configurationFilePath = configurationFileArg.ParsedValue;
-                configurationFilePath = Path.Combine(Environment.CurrentDirectory, configurationFilePath);
+                configurationFilePath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, configurationFilePath));
                 if (!File.Exists(configurationFilePath))
                 {
                     throw new AppException($"Configuration file `{configurationFilePath}' not found.");

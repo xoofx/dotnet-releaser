@@ -46,10 +46,10 @@ public class ReleaserConfiguration
 
     private bool Initialize(string configurationDirectory, ISimpleLogger logger)
     {
-        ArtifactsFolder = Path.Combine(configurationDirectory, ArtifactsFolder);
+        ArtifactsFolder = Path.GetFullPath(Path.Combine(configurationDirectory, ArtifactsFolder));
 
         // Make sure that the path is absolute
-        MSBuild.Project = Path.Combine(configurationDirectory, MSBuild.Project);
+        MSBuild.Project = Path.GetFullPath(Path.Combine(configurationDirectory, MSBuild.Project));
         if (!File.Exists(MSBuild.Project))
         {
             logger.Error($"The MSBuild project file `{MSBuild.Project}` was not found.");
@@ -65,7 +65,7 @@ public class ReleaserConfiguration
             }
             else
             {
-                Changelog.Path = Path.Combine(configurationDirectory, Changelog.Path);
+                Changelog.Path = Path.GetFullPath(Path.Combine(configurationDirectory, Changelog.Path));
                 if (!File.Exists(Changelog.Path))
                 {
                     logger.Error($"The changelog file {Changelog.Path} was not found.");
@@ -249,13 +249,12 @@ public class ReleaserConfiguration
     
     public static async Task<ReleaserConfiguration?> From(string filePath, ISimpleLogger logger)
     {
-        ReleaserConfiguration? configuration = null;
         try
         {
             logger.Info($"Loading configuration from {filePath}");
             var content = await File.ReadAllTextAsync(filePath);
 
-            if (Toml.TryToModel(content, out configuration, out var diagnostics, filePath))
+            if (Toml.TryToModel(content, out ReleaserConfiguration? configuration, out var diagnostics, filePath))
             {
                 if (!configuration.Initialize(Path.GetDirectoryName(filePath) ?? Environment.CurrentDirectory, logger))
                 {
@@ -283,7 +282,7 @@ public class ReleaserConfiguration
             logger.Error($"Unexpected exception while trying to load configuration from `{filePath}`. Reason: {ex.Message}");
         }
 
-        return configuration;
+        return null;
     }
 
     private static void TransferValue<T>(TomlTable table, string name, ILogger log, ref bool hasErrors, Action<T> setter, bool canBeNull = false)
