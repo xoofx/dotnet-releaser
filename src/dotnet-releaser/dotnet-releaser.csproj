@@ -20,7 +20,7 @@
     <PackageTags>releaser;packaging;deb;rpm;tool</PackageTags>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
     <PackageReleaseNotes>https://github.com/xoofx/$(AssemblyName)/blob/master/changelog.md</PackageReleaseNotes>
-    <PackageIcon>grpc-curl.png</PackageIcon>
+    <PackageIcon>$(AssemblyName).png</PackageIcon>
     <PackageProjectUrl>https://github.com/xoofx/$(AssemblyName)</PackageProjectUrl>
     <PackageLicenseExpression>BSD-2-Clause</PackageLicenseExpression>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
