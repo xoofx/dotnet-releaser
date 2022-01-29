@@ -25,7 +25,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -40,15 +40,15 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="3480"
-     inkscape:window-height="1830"
+     inkscape:window-width="3840"
+     inkscape:window-height="2054"
      id="namedview14"
      showgrid="false"
-     inkscape:zoom="0.834386"
-     inkscape:cx="891.96729"
-     inkscape:cy="897.85019"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:zoom="0.59"
+     inkscape:cx="508.32609"
+     inkscape:cy="1265.5172"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
      inkscape:window-maximized="1"
      inkscape:current-layer="g10" />
   <g
@@ -60,21 +60,21 @@
        inkscape:connector-curvature="0" />
     <g
        aria-label="&lt;/&gt;"
-       transform="matrix(0.71645509,0,0,1.3957609,-3.0333253e-6,-3.1459961)"
+       transform="matrix(0.71645509,0,0,1.3957609,-3.0333253e-6,6.7414973)"
        style="font-style:normal;font-variant:normal;font-weight:900;font-stretch:normal;font-size:557.46868896px;line-height:72.58705902px;font-family:Arial;-inkscape-font-specification:'Arial Heavy';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.90348244"
        id="text844">
       <path
-         d="M 730.80727,601.02268 421.31416,472.27136 V 391.69972 L 730.80727,263.22061 v 96.63153 l -188.09124,72.4056 188.09124,72.6778 z"
+         d="M 730.80727,593.93873 421.31416,465.18742 V 384.61578 L 730.80727,256.13667 v 96.63153 l -188.09124,72.4056 188.09124,72.6778 z"
          style="fill:#ff6600;stroke-width:2.90348244"
          id="path4553"
          inkscape:connector-curvature="0" />
       <path
-         d="m 868.29943,226.895 h 84.80488 L 803.0649,637.34829 h -83.98945 z"
-         style="fill:#ff2a2a;stroke-width:3.54513693"
+         d="m 859.84353,237.84295 h 58.43639 L 814.8924,612.23245 h -57.87453 z"
+         style="fill:#ff2a2a;stroke-width:2.81056976"
          id="path4555"
          inkscape:connector-curvature="0" />
       <path
-         d="M 944.21325,601.02268 1253.7064,472.27136 V 391.69972 L 944.21325,263.22061 v 96.63153 l 188.09125,72.4056 -188.09125,72.6778 z"
+         d="M 944.21325,593.93873 1253.7064,465.18742 V 384.61578 L 944.21325,256.13667 v 96.63153 l 188.09125,72.4056 -188.09125,72.6778 z"
          style="fill:#ff6600;stroke-width:2.90348244"
          id="path4557"
          inkscape:connector-curvature="0" />
