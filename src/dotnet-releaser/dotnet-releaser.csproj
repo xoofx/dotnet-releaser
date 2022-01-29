@@ -52,6 +52,8 @@
 
   <!-- Workaround to allow to publish StruturedLogger.dll as dotnet-releaser-binary-logger.dll and make sure single file/self contained will not removed it -->
   <PropertyGroup>
+    <!-- Avoid NuGet to complain about dotnet-releaser-binary-logger.dll-->
+    <NoWarn>NU5100</NoWarn>
     <DotNetReleaserStructuredLoggerFile>dotnet-releaser-binary-logger.dll</DotNetReleaserStructuredLoggerFile>
     <IntermediateDotNetReleaserStructuredLoggerFile>obj/$(DotNetReleaserStructuredLoggerFile)</IntermediateDotNetReleaserStructuredLoggerFile>
   </PropertyGroup>
