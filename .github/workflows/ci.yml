@@ -27,7 +27,7 @@ jobs:
         dotnet-version: '6.0.x'
 
     - name: Build and Test (Debug)
-      run: dotnet test src -c Debug -p:DotNetReleaserBinCi=true
+      run: dotnet test src -c Debug
 
     - name: Pack
       run: |
@@ -37,7 +37,7 @@ jobs:
       if: github.event_name == 'push'
       run: |
           if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+" ) {
-              ./src/dotnet-releaser/Bin/Debug/net6.0/dotnet-releaser publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token  ${{secrets.TOKEN_GITHUB}} ./src/dotnet-releaser/dotnet-releaser.toml
+              ./src/dotnet-releaser/bin/Debug/net6.0/dotnet-releaser.exe publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token  ${{secrets.TOKEN_GITHUB}} ./src/dotnet-releaser/dotnet-releaser.toml
           } else {
               echo "publish is only enabled by tagging with a release tag"
           }
