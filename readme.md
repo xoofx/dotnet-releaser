@@ -2,20 +2,20 @@
 
 <img align="right" width="160px" height="160px" src="https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/img/dotnet-releaser.png">
 
-`dotnet-releaser` is a command line tool to easily cross-compile, package and publish your command line single file application to GitHub.
+`dotnet-releaser` is a command line tool to easily cross-compile, package and publish your .NET command line application to NuGet and GitHub.
 
 ## Features
 
-- Cross-compile your .NET application
-- Create zip archives, Linux packages (debian, rpm) and Homebrew taps
-- Extract changelog from your changelog.md
-- Publish all artifacts to GitHub
+- **Cross-compile** your .NET application to **9+ OS/CPU targets**.
+- Create **zip archives**, **Linux packages** (debian, rpm) and **Homebrew taps**
+- Extract **your changelog** from your changelog.md to
+- **Publish all artifacts** to **NuGet** and **GitHub**
 
 ## Defaults
 
 By default, `dotnet-releaser` will cross-compile and package automatically the following targets:
 
-- NuGet package
+- NuGet package (packed as a .NET global tool)
 - `[win-x64]` with `[zip]` package            
 - `[win-arm]` with `[zip]` package            
 - `[win-arm64]` with `[zip]` package          
@@ -26,6 +26,13 @@ By default, `dotnet-releaser` will cross-compile and package automatically the f
 - `[osx-x64]` with `[tar]` package            
 - `[osx-arm64]` with `[tar]` package          
 
+When publishing, `dotnet-releaser` will automatically:
+
+- **Publish your application as a global tool to NuGet**
+- **Upload all the package artifacts and your changelog to GitHub** on the tag associated with your package version (e.g your package is `1.0.0`, it will try to find a git tag `v1.0.0` or `1.0.0`).
+- **Create a Homebrew repository and formula**  (e.g `user_or_org/homebrew-your-app-name`) for all the tar files associated with the targets for Linux and MacOS.
+
+See the [documentation](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md) on how to setup this differently for your application.
 ## Getting started
 
 ### 1. Install dotnet-releaser
@@ -65,7 +72,7 @@ user = "github_user_or_org_here"
 repo = "github_repo_here"
 ```
 
-### 3. Build or publish
+### 3. Build
 
 You can cross-compile and build all packages by running the sub-command `build`:
 
@@ -92,10 +99,28 @@ HelloWorld.1.0.0.win-arm.zip
 HelloWorld.1.0.0.win-arm64.zip        
 HelloWorld.1.0.0.win-x64.zip          
 ```
+### 4. Publish
+
+The `publish` command allows to build and publish all packages to GitHub and NuGet.
+
+```shell
+dotnet-releaser publish --force --github-token YOUR_GITHUB_TOKEN_HERE --nuget-token YOUR_NUGET_TOKEN_HERE  dotnet-releaser.toml
+```
+
+For GitHub you need to create a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
+
+You should tick the `public_repo` in the list:
+
+- [x] public_repo
+
+And put an appropriate expiration date.
+
+
+![](img/github_new_personal_access_token.png)
+
 ## Documentation
 
-You can find more advanced usage in the [documentation](https://github.com/xoofx/dotnet-releaser/)
-
+For more details and advanced usage, please visit the [documentation](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md).
 ## License
 
 This software is released under the [BSD-Clause 2 license](https://opensource.org/licenses/BSD-2-Clause). 
