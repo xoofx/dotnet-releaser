@@ -13,6 +13,7 @@
   - [2.5) NuGet](#25-nuget)
   - [2.6) Homebrew](#26-homebrew)
   - [2.7) Changelog](#27-changelog)
+- [3) Adding dotnet-releaser to your CI on GitHub](#3-adding-dotnet-releaser-to-your-ci-on-github)
 
 ## 0) General usage
 
@@ -405,3 +406,41 @@ Overrides the default regex that will be used to match the Markdown header and l
 [changelog]
 version = `^##\s+v?((\d+\.)*(\d+))` # This is the default
 ```
+## 3) Adding dotnet-releaser to your CI on GitHub
+
+You can easily replace the step of using `nuget push` with `dotnet-releaser` to automate entirely the publication of your package.
+
+In order to use `dotnet-releaser` on your GitHub CI, you need:
+
+- To install `dotnet 6.0`
+- To install the global tool
+  ```
+  `dotnet-releaser`: `dotnet tool install --global dotnet-releaser --version 0.1.0 `
+  ```
+- To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
+  ```
+  dotnet-releaser publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
+  ```
+
+An example of a setup with GitHub Actions:
+
+```yaml
+    - name: Install .NET 6.0
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+
+   # more entries
+
+    - name: Publish
+      if: github.event_name == 'push'
+      run: |
+          if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+" ) {
+              dotnet tool install --global dotnet-releaser --version 0.1.0 
+              dotnet-releaser publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
+          } else {
+              echo "publish is only enabled by tagging with a release tag"
+          }
+```
+
+> `dotnet-releaser` is currently not available as a GitHub Action, as it requires anyway `dotnet` to be installed (in order to compile the projects).
