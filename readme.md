@@ -134,6 +134,7 @@ You can see it's usage on the project [grpc-curl here](https://github.com/xoofx/
 
 `dotnet-releaser` is just a modest wrapper around many amazing OSS libraries:
 
+- [dotnet-packaging](https://github.com/quamotion/dotnet-packaging) by using their NuGet [Packaging.Targets](https://www.nuget.org/packages/Packaging.Targets) to hook package creation into MSBuild user's project.
 - [CommandLineUtils](https://github.com/natemcmaster/CommandLineUtils) for handling parsing command line arguments
 - [Microsoft.Extensions.Logging](https://github.com/dotnet/runtime/) for logging to the console.
 - [MSBuildStructuredLog](https://github.com/KirillOsenkov/MSBuildStructuredLog) for interacting with MSBuild.
