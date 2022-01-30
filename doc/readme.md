@@ -406,7 +406,7 @@ Overrides the default regex that will be used to match the Markdown header and l
 
 ```toml
 [changelog]
-version = `^##\s+v?((\d+\.)*(\d+))` # This is the default
+version = '^##\s+v?((\d+\.)*(\d+))' # This is the default
 ```
 ## 3) Adding dotnet-releaser to your CI on GitHub
 
