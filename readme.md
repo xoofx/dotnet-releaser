@@ -10,6 +10,7 @@
 - Create **zip archives**, **Linux packages** (debian, rpm) and **Homebrew taps**
 - Extract **your changelog** from your `changelog.md`
 - **Publish all artifacts** to **NuGet** and **GitHub**
+- Integrate `dotnet-releaser` easily in [your GitHub Action workflow](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md#3-adding-dotnet-releaser-to-your-ci-on-github).
 
 ## Defaults
 
