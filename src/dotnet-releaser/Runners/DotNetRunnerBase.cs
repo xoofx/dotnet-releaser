@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CliWrap;
+using CliWrap.Builders;
 
 namespace DotNetReleaser.Runners;
 
@@ -49,24 +49,25 @@ public abstract class DotNetRunnerBase : IDisposable
 
     private static string GetFullArguments(string command, IEnumerable<string> arguments, IReadOnlyDictionary<string, object>? properties)
     {
-        var argsBuilder = new StringBuilder($"{command}");
+        var argsBuilder = new ArgumentsBuilder();
+        argsBuilder.Add($"{command}");
 
         // Pass all our user properties to msbuild
         if (properties != null)
         {
             foreach (var property in properties)
             {
-                argsBuilder.Append($" -p:{property.Key}={EscapePath(GetPropertyValueAsString(property.Value))}");
+                argsBuilder.Add($"-p:{property.Key}={GetPropertyValueAsString(property.Value)}");
             }
         }
 
         // Add all arguments
         foreach (var arg in arguments)
         {
-            argsBuilder.Append($" {arg}");
+            argsBuilder.Add(arg);
         }
 
-        return argsBuilder.ToString();
+        return argsBuilder.Build();
     }
 
     private static string GetPropertyValueAsString(object value)
@@ -92,14 +93,6 @@ public abstract class DotNetRunnerBase : IDisposable
         var result = await wrap;
 
         return new DotNetResult(result, $"dotnet {arguments}",stdOutAndErrorBuffer.ToString());
-    }
-
-    private static readonly Regex MatchWhitespace = new Regex(@"[\s\:]");
-
-    public static string EscapePath(string path)
-    {
-        path = path.Replace("\"", "\\\"");
-        return MatchWhitespace.IsMatch(path) ? $"\"{path}\"" : path;
     }
 
     protected virtual void Dispose(bool disposing)
