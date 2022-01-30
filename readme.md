@@ -42,7 +42,7 @@ See the [user guide](https://github.com/xoofx/dotnet-releaser/blob/main/doc/read
 Then you just need to install it as a global tool. Check the latest version!
 
 ```shell
-dotnet tool install --global dotnet-releaser --version 0.1.0
+dotnet tool install --global dotnet-releaser --version "0.1.*"
 ```
 ### 2. Create a TOM configuration file
 

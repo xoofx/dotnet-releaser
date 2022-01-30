@@ -419,7 +419,7 @@ In order to use `dotnet-releaser` on your GitHub CI, you need:
 1. To install `dotnet 6.0`
 2. To install the global tool `dotnet-releaser`
   ```sh
-  dotnet tool install --global dotnet-releaser --version 0.1.0
+  dotnet tool install --global dotnet-releaser --version "0.1.*"
   ```
 3. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
   ```sh
@@ -442,7 +442,7 @@ An example of a setup with GitHub Actions:
       if: github.event_name == 'push'
       run: |
           if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+" ) {
-              dotnet tool install --global dotnet-releaser --version 0.1.0 
+              dotnet tool install --global dotnet-releaser --version "0.1.*" 
               dotnet-releaser publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
           } else {
               echo "publish is only enabled by tagging with a release tag"
