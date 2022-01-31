@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using Octokit;
 
@@ -44,7 +46,7 @@ public partial class ReleaserApp
         var formulaBuilder = new StringBuilder();
 
         // Make sure that the ruby class name is valid
-        var className = Regex.Replace(appName, "[^A-Za-z_]", "_");
+        var className = RubyHelper.GetRubyClassNameFromAppName(appName);
 
         // Heading
         formulaBuilder.Append($@"# This file was generated automatically by dotnet-releaser - DO NOT EDIT

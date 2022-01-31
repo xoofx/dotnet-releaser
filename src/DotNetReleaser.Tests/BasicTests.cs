@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using CliWrap;
+using DotNetReleaser.Helpers;
 using NUnit.Framework;
 
 namespace DotNetReleaser.Tests
@@ -86,6 +87,17 @@ kinds = [""tar"", ""deb""]
 
             Directory.Delete(_artifactsFolder, true);
             File.Delete(_configurationFile);
+        }
+
+
+        [TestCase("grpc-curl", "GrpcCurl")]
+        [TestCase("ThisIsFine", "ThisIsFine")]
+        [TestCase("this_is_fine", "This_Is_Fine")]
+        [TestCase("hello_world1", "Hello_World1")]
+        public void TestHomebrewNaming(string appName, string expected)
+        {
+            var className = RubyHelper.GetRubyClassNameFromAppName(appName);
+            Assert.AreEqual(expected, className);
         }
 
         private void EnsureTestsFolder()

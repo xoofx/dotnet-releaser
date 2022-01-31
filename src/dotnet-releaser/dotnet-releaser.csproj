@@ -30,6 +30,8 @@
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)../../img/$(AssemblyName).png" Pack="true" PackagePath="/" />
     <None Include="$(MSBuildThisFileDirectory)../../readme.md" Pack="true" PackagePath="/" />
+
+    <InternalsVisibleTo Include="DotNetReleaser.Tests" />
   </ItemGroup>
 
   <ItemGroup>
