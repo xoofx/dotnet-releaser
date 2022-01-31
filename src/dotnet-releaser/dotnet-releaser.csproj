@@ -44,10 +44,10 @@
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
-    <PackageReference Include="MSBuild.StructuredLogger" Version="2.1.545" GeneratePathProperty="true" />
+    <PackageReference Include="MSBuild.StructuredLogger" Version="2.1.617" GeneratePathProperty="true" />
     <PackageReference Include="Octokit" Version="0.50.0" />
     <PackageReference Include="Tomlyn" Version="0.10.0" />
-    <PackageReference Include="CliWrap" Version="3.4.0" />
+    <PackageReference Include="CliWrap" Version="3.4.1" />
   </ItemGroup>
 
   <!-- Workaround to allow to publish StruturedLogger.dll as dotnet-releaser-binary-logger.dll and make sure single file/self contained will not removed it -->
