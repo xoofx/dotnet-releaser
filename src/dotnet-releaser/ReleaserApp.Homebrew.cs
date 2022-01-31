@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DotNetReleaser.Logging;
 using Octokit;
@@ -42,9 +43,12 @@ public partial class ReleaserApp
 
         var formulaBuilder = new StringBuilder();
 
+        // Make sure that the ruby class name is valid
+        var className = Regex.Replace(appName, "[^A-Za-z_]", "_");
+
         // Heading
         formulaBuilder.Append($@"# This file was generated automatically by dotnet-releaser - DO NOT EDIT
-class {appName} < Formula
+class {className} < Formula
   desc ""{EscapeRuby(packageInfo.Description)}""
   homepage ""{packageInfo.ProjectUrl}""
   version ""{packageInfo.Version}""
@@ -129,8 +133,8 @@ class {appName} < Formula
       sha256 ""{packageEntry.Sha256}""
 
       def install
+        cp_r '.', bin
         bin.install ""{appName}""
-        cp Dir[""*.dylib*""], bin
       end
     end
 ");
