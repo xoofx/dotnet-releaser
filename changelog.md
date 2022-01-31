@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.5 (31 Jan 2022)
+- Fix homebrew class name with capitalizing
+
 ## 0.1.4 (31 Jan 2022)
 - Fix homebrew when app name has invalid characters for a class name in ruby
 - Fix homebrew to copy all files from archive
