@@ -6,7 +6,7 @@
 
 ## Features
 
-- **Cross-compile** your .NET application to **9+ OS/CPU targets**.
+- **Cross-compile** your .NET 6.0+ application to **9+ OS/CPU targets**.
 - Create **zip archives**, **Linux packages** (debian, rpm) and **Homebrew taps**
 - Extract **your changelog** from your `changelog.md`
 - **Publish all artifacts** to **NuGet** and **GitHub**
