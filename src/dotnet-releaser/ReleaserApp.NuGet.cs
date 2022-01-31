@@ -62,13 +62,21 @@ public partial class ReleaserApp
                 {
                     "push",
                     "*.nupkg",
-                    $"-s {_config.NuGet.Source}",
-                    $"-k {nugetSecretKey}",
+                    $"-s", _config.NuGet.Source,
+                    $"-k", nugetSecretKey,
                     "--skip-duplicate"
                 },
                 WorkingDirectory = _config.ArtifactsFolder
             };
-            await program.Run();
+            var result = await program.Run();
+            if (result.HasErrors)
+            {
+                Error(result.Output);
+            }
+            else
+            {
+                Info(result.Output);
+            }
         }
         catch (Exception ex)
         {
