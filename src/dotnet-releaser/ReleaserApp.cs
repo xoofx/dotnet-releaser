@@ -177,6 +177,9 @@ public partial class ReleaserApp : ISimpleLogger
         if (configuration is null) return false;
         _config = configuration;
 
+        // Don't continue if we had errors when deserializing the config file
+        if (HasErrors) return false;
+
         if (!EnsureArtifactsFolders()) return false;
 
         // ------------------------------------------------------------------
