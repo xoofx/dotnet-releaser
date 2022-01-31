@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 (31 Jan 2022)
+- Fix homebrew when app name has invalid characters for a class name in ruby
+- Fix homebrew to copy all files from archive
+
 ## 0.1.3 (31 Jan 2022)
 
 - Don't log an error if changelog.path is empty
