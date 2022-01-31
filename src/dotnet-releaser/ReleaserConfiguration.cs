@@ -57,20 +57,13 @@ public class ReleaserConfiguration
         }
 
         // Check changelog
-        if (Changelog.Publish)
+        if (Changelog.Publish && !string.IsNullOrEmpty(Changelog.Path))
         {
-            if (Changelog.Path is null)
+            Changelog.Path = Path.GetFullPath(Path.Combine(configurationDirectory, Changelog.Path));
+            if (!File.Exists(Changelog.Path))
             {
-                logger.Error("The changelog.path was not setup");
-            }
-            else
-            {
-                Changelog.Path = Path.GetFullPath(Path.Combine(configurationDirectory, Changelog.Path));
-                if (!File.Exists(Changelog.Path))
-                {
-                    logger.Error($"The changelog file {Changelog.Path} was not found.");
-                    return false;
-                }
+                logger.Error($"The changelog file {Changelog.Path} was not found.");
+                return false;
             }
         }
 
