@@ -138,10 +138,10 @@ You can see it's usage on the project [grpc-curl here](https://github.com/xoofx/
 - [dotnet-packaging](https://github.com/quamotion/dotnet-packaging) by using their NuGet [Packaging.Targets](https://www.nuget.org/packages/Packaging.Targets) to hook package creation into MSBuild user's project.
 - [CommandLineUtils](https://github.com/natemcmaster/CommandLineUtils) for handling parsing command line arguments
 - [Microsoft.Extensions.Logging](https://github.com/dotnet/runtime/) for logging to the console.
-- [MSBuildStructuredLog](https://github.com/KirillOsenkov/MSBuildStructuredLog) for interacting with MSBuild.
+- [MSBuildStructuredLog](https://github.com/KirillOsenkov/MSBuildStructuredLog) for interacting with MSBuild outputs.
 - [Octokit.NET](https://github.com/octokit/octokit.net) for interacting with GitHub.
 - [Tomlyn](https://github.com/xoofx/Tomlyn) for parsing the TOML configuration file.
-- [CliWrap](https://github.com/Tyrrrz/CliWrap) for easily wrap and launch executable.
+- [CliWrap](https://github.com/Tyrrrz/CliWrap) to easily wrap and launch executables.
 ## Author
 
 Alexandre Mutel aka [xoofx](http://xoofx.com).
