@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 (31 Jan 2022)
+
+- Don't log an error if changelog.path is empty
+
 ## 0.1.2 (31 Jan 2022)
 
 - Log output from NuGet push
