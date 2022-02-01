@@ -131,11 +131,20 @@ After=""network.target""
             Assert.True(File.Exists(debArchive), $"Missing debian archive {debArchive}");
             
             // Check results with dpkg from wsl
-            var wrap = await CliWrap.Cli.Wrap("wsl")
-                .WithArguments(new string[] { "-d", "Ubuntu-20.04", "--", "dpkg", "-x", Path.GetFileName(debArchive), "./tmp" }, true)
-                .WithWorkingDirectory(_artifactsFolder)
-                .ExecuteAsync();
-
+            if (OperatingSystem.IsWindows())
+            {
+                var wrap = await CliWrap.Cli.Wrap("wsl")
+                    .WithArguments(new string[] { "-d", "Ubuntu-20.04", "--", "dpkg", "-x", Path.GetFileName(debArchive), "./tmp" }, true)
+                    .WithWorkingDirectory(_artifactsFolder)
+                    .ExecuteAsync();
+            }
+            else
+            {
+                var wrap = await CliWrap.Cli.Wrap("dpkg")
+                    .WithArguments(new string[] { "-x", Path.GetFileName(debArchive), "./tmp" }, true)
+                    .WithWorkingDirectory(_artifactsFolder)
+                    .ExecuteAsync();
+            }
 
             var helloWorldService = Path.Combine(_artifactsFolder, @"tmp", "etc", "systemd", "system", "HelloWorld.service");
 

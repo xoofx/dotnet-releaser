@@ -15,7 +15,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-18.04
 
     steps:
     - name: Checkout
@@ -36,8 +36,8 @@ jobs:
     - name: Publish
       if: github.event_name == 'push'
       run: |
-          if ( "${{github.ref}}" -match "^refs/tags/[0-9]+\.[0-9]+\.[0-9]+" ) {
-              ./src/dotnet-releaser/bin/Debug/net6.0/dotnet-releaser.exe publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token  ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
-          } else {
-              echo "publish is only enabled by tagging with a release tag"
-          }
+          if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              ./src/dotnet-releaser/bin/Debug/net6.0/dotnet-releaser publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token  ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
+          else
+              echo publish is only enabled by tagging with a release tag
+          fi
