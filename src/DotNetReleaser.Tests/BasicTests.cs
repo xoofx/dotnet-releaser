@@ -89,6 +89,85 @@ kinds = [""tar"", ""deb""]
             File.Delete(_configurationFile);
         }
 
+        [Test]
+        public async Task TestBuildService()
+        {
+            EnsureTestsFolder();
+
+            File.Delete(_configurationFile);
+
+            await CreateConfiguration();
+
+            var config = await File.ReadAllTextAsync(_configurationFile);
+
+            if (Directory.Exists(_artifactsFolder))
+            {
+                Directory.Delete(_artifactsFolder, true);
+            }
+
+            config = "profile = \"custom\"" + Environment.NewLine + config;
+            config += @"[[pack]]
+rid = ""linux-x64""
+kinds = [""deb""]
+[service]
+publish = true
+[service.systemd]
+arguments = ""/etc/this/is/my/config/file.toml""
+[service.systemd.sections.Unit]
+After=""network.target""
+";
+            config = config.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
+            await File.WriteAllTextAsync(_configurationFile, config);
+
+            var resultBuild = await CliWrap.Cli.Wrap(_releaserExe)
+                .WithArguments("build --force dotnet-releaser.toml")
+                .WithStandardOutputPipe(PipeTarget.ToDelegate(x => Console.Out.WriteLine(x)))
+                .WithStandardErrorPipe(PipeTarget.ToDelegate(x => Console.Error.WriteLine(x)))
+                .WithWorkingDirectory(_helloWorldFolder).ExecuteAsync();
+
+            Assert.True(Directory.Exists(_artifactsFolder));
+
+            var debArchive = Path.Combine(_artifactsFolder, "HelloWorld.0.1.0.linux-x64.deb");
+            Assert.True(File.Exists(debArchive), $"Missing debian archive {debArchive}");
+            
+            // Check results with dpkg from wsl
+            var wrap = await CliWrap.Cli.Wrap("wsl")
+                .WithArguments(new string[] { "-d", "Ubuntu-20.04", "--", "dpkg", "-x", Path.GetFileName(debArchive), "./tmp" }, true)
+                .WithWorkingDirectory(_artifactsFolder)
+                .ExecuteAsync();
+
+
+            var helloWorldService = Path.Combine(_artifactsFolder, @"tmp", "etc", "systemd", "system", "HelloWorld.service");
+
+            Assert.True(File.Exists(helloWorldService), $"Missing service file {helloWorldService}");
+
+            var serviceContent = Normalize(await File.ReadAllTextAsync(helloWorldService)).Trim();
+
+            var expectedContent = Normalize(@"[Unit]
+After = network.target
+Description = Package Description
+StartLimitBurst = 4
+StartLimitIntervalSec = 60
+[Install]
+WantedBy = multi-user.target
+[Service]
+ExecStart = /usr/local/bin/HelloWorld /etc/this/is/my/config/file.toml
+Restart = always
+RestartSec = 1
+Type = simple
+".Trim());
+            Console.WriteLine("Service file generated");
+            Console.WriteLine("--------------------------------------------");
+            Console.WriteLine(serviceContent);
+            Console.WriteLine("Service file expected");
+            Console.WriteLine("--------------------------------------------");
+            Console.WriteLine(expectedContent);
+
+            Assert.AreEqual(expectedContent, serviceContent);
+
+            Directory.Delete(_artifactsFolder, true);
+            File.Delete(_configurationFile);
+        }
 
         [TestCase("grpc-curl", "GrpcCurl")]
         [TestCase("ThisIsFine", "ThisIsFine")]
@@ -113,5 +192,7 @@ kinds = [""tar"", ""deb""]
                 .WithStandardErrorPipe(PipeTarget.ToDelegate(x => Console.Error.WriteLine(x)))
                 .WithWorkingDirectory(_helloWorldFolder).ExecuteAsync();
         }
+
+        private static string Normalize(string text) => text.Replace("\r\n", "\n");
     }
 }

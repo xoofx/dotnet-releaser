@@ -20,9 +20,16 @@
     <Exec Command="iscc.exe /DMyAppVersion=$(PackageVersion) /DMyAppSource=&quot;$(PublishDirFullPath)*&quot; /O&quot;$(PublishPackagePath)&quot; /F$(PublishSetupName) kalk-setup.iss" WorkingDirectory="$(MSBuildThisFileDirectory)" />
   </Target>-->
 
+  <ItemGroup>
+    <Content Condition="'$(DotNetReleaserSystemdFile)' != ''" Include="$(DotNetReleaserSystemdFile)" CopyToPublishDirectory="PreserveNewest" LinuxFileMode="1755">
+      <LinuxPath>/etc/systemd/system/$(AssemblyName).service</LinuxPath>
+    </Content>
+  </ItemGroup>
+
   <Target Name="DotNetReleaserGetPackageInfo" Outputs="@(_DotNetReleaserGetPackageInfo)">
     <ItemGroup>
       <_DotNetReleaserGetPackageInfo Include="$(PackageId)" Kind="PackageId"/>
+      <_DotNetReleaserGetPackageInfo Include="$(AssemblyName)" Kind="ExeName"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageDescription)" Kind="PackageDescription"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageVersion)" Kind="PackageVersion"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageLicenseExpression)" Kind="PackageLicenseExpression"/>

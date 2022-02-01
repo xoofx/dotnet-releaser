@@ -24,6 +24,7 @@ public class ReleaserConfiguration
         GitHub = new GitHubPublisher();
         NuGet = new NuGetPublisher();
         Brew = new BrewPublisher();
+        Service = new ServiceConfiguration();
     }
     public ProfileKind Profile { get; set; }
 
@@ -41,9 +42,17 @@ public class ReleaserConfiguration
 
     public BrewPublisher Brew { get; }
 
+    /// <summary>
+    /// Configuration for service
+    /// </summary>
+    public ServiceConfiguration Service { get; }
+    
+    /// <summary>
+    /// Configuration for packs
+    /// </summary>
     [DataMember(Name = "pack")]
     public List<Packaging> Packs { get; }
-
+    
     private bool Initialize(string configurationDirectory, ISimpleLogger logger)
     {
         ArtifactsFolder = Path.GetFullPath(Path.Combine(configurationDirectory, ArtifactsFolder));
@@ -239,7 +248,47 @@ public class ReleaserConfiguration
             return $"{base.ToString()}, {ToStringRidAndKinds(RuntimeIdentifiers, Kinds)}";
         }
     }
-    
+
+    public class ServiceConfiguration : PublisherBase
+    {
+        public ServiceConfiguration()
+        {
+            Publish = false;
+            Systemd = new SystemdConfiguration();
+        }
+
+        public SystemdConfiguration Systemd { get; }
+
+        public class SystemdConfiguration : PublisherBase
+        {
+            public SystemdConfiguration()
+            {
+                Arguments = string.Empty;
+                Sections = new Dictionary<string, IDictionary<string, object?>>()
+                {
+                    { "Unit", new Dictionary<string, object?>() },
+                    { "Service", new Dictionary<string, object?>() },
+                    { "Install", new Dictionary<string, object?>() },
+                };
+
+                // Defaults for restarting
+                Sections["Unit"]["StartLimitIntervalSec"] = 60; // Tries during 60s to restart the service
+                Sections["Unit"]["StartLimitBurst"] = 4; // Maximum of 4 retries in 60s
+                Sections["Service"]["Restart"] = "always"; // Always tries to restart the service
+                Sections["Service"]["RestartSec"] = 1; // 1s
+                Sections["Install"]["WantedBy"] = "multi-user.target";
+            }
+
+            public string Arguments { get; set; }
+
+            public string? User { get; set; }
+
+            public string? Group { get; set; }
+
+            public Dictionary<string, IDictionary<string, object?>> Sections { get; }
+        }
+    }
+
     public static async Task<ReleaserConfiguration?> From(string filePath, ISimpleLogger logger)
     {
         try

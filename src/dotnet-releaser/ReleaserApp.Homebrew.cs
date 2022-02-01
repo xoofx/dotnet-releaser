@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DotNetReleaser.Helpers;
-using DotNetReleaser.Logging;
 using Octokit;
 
 namespace DotNetReleaser;
@@ -34,7 +31,7 @@ public partial class ReleaserApp
             return;
         }
 
-        var appName = packageInfo.Name;
+        var appName = packageInfo.ExeName;
         var user = _config.GitHub.User!;
         var url = _config.GitHub.GetUrl();
 

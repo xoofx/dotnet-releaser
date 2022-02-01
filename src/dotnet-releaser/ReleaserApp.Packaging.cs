@@ -17,7 +17,8 @@ public partial class ReleaserApp
         var outputs = await RunMSBuild(ReleaserConstants.DotNetReleaserGetPackageInfo);
         if (outputs is null) return null;
 
-        var packageId = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageId).ItemSpec;
+        var packageId = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageId).ItemSpec!;
+        var exeName = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.ExeName).ItemSpec!;
         var packageVersion = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageVersion).ItemSpec;
         var packageDescription = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageDescription)?.ItemSpec;
         var packageLicenseExpression = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageLicenseExpression)?.ItemSpec;
@@ -31,13 +32,13 @@ public partial class ReleaserApp
             return null;
         }
 
-        return new PackageInfo(packageId, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl);
+        return new PackageInfo(packageId, exeName, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl);
     }
 
     /// <summary>
     /// This is the part that handles the packaging for tar, zip, deb, rpm
     /// </summary>
-    private async Task<List<PackageEntry>?> PackPlatform(bool publish, string rid, params PackageKind[] kinds)
+    private async Task<List<PackageEntry>?> PackPlatform(PackageInfo packageInfo, bool publish, string rid, params PackageKind[] kinds)
     {
         var properties = new Dictionary<string, object>(_config.MSBuild.Properties)
         {
@@ -48,6 +49,8 @@ public partial class ReleaserApp
         var entries = new List<PackageEntry>();
         foreach (var kind in kinds)
         {
+            var propertiesForTarget = new Dictionary<string, object>(properties);
+
             string target;
             string mime;
             switch (kind)
@@ -76,22 +79,48 @@ public partial class ReleaserApp
                     throw new ArgumentException($"Invalid kind {kind}", nameof(kind));
             }
 
-            Info($"Building target platform [{rid}] / [{kind.ToString().ToLowerInvariant()}] package");
+            Info($"Building {FormatRidAndKind(rid, kind)}.");
             clock.Restart();
 
             // We need to explicitly restore the platform RID before trying to build it
-            var restoreResult = await RunMSBuild("Restore", properties);
+            var restoreResult = await RunMSBuild("Restore", propertiesForTarget);
             if (restoreResult is null)
             {
-                continue;
+                // Stop on first error
+                break;
+            }
+
+            // Create service
+            if (_config.Service.Publish)
+            {
+                if (_config.Service.Systemd.Publish)
+                {
+                    if (kind == PackageKind.Deb || kind == PackageKind.Rpm)
+                    {
+                        Info($"Creating service file for {FormatRidAndKind(rid, kind)}.");
+                        var systemdFile = await CreateSystemdServiceFile(packageInfo);
+                        if (systemdFile is null)
+                        {
+                            break;
+                        }
+
+                        propertiesForTarget[ReleaserConstants.DotNetReleaserSystemdFile] = systemdFile;
+                        propertiesForTarget[ReleaserConstants.InstallService] = "true";
+                    }
+                    else
+                    {
+                        Warn($"Creating a service is not supported for {FormatRidAndKind(rid, kind)}.");
+                    }
+                }
             }
 
             // Publish
-            var result = await RunMSBuild(target, properties);
+            var result = await RunMSBuild(target, propertiesForTarget);
 
             if (result is null)
             {
-                continue;
+                // Stop on first error
+                break;
             }
 
             // Copy the file to the output
@@ -108,7 +137,7 @@ public partial class ReleaserApp
                 mime,
                 sha256,
                 publish);
-            
+
             entries.Add(entry);
 
             Info($"Build successful in {clock.Elapsed.TotalSeconds}s for platform [{rid}] / [{kind.ToString().ToLowerInvariant()}] package: {entry.Path}");
@@ -116,6 +145,8 @@ public partial class ReleaserApp
 
         return entries;
     }
+
+    private string FormatRidAndKind(string rid, PackageKind kind) => $"target platform [{rid}] / [{kind.ToString().ToLowerInvariant()}] package";
 
     private record PackageEntry(string Name, PackageKind Kind, string Path, string RuntimeId, string Mime, string Sha256, bool Publish)
     {
@@ -201,5 +232,5 @@ public partial class ReleaserApp
         return true;
     }
 
-    private record PackageInfo(string Name, string Version, string Description, string License, string ProjectUrl);
+    private record PackageInfo(string Name, string ExeName, string Version, string Description, string License, string ProjectUrl);
 }

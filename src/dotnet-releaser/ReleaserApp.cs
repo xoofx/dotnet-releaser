@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -270,7 +268,9 @@ public partial class ReleaserApp : ISimpleLogger
             {
                 foreach (var rid in pack.RuntimeIdentifiers)
                 {
-                    var list = await PackPlatform(pack.Publish, rid, pack.Kinds.ToArray());
+                    var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
+                    if (HasErrors) goto exitPackOnError; // break on first errors
+
                     if (list is not null && pack.Publish)
                     {
                         entriesToPublish.AddRange(list);
@@ -278,6 +278,7 @@ public partial class ReleaserApp : ISimpleLogger
                 }
             }
 
+            exitPackOnError:
             if (HasErrors)
             {
                 Error("Error while building platform packages.");
