@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6 (2 Feb 2022)
+- Update to latest StructuredLogger
+- Add support for application published as a service (only systemd for now).
+
 ## 0.1.5 (31 Jan 2022)
 - Fix homebrew class name with capitalizing
 
