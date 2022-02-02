@@ -8,6 +8,7 @@
 
 - **Cross-compile** your .NET 6.0+ application to **9+ OS/CPU targets**.
 - Create **zip archives**, **Linux packages** (debian, rpm) and **Homebrew taps**
+- Allow to publish your **application as a service** (only `Systemd` for now for `deb` and `rpm` packages).
 - Extract **your changelog** from your `changelog.md`
 - **Publish all artifacts** to **NuGet** and **GitHub**
 - Integrate `dotnet-releaser` easily in [your GitHub Action workflow](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md#3-adding-dotnet-releaser-to-your-ci-on-github).

@@ -13,6 +13,8 @@
   - [2.5) NuGet](#25-nuget)
   - [2.6) Homebrew](#26-homebrew)
   - [2.7) Changelog](#27-changelog)
+  - [2.8) Services](#28-services)
+    - [2.8.1) Systemd](#281-systemd)
 - [3) Adding dotnet-releaser to your CI on GitHub](#3-adding-dotnet-releaser-to-your-ci-on-github)
   - [3.1) Steps for a GitHub CI Integration](#31-steps-for-a-github-ci-integration)
   - [3.2) Example of a GitHub CI Integration](#32-example-of-a-github-ci-integration)
@@ -409,6 +411,77 @@ Overrides the default regex that will be used to match the Markdown header and l
 [changelog]
 version = '^##\s+v?((\d+\.)*(\d+))' # This is the default
 ```
+
+`dotnet-releaser` can automatically transfer your changelog from a `changelog.md` to your GitHub release for the specific version of the package published.
+
+### 2.8) Services
+
+`dotnet-releaser` allows to package an application as a service that can be be automatically started by the platform supporting such kind of packages.
+
+Currently, only Systemd services are supported for `deb` and `rpm` packages.
+
+In order to activate support for services, you need to set:
+
+```toml
+[service]
+publish = true # Allow to package the application as a service for the packages supporting it.
+```
+
+Then for each kind of service system, you will need to provide specific configuration.
+
+#### 2.8.1) Systemd
+
+An example of a specific configuration for a systemd service
+
+```toml
+[service.systemd]
+arguments = "/etc/my_configuration_file.toml" 
+user = xoofx
+[service.systemd.sections.Unit]
+After = "network.target"
+```
+___
+> `service.systemd.arguments`: string
+
+Specifies the arguments that will be passed to your application when being run by systemd.
+
+___
+> `service.systemd.user`: string
+
+Specifies the user to use to launch the application as a service.
+
+___
+> `service.systemd.sections`: object
+
+The sections provides access to the underlying [Unit file](https://manpages.debian.org/bullseye-backports/systemd/systemd.unit.5.en.html).
+
+Anything that is defined after `sections` will be transferred to the final Unit file.
+
+There are pre-existing sections created, like `Unit` or `Install` or `Service`, but you can add your own section.
+
+```toml
+[service.systemd.sections.Unit]
+After = "network.target"
+```
+
+The service created by dotnet-releaser comes with a few defaults:
+
+```ini
+[Unit]
+Description = your package description will be set here
+StartLimitBurst = 4
+StartLimitIntervalSec = 60
+[Install]
+WantedBy = multi-user.target
+[Service]
+ExecStart = /usr/local/bin/your-app your-arguments-or-empty
+Restart = always
+RestartSec = 1
+Type = simple
+```
+
+See the [Systemd configuration manual](https://manpages.debian.org/bullseye-backports/systemd/systemd.unit.5.en.html) for the meaning of these defaults.
+
 ## 3) Adding dotnet-releaser to your CI on GitHub
 
 You can easily replace the step of using `nuget push` with `dotnet-releaser` to automate entirely the publication of your package.
