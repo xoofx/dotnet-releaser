@@ -427,7 +427,7 @@ In order to activate support for services, you need to set:
 publish = true # Allow to package the application as a service for the packages supporting it.
 ```
 
-Then for each kind of service system, you will need to provide specific configuration.
+Then for each kind of service system, your application might require specific configuration.
 
 #### 2.8.1) Systemd
 
@@ -440,6 +440,9 @@ user = "xoofx"
 [service.systemd.sections.Unit]
 After = "network.target"
 ```
+
+In the example above, we would like to pass to our service a file as an argument `/etc/my_configuration_file.toml`, launch the service with the user `xoofx` and make sure the service is started after the network.
+
 ___
 > `service.systemd.arguments`: string
 
