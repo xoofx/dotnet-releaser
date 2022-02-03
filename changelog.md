@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.7 (3 Feb 2022)
+- Update to latest StructuredLogger
+
 ## 0.1.6 (2 Feb 2022)
 - Update to latest StructuredLogger
 - Add support for application published as a service (only systemd for now).
