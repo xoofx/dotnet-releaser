@@ -13,7 +13,7 @@
   - [2.5) NuGet](#25-nuget)
   - [2.6) Homebrew](#26-homebrew)
   - [2.7) Changelog](#27-changelog)
-  - [2.8) Services](#28-services)
+  - [2.8) Service](#28-service)
     - [2.8.1) Systemd](#281-systemd)
 - [3) Adding dotnet-releaser to your CI on GitHub](#3-adding-dotnet-releaser-to-your-ci-on-github)
   - [3.1) Steps for a GitHub CI Integration](#31-steps-for-a-github-ci-integration)
@@ -414,7 +414,7 @@ version = '^##\s+v?((\d+\.)*(\d+))' # This is the default
 
 `dotnet-releaser` can automatically transfer your changelog from a `changelog.md` to your GitHub release for the specific version of the package published.
 
-### 2.8) Services
+### 2.8) Service
 
 `dotnet-releaser` allows to package an application as a service that can be be automatically started by the platform supporting such kind of packages.
 
@@ -436,7 +436,7 @@ An example of a specific configuration for a systemd service
 ```toml
 [service.systemd]
 arguments = "/etc/my_configuration_file.toml" 
-user = xoofx
+user = "xoofx"
 [service.systemd.sections.Unit]
 After = "network.target"
 ```
