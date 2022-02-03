@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.8 (3 Feb 2022)
+- Use MSBuild built-in binary logger instead of StructuredLogger
+
 ## 0.1.7 (3 Feb 2022)
 - Update to latest StructuredLogger
 
