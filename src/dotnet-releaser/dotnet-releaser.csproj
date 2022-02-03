@@ -46,7 +46,7 @@
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
-    <PackageReference Include="MSBuild.StructuredLogger" Version="2.1.624" GeneratePathProperty="true" />
+    <PackageReference Include="MSBuild.StructuredLogger" Version="2.1.630" GeneratePathProperty="true" />
     <PackageReference Include="Octokit" Version="0.50.0" />
     <PackageReference Include="Tomlyn" Version="0.10.2" />
     <PackageReference Include="CliWrap" Version="3.4.1" />
