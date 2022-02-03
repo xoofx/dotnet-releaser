@@ -51,25 +51,4 @@
     <PackageReference Include="Tomlyn" Version="0.10.2" />
     <PackageReference Include="CliWrap" Version="3.4.1" />
   </ItemGroup>
-
-  <!-- Workaround to allow to publish StruturedLogger.dll as dotnet-releaser-binary-logger.dll and make sure single file/self contained will not removed it -->
-  <PropertyGroup>
-    <!-- Avoid NuGet to complain about dotnet-releaser-binary-logger.dll-->
-    <NoWarn>NU5100</NoWarn>
-    <DotNetReleaserStructuredLoggerFile>dotnet-releaser-binary-logger.dll</DotNetReleaserStructuredLoggerFile>
-    <IntermediateDotNetReleaserStructuredLoggerFile>obj/$(DotNetReleaserStructuredLoggerFile)</IntermediateDotNetReleaserStructuredLoggerFile>
-  </PropertyGroup>
-
-  <Target Name="AddContentStructuredLogger" AfterTargets="CollectPackageReferences" Condition="'$(PkgMSBuild_StructuredLogger)' != ''" Inputs="$(PkgMSBuild_StructuredLogger)\lib\netstandard2.0\StructuredLogger.dll" Outputs="$(IntermediateDotNetReleaserStructuredLoggerFile)">
-    <Copy DestinationFiles="$(IntermediateDotNetReleaserStructuredLoggerFile)" SourceFiles="$(PkgMSBuild_StructuredLogger)\lib\netstandard2.0\StructuredLogger.dll" SkipUnchangedFiles="true" />
-  </Target>
-
-  <ItemGroup>
-    <Content Include="$(IntermediateDotNetReleaserStructuredLoggerFile)">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <Link>$(DotNetReleaserStructuredLoggerFile)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-  </ItemGroup>
 </Project>
