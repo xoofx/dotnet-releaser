@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.9 (3 Feb 2022)
+- Do not NuGet pack an app that is not IsPackable = true (#12)
+
 ## 0.1.8 (3 Feb 2022)
 - Use MSBuild built-in binary logger instead of StructuredLogger
 
