@@ -25,4 +25,5 @@ static class ReleaserConstants
     public const string PackageLicenseExpression = nameof(PackageLicenseExpression);
     public const string PackageOutputType = nameof(PackageOutputType);
     public const string PackageProjectUrl = nameof(PackageProjectUrl);
+    public const string IsNuGetPackable = nameof(IsNuGetPackable);
 }

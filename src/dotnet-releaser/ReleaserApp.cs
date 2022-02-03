@@ -188,6 +188,14 @@ public partial class ReleaserApp : ISimpleLogger
 
         Info($"Package to build: {packageInfo}");
 
+        // If the project is not packable as a NuGet package but we still (by default)
+        // ask for a NuGet package, produce a warning
+        var willDoNuGetPack = packageInfo.IsNuGetPackable && _config.NuGet.Publish;
+        if (!packageInfo.IsNuGetPackable && _config.NuGet.Publish)
+        {
+            Warn("The project is not packable as a NuGet package (IsPackable = false). Skipping NuGet building/publishing.");
+        }
+
         // ------------------------------------------------------------------
         // Validate Publish parameters
         // ------------------------------------------------------------------
@@ -211,7 +219,7 @@ public partial class ReleaserApp : ISimpleLogger
                 }
             }
 
-            if (_config.NuGet.Publish && string.IsNullOrEmpty(_nugetApiToken))
+            if (willDoNuGetPack && string.IsNullOrEmpty(_nugetApiToken))
             {
                 Error("Publishing to NuGet requires to pass --nuget-token");
                 return false;
@@ -304,7 +312,7 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         if (_buildKind == BuildKind.Publish)
         {
-            if (_config.NuGet.Publish)
+            if (willDoNuGetPack)
             {
                 await PublishNuGet(packageInfo, _nugetApiToken);
             }

@@ -35,6 +35,7 @@
       <_DotNetReleaserGetPackageInfo Include="$(PackageLicenseExpression)" Kind="PackageLicenseExpression"/>
       <_DotNetReleaserGetPackageInfo Include="$(OutputType)" Kind="PackageOutputType"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageProjectUrl)" Kind="PackageProjectUrl"/>
+      <_DotNetReleaserGetPackageInfo Include="$(IsPackable)" Kind="IsNuGetPackable"/>
     </ItemGroup>
   </Target>
 

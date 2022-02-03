@@ -24,6 +24,7 @@ public partial class ReleaserApp
         var packageLicenseExpression = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageLicenseExpression)?.ItemSpec;
         var packageOutputType = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.ItemSpec;
         var packageProjectUrl = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageProjectUrl)?.ItemSpec ?? $"{_config.GitHub.GetUrl()}";
+        var isNuGetPackable = string.Compare(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsNuGetPackable)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase) == 0;
 
         // Check that the output type is actually an exe
         if (packageOutputType is null || !packageOutputType.Contains("exe", StringComparison.OrdinalIgnoreCase))
@@ -32,7 +33,7 @@ public partial class ReleaserApp
             return null;
         }
 
-        return new PackageInfo(packageId, exeName, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl);
+        return new PackageInfo(packageId, exeName, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable);
     }
 
     /// <summary>
@@ -232,5 +233,5 @@ public partial class ReleaserApp
         return true;
     }
 
-    private record PackageInfo(string Name, string ExeName, string Version, string Description, string License, string ProjectUrl);
+    private record PackageInfo(string Name, string ExeName, string Version, string Description, string License, string ProjectUrl, bool IsNuGetPackable);
 }
