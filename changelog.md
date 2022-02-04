@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.10 (4 Feb 2022)
+- Add suppport for specifying package dependencies for deb and rpm (#14)
+
 ## 0.1.9 (3 Feb 2022)
 - Do not NuGet pack an app that is not IsPackable = true (#12)
 
