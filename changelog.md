@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.11 (4 Feb 2022)
+- Add support for creating users for service
+
 ## 0.1.10 (4 Feb 2022)
 - Add suppport for specifying package dependencies for deb and rpm (#14)
 
