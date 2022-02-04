@@ -15,6 +15,7 @@
   - [2.7) Changelog](#27-changelog)
   - [2.8) Service](#28-service)
     - [2.8.1) Systemd](#281-systemd)
+  - [2.9) Package Dependencies](#29-package-dependencies)
 - [3) Adding dotnet-releaser to your CI on GitHub](#3-adding-dotnet-releaser-to-your-ci-on-github)
   - [3.1) Steps for a GitHub CI Integration](#31-steps-for-a-github-ci-integration)
   - [3.2) Example of a GitHub CI Integration](#32-example-of-a-github-ci-integration)
@@ -484,6 +485,27 @@ Type = simple
 ```
 
 See the [Systemd configuration manual](https://manpages.debian.org/bullseye-backports/systemd/systemd.unit.5.en.html) for the meaning of these defaults.
+
+
+### 2.9) Package Dependencies
+
+It is possible to define package dependencies if the underlying package model supports it.
+
+> NOTE: Package dependencies are currently only supported for `deb` and `rpm`.
+
+```toml
+# Adds one dependency to `a-first-runtime`
+[[deb.depends]]
+name = "a-first-runtime"
+# Adds a dependency to a runtime with multiple versions
+[[deb.depends]]
+name = ["your-runtime1.0", "your-runtime2.0", "your-runtime3.0"]
+```
+
+In order to specify dependencies for `rpm`, you can use a similar syntax with `[[rpm.depends]]`.
+
+
+
 
 ## 3) Adding dotnet-releaser to your CI on GitHub
 

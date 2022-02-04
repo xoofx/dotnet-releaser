@@ -25,6 +25,8 @@ public class ReleaserConfiguration
         NuGet = new NuGetPublisher();
         Brew = new BrewPublisher();
         Service = new ServiceConfiguration();
+        Debian = new DebianConfiguration();
+        Rpm = new RpmConfiguration();
     }
     public ProfileKind Profile { get; set; }
 
@@ -46,13 +48,62 @@ public class ReleaserConfiguration
     /// Configuration for service
     /// </summary>
     public ServiceConfiguration Service { get; }
+
+    /// <summary>
+    /// Debian configuration
+    /// </summary>
+    [DataMember(Name = "deb")]
+    public DebianConfiguration Debian { get; }
     
+    /// <summary>
+    /// Rpm configuration.
+    /// </summary>
+    public RpmConfiguration Rpm { get; }
+
     /// <summary>
     /// Configuration for packs
     /// </summary>
     [DataMember(Name = "pack")]
     public List<Packaging> Packs { get; }
-    
+
+    public static async Task<ReleaserConfiguration?> From(string filePath, ISimpleLogger logger)
+    {
+        try
+        {
+            logger.Info($"Loading configuration from {filePath}");
+            var content = await File.ReadAllTextAsync(filePath);
+
+            if (Toml.TryToModel(content, out ReleaserConfiguration? configuration, out var diagnostics, filePath))
+            {
+                if (!configuration.Initialize(Path.GetDirectoryName(filePath) ?? Environment.CurrentDirectory, logger))
+                {
+                    return null;
+                }
+
+                return configuration;
+            }
+
+            // Log any messages
+            foreach (var message in diagnostics!)
+            {
+                if (message.Kind == DiagnosticMessageKind.Error)
+                {
+                    logger.Error(message.ToString());
+                }
+                else if (message.Kind == DiagnosticMessageKind.Warning)
+                {
+                    logger.Warn(message.ToString());
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error($"Unexpected exception while trying to load configuration from `{filePath}`. Reason: {ex.Message}");
+        }
+
+        return null;
+    }
+
     private bool Initialize(string configurationDirectory, ISimpleLogger logger)
     {
         ArtifactsFolder = Path.GetFullPath(Path.Combine(configurationDirectory, ArtifactsFolder));
@@ -289,63 +340,35 @@ public class ReleaserConfiguration
         }
     }
 
-    public static async Task<ReleaserConfiguration?> From(string filePath, ISimpleLogger logger)
+    public class DebianConfiguration
     {
-        try
+        public DebianConfiguration()
         {
-            logger.Info($"Loading configuration from {filePath}");
-            var content = await File.ReadAllTextAsync(filePath);
-
-            if (Toml.TryToModel(content, out ReleaserConfiguration? configuration, out var diagnostics, filePath))
-            {
-                if (!configuration.Initialize(Path.GetDirectoryName(filePath) ?? Environment.CurrentDirectory, logger))
-                {
-                    return null;
-                }
-
-                return configuration;
-            }
-
-            // Log any messages
-            foreach (var message in diagnostics!)
-            {
-                if (message.Kind == DiagnosticMessageKind.Error)
-                {
-                    logger.Error(message.ToString());
-                }
-                else if (message.Kind == DiagnosticMessageKind.Warning)
-                {
-                    logger.Warn(message.ToString());
-                }
-            }
+            Depends = new List<PackageDependency>();
         }
-        catch (Exception ex)
-        {
-            logger.Error($"Unexpected exception while trying to load configuration from `{filePath}`. Reason: {ex.Message}");
-        }
-
-        return null;
+        
+        public List<PackageDependency> Depends { get; }
     }
 
-    private static void TransferValue<T>(TomlTable table, string name, ILogger log, ref bool hasErrors, Action<T> setter, bool canBeNull = false)
+    public class RpmConfiguration
     {
-        if (!table.TryGetValue(name, out var value) || value == null)
+        public RpmConfiguration()
         {
-            if (!canBeNull)
-            {
-                hasErrors = true;
-                log.LogError($"Missing entry `{name}` in configuration.");
-            }
+            Depends = new List<PackageDependency>();
         }
-        else if (value is T valueT)
+
+        public List<PackageDependency> Depends { get; }
+    }
+    
+    public class PackageDependency
+    {
+        public PackageDependency()
         {
-            setter(valueT);
+            Names = new List<string>();
         }
-        else
-        {
-            hasErrors = true;
-            log.LogError($"Entry `{name}` in configuration is not of type {typeof(T).Name.ToLowerInvariant()}.");
-        }
+        
+        [DataMember(Name = "name")]
+        public List<string> Names { get; }
     }
 
     public abstract class PublisherBase

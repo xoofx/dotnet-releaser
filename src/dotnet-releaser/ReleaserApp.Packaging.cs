@@ -115,6 +115,30 @@ public partial class ReleaserApp
                 }
             }
 
+            // Add dependencies for Debian/Rpm packages
+            string? dependenciesPropertyName = null;
+            List<ReleaserConfiguration.PackageDependency>? dependencies = null;
+
+            if (kind == PackageKind.Deb)
+            {
+                dependenciesPropertyName = ReleaserConstants.DotNetReleaserDebDependencies;
+                dependencies = _config.Debian.Depends;
+            }
+            else if (kind == PackageKind.Rpm)
+            {
+                dependenciesPropertyName = ReleaserConstants.DotNetReleaserRpmDependencies;
+                dependencies = _config.Rpm.Depends;
+            }
+
+            if (dependenciesPropertyName is not null && dependencies is not null && dependencies.Count > 0)
+            {
+                var dependenciesAsString = string.Join(";", _config.Debian.Depends.Select(x => string.Join("|", x.Names))).Trim();
+                if (dependenciesAsString.Length > 0)
+                {
+                    propertiesForTarget[dependenciesPropertyName] = dependenciesAsString;
+                }
+            }
+
             // Publish
             var result = await RunMSBuild(target, propertiesForTarget);
 

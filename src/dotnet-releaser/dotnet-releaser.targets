@@ -11,6 +11,11 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <DebDependency Condition="'$(DotNetReleaserDebDependencies)' != ''" Include="$(DotNetReleaserDebDependencies.Split(';'))"></DebDependency>
+    <RpmDependency Condition="'$(DotNetReleaserRpmDependencies)' != ''" Include="$(DotNetReleaserRpmDependencies.Split(';'))"></RpmDependency>
+  </ItemGroup>
+
   <!--<Target Name="CreateSetup" AfterTargets="Publish">
     <PropertyGroup>
       <PublishDirFullPath>$([System.IO.Path]::GetFullPath('$(PublishDir)'))</PublishDirFullPath>

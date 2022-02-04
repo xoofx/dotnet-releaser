@@ -15,6 +15,8 @@ static class ReleaserConstants
     public const string DotNetReleaserPublishAndCreateZip = nameof(DotNetReleaserPublishAndCreateZip);
     public const string DotNetReleaserPublishAndCreateSetup = nameof(DotNetReleaserPublishAndCreateSetup);
     public const string DotNetReleaserSystemdFile = nameof(DotNetReleaserSystemdFile);
+    public const string DotNetReleaserDebDependencies = nameof(DotNetReleaserDebDependencies);
+    public const string DotNetReleaserRpmDependencies = nameof(DotNetReleaserRpmDependencies);
     public const string InstallService = nameof(InstallService); // For packaging service
 
     public const string ItemSpecKind = "Kind";

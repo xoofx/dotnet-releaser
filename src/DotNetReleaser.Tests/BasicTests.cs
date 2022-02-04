@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using CliWrap;
 using DotNetReleaser.Helpers;
@@ -115,6 +116,8 @@ publish = true
 arguments = ""/etc/this/is/my/config/file.toml""
 [service.systemd.sections.Unit]
 After=""network.target""
+[[deb.depends]]
+name = ""yoyo-runtime""
 ";
             config = config.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
             await File.WriteAllTextAsync(_configurationFile, config);
@@ -173,6 +176,35 @@ Type = simple
             Console.WriteLine(expectedContent);
 
             Assert.AreEqual(expectedContent, serviceContent);
+
+
+            var packageInfoOutput = new StringBuilder();
+
+            // Check Dependencies with dpkg from wsl
+            if (OperatingSystem.IsWindows())
+            {
+                var wrap = await CliWrap.Cli.Wrap("wsl")
+                    .WithArguments(new string[] { "-d", "Ubuntu-20.04", "--", "dpkg", "--info", Path.GetFileName(debArchive)}, true)
+                    .WithWorkingDirectory(_artifactsFolder)
+                    .WithStandardOutputPipe(PipeTarget.ToStringBuilder(packageInfoOutput))
+                    .ExecuteAsync();
+            }
+            else
+            {
+                var wrap = await CliWrap.Cli.Wrap("dpkg")
+                    .WithArguments(new string[] { "--info", Path.GetFileName(debArchive)}, true)
+                    .WithWorkingDirectory(_artifactsFolder)
+                    .WithStandardOutputPipe(PipeTarget.ToStringBuilder(packageInfoOutput))
+                    .ExecuteAsync();
+            }
+
+            var packageInfo = packageInfoOutput.ToString();
+
+            Console.WriteLine("Package Info");
+            Console.WriteLine("--------------------------------------------");
+            Console.WriteLine(packageInfo);
+
+            StringAssert.Contains("yoyo-runtime", packageInfo, "The package doesn't contain the 'yoyo-runtime' dependency");
 
             Directory.Delete(_artifactsFolder, true);
             File.Delete(_configurationFile);
