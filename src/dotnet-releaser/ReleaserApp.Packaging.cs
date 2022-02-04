@@ -107,6 +107,12 @@ public partial class ReleaserApp
 
                         propertiesForTarget[ReleaserConstants.DotNetReleaserSystemdFile] = systemdFile;
                         propertiesForTarget[ReleaserConstants.InstallService] = "true";
+
+                        if (_config.Service.Systemd.CreateUser && !string.IsNullOrEmpty(_config.Service.Systemd.User))
+                        {
+                            propertiesForTarget[ReleaserConstants.UserName] = _config.Service.Systemd.User;
+                            propertiesForTarget[ReleaserConstants.CreateUser] = "true";
+                        }
                     }
                     else
                     {

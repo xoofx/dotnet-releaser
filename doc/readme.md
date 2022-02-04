@@ -438,6 +438,7 @@ An example of a specific configuration for a systemd service
 [service.systemd]
 arguments = "/etc/my_configuration_file.toml" 
 user = "xoofx"
+create_user = true
 [service.systemd.sections.Unit]
 After = "network.target"
 ```
@@ -453,6 +454,11 @@ ___
 > `service.systemd.user`: string
 
 Specifies the user to use to launch the application as a service.
+
+___
+> `service.systemd.create_user`: bool
+
+Creates the user/group with the name specified by `service.systemd.user` that will be used by the service. Default is `false`.
 
 ___
 > `service.systemd.sections`: object

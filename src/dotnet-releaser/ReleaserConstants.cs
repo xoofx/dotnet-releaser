@@ -18,6 +18,8 @@ static class ReleaserConstants
     public const string DotNetReleaserDebDependencies = nameof(DotNetReleaserDebDependencies);
     public const string DotNetReleaserRpmDependencies = nameof(DotNetReleaserRpmDependencies);
     public const string InstallService = nameof(InstallService); // For packaging service
+    public const string UserName = nameof(UserName); // For packaging service
+    public const string CreateUser = nameof(CreateUser); // For packaging service
 
     public const string ItemSpecKind = "Kind";
     public const string PackageId = nameof(PackageId);

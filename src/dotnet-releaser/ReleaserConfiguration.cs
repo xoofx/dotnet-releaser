@@ -334,7 +334,7 @@ public class ReleaserConfiguration
 
             public string? User { get; set; }
 
-            public string? Group { get; set; }
+            public bool CreateUser { get; set; }
 
             public Dictionary<string, IDictionary<string, object?>> Sections { get; }
         }
