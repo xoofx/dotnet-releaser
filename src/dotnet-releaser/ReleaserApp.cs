@@ -226,6 +226,9 @@ public partial class ReleaserApp : ISimpleLogger
             }
         }
 
+        // Update homebrew config (and log if necessary)
+        UpdateHomebrewConfigurationFromPackage(packageInfo);
+        
         // ------------------------------------------------------------------
         // Parse Changelog
         // ------------------------------------------------------------------

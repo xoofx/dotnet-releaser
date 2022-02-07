@@ -339,7 +339,14 @@ You can disable Homebrew support via
 publish = false
 ```
 
-If your application name is `my-application`, and your GitHub user `xyz`, it will create and update automatically a repository at `https://github.com/xyz/homebrew-my-application`.
+By default, if your application name is `my-application`, and your GitHub user `xyz`, it will create and update automatically a repository at `https://github.com/xyz/homebrew-my-application`.
+
+If you want to change this default behavior, and use your own homebrew repository, you can specify it by setting `brew.home`:
+
+```toml
+[brew]
+home = "homebrew-all-my-apps"
+```
 
 This repository will contain:
 

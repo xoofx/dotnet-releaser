@@ -276,6 +276,7 @@ public class ReleaserConfiguration
 
     public class BrewPublisher : PublisherBase
     {
+        public string? Home { get; set; }
     }
 
     public class Packaging : PublisherBase
