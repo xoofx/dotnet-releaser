@@ -31,7 +31,7 @@
     </Content>
   </ItemGroup>
 
-  <Target Name="DotNetReleaserGetPackageInfo" Outputs="@(_DotNetReleaserGetPackageInfo)">
+  <Target Name="DotNetReleaserGetPackageInfo"  DependsOnTargets="GetAssemblyVersion" Outputs="@(_DotNetReleaserGetPackageInfo)">
     <ItemGroup>
       <_DotNetReleaserGetPackageInfo Include="$(PackageId)" Kind="PackageId"/>
       <_DotNetReleaserGetPackageInfo Include="$(AssemblyName)" Kind="ExeName"/>
