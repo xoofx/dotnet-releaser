@@ -270,7 +270,11 @@ public partial class ReleaserApp : ISimpleLogger
                 builder.AppendLine($"Build configured for {ReleaserConfiguration.Packaging.ToStringRidAndKinds(new () { rid }, pack.Kinds)}");
             }
         }
-        Info(builder.ToString());
+        // Don't log an empty line
+        if (builder.Length > 0)
+        {
+            Info(builder.ToString());
+        }
 
         if (hasPackagesToBuild)
         {
