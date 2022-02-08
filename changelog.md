@@ -1,10 +1,13 @@
 # Changelog
 
+## 0.1.12 (8 Feb 2022)
+- Add support for specifying a custom homebrew repository (#15)
+
 ## 0.1.11 (4 Feb 2022)
 - Add support for creating users for service
 
 ## 0.1.10 (4 Feb 2022)
-- Add suppport for specifying package dependencies for deb and rpm (#14)
+- Add support for specifying package dependencies for deb and rpm (#14)
 
 ## 0.1.9 (3 Feb 2022)
 - Do not NuGet pack an app that is not IsPackable = true (#12)
