@@ -4,10 +4,16 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using DotNetReleaser.Changelog;
+using DotNetReleaser.Configuration;
+using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Octokit;
+using Microsoft.Extensions.Logging.Configuration;
+using Microsoft.Extensions.Logging.Console;
 
 namespace DotNetReleaser;
 
@@ -52,10 +58,12 @@ public partial class ReleaserApp : ISimpleLogger
         // Create our log
         using var factory = LoggerFactory.Create(builder =>
         {
-            builder.AddSimpleConsole(configure: options =>
-            {
-                //options.SingleLine = true;
-            });
+
+            // Similar to builder.AddSimpleConsole();
+            // But we are using our own console that stays on the same line if the message doesn't have new lines
+            builder.AddConsoleFormatter<SimpleConsoleFormatter, SimpleConsoleFormatterOptions>(configure => { configure.SingleLine = true; });
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ConsoleLoggerProvider>());
+            LoggerProviderOptions.RegisterProviderOptions<ConsoleLoggerOptions, ConsoleLoggerProvider>(builder.Services);
         });
 
         var exeName = "dotnet-releaser";
@@ -96,10 +104,11 @@ public partial class ReleaserApp : ISimpleLogger
             CommandOption<string>? githubToken = null;
             CommandOption<string>? nugetToken = null;
 
+            githubToken = cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
+
             if (cmd.Name == "publish")
             {
                 cmd.Description = "Build and publish the project.";
-                githubToken = cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
                 nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
             }
             else
@@ -124,7 +133,7 @@ public partial class ReleaserApp : ISimpleLogger
                 appReleaser._configurationFile = configurationFilePath;
                 
                 appReleaser._buildKind = cmd.Name == "publish" ? BuildKind.Publish : BuildKind.Build;
-                if (githubToken is not null) appReleaser._githubApiToken = githubToken.ParsedValue;
+                appReleaser._githubApiToken = githubToken.ParsedValue ?? string.Empty;
                 if (nugetToken is not null) appReleaser._nugetApiToken = nugetToken.ParsedValue;
                 var result = await appReleaser.RunImpl();
                 return result ? 0 : 1;
@@ -199,23 +208,27 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Validate Publish parameters
         // ------------------------------------------------------------------
-        GitHubClient? gitHubClient = null;
+        var hostingConfiguration = _config.GitHub;
+        IDevHosting? devHosting = null;
+
+        // Connect to GitHub if we have a token
+        if (!string.IsNullOrEmpty(_githubApiToken))
+        {
+            devHosting = await ConnectToDevHosting(hostingConfiguration);
+            if (devHosting is null)
+            {
+                return false;
+            }
+        }
+        
         if (_buildKind == BuildKind.Publish)
         {
-            if (_config.GitHub.Publish)
+            if (hostingConfiguration.Publish)
             {
                 if (string.IsNullOrEmpty(_githubApiToken))
                 {
-                    Error("Publishing to GitHub requires to pass --github-token");
+                    Error($"Publishing to {hostingConfiguration.Provider} requires to pass --github-token");
                     return false;
-                }
-                else
-                {
-                    gitHubClient = await ConnectGitHubClient();
-                    if (gitHubClient is null)
-                    {
-                        return false;
-                    }
                 }
             }
 
@@ -232,13 +245,13 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Parse Changelog
         // ------------------------------------------------------------------
-        string? changelog = null;
-        if (_config.Changelog.Publish)
+        ChangelogResult? changelog = null;
+        if (_config.Changelog.Publish && devHosting is not null)
         {
-            changelog = await LoadChangeLog(packageInfo);
+            changelog = await CreateChangeLog(devHosting, packageInfo.Version);
             if (changelog is not null)
             {
-                Info($"Changelog found:{Environment.NewLine}{changelog}");
+                Info($"Changelog:{Environment.NewLine}{changelog}");
             }
             else if (HasErrors)
             {
@@ -267,7 +280,7 @@ public partial class ReleaserApp : ISimpleLogger
             foreach (var rid in pack.RuntimeIdentifiers)
             {
                 if (pack.Publish) hasPackagesToBuild = true;
-                builder.AppendLine($"Build configured for {ReleaserConfiguration.Packaging.ToStringRidAndKinds(new () { rid }, pack.Kinds)}");
+                builder.AppendLine($"Build configured for {PackagingConfiguration.ToStringRidAndKinds(new () { rid }, pack.Kinds)}");
             }
         }
         // Don't log an empty line
@@ -326,13 +339,18 @@ public partial class ReleaserApp : ISimpleLogger
 
             // Don't try to continue publishing if we had errors with NuGet publishing
             // Otherwise publish any packages that we have generated before
-            if (!HasErrors && gitHubClient is not null)
+            if (!HasErrors && devHosting is not null)
             {
-                await UpdateGitHub(gitHubClient, packageInfo, changelog, entriesToPublish);
+                await devHosting.UploadRelease(hostingConfiguration.User, hostingConfiguration.Repo, packageInfo.Version, changelog, entriesToPublish);
 
                 if (!HasErrors && _config.Brew.Publish)
                 {
-                    await UploadBrewFormula(gitHubClient, packageInfo, entriesToPublish);
+                    var brewFormula = HomebrewHelper.CreateFormula(devHosting, packageInfo, entriesToPublish);
+
+                    if (brewFormula is not null)
+                    {
+                        await devHosting.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
+                    }
                 }
             }
         }
