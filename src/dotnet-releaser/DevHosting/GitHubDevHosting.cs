@@ -120,8 +120,14 @@ internal class GitHubDevHosting : IDevHosting
 
         if (versionForCurrent is null)
         {
-            _log.Error($"Unable to find the tag for the version {version}");
-            return null;
+            if (shaForCurrent is null)
+            {
+                _log.Error($"Unable to find an associated commit to the tag {version}");
+                return null;
+            }
+
+            // Use the version 
+            versionForCurrent = NuGetVersion.Parse(version);
         }
 
         var compareCommits = await _client.Repository.Commit.Compare(user, repo, shaForPrevious, shaForCurrent);
