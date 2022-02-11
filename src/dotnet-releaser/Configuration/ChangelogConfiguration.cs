@@ -69,17 +69,17 @@ public class ChangelogConfiguration : ConfigurationBase
         
         if (Categories.Count == 0)
         {
-            Categories.Add(new ChangelogCategory("### 🚨 Breaking Changes", "breaking-change"));
-            Categories.Add(new ChangelogCategory("### ✨ New Features", "new-feature", "feature"));
-            Categories.Add(new ChangelogCategory("### 🐛 Bug Fixes", "bugfix", "fix", "bug"));
-            Categories.Add(new ChangelogCategory("### 🚀 Enhancements", "enhancement", "refactor", "performance"));
-            Categories.Add(new ChangelogCategory("### 🧰 Maintenance", "maintenance", "ci"));
-            Categories.Add(new ChangelogCategory("### 🏭 Tests", "tests"));
-            Categories.Add(new ChangelogCategory("### 🛠 Examples", "examples"));
-            Categories.Add(new ChangelogCategory("### 📚 Documentation", "documentation"));
-            Categories.Add(new ChangelogCategory("### 🌎 Accessibility", "translations", "accessibility"));
-            Categories.Add(new ChangelogCategory("### 📦 Dependencies", "dependencies"));
-            Categories.Add(new ChangelogCategory("### 🧰 Misc", "misc"));
+            Categories.Add(new ChangelogCategory("## 🚨 Breaking Changes", "breaking-change"));
+            Categories.Add(new ChangelogCategory("## ✨ New Features", "new-feature", "feature"));
+            Categories.Add(new ChangelogCategory("## 🐛 Bug Fixes", "bugfix", "fix", "bug"));
+            Categories.Add(new ChangelogCategory("## 🚀 Enhancements", "enhancement", "refactor", "performance"));
+            Categories.Add(new ChangelogCategory("## 🧰 Maintenance", "maintenance", "ci"));
+            Categories.Add(new ChangelogCategory("## 🏭 Tests", "tests"));
+            Categories.Add(new ChangelogCategory("## 🛠 Examples", "examples"));
+            Categories.Add(new ChangelogCategory("## 📚 Documentation", "documentation"));
+            Categories.Add(new ChangelogCategory("## 🌎 Accessibility", "translations", "accessibility"));
+            Categories.Add(new ChangelogCategory("## 📦 Dependencies", "dependencies"));
+            Categories.Add(new ChangelogCategory("## 🧰 Misc", "misc"));
         }
 
         if (Autolabeler.Count == 0)
