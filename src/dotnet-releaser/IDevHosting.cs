@@ -24,7 +24,7 @@ public interface IDevHosting
 
     Task<ChangelogCollection?> GetChanges(string user, string repo, string versionPrefix, string version);
 
-    Task UploadRelease(string user, string repo, string versionTag, ChangelogResult? changelog, List<PackageEntry> entries);
+    Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<PackageEntry> entries, bool enablePublishPackagesInDraft);
 
     Task UploadHomebrewFormula(string user, string repo, PackageInfo packageInfo, string brewFormula);
 

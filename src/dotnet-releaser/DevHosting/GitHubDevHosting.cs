@@ -213,32 +213,42 @@ internal class GitHubDevHosting : IDevHosting
     }
 
     private static string GetTitle(string message) => new StringReader(message).ReadLine() ?? string.Empty;
-    
 
-    public async Task UploadRelease(string user, string repo, string versionTag, ChangelogResult? changelog, List<PackageEntry> entries)
+
+    private async Task<Release> CreateOrUpdateChangelog(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
     {
         var releases = await _client.Repository.Release.GetAll(user, repo);
 
-        var versionOnGitHub = $"{Configuration.VersionPrefix}{versionTag}";
+        const string versionTagForDraft = "draft";
+
+        var tag = version.IsDraft ? versionTagForDraft : version.Tag;
 
         Release? release = null;
         if (releases is not null)
         {
-            release = releases.FirstOrDefault(releaseCheck => releaseCheck.TagName == versionOnGitHub);
+            // First fetch any previous draft release notes
+            // or fetch the existing version (in case of an update)
+            release = releases.FirstOrDefault(releaseCheck => releaseCheck.TagName == versionTagForDraft) ??
+                      releases.FirstOrDefault(releaseCheck => releaseCheck.TagName == tag);
         }
 
         // Create a release
-        release ??= await _client.Repository.Release.Create(user, repo, new NewRelease(versionOnGitHub)
+        release ??= await _client.Repository.Release.Create(user, repo, new NewRelease(tag)
         {
-            Name = changelog?.Title
+            Name = changelog?.Title,
+            Draft = version.IsDraft,
+            Body = changelog?.Body,
         });
 
         _log.Info($"Loading release tag {release.TagName}");
 
         ReleaseUpdate? releaseUpdate = null;
-        if (changelog is not null && release.Body != changelog.Body)
+        if (changelog is not null && (release.Name != changelog.Title || release.TagName != tag || release.Draft != version.IsDraft || release.Body != changelog.Body))
         {
             releaseUpdate = release.ToUpdate();
+            releaseUpdate.Name = changelog.Title;
+            releaseUpdate.TagName = tag;
+            releaseUpdate.Draft = version.IsDraft;
             releaseUpdate.Body = changelog.Body;
         }
 
@@ -247,6 +257,18 @@ internal class GitHubDevHosting : IDevHosting
         {
             _log.Info($"Updating release {release.TagName} with new changelog");
             release = await _client.Repository.Release.Edit(user, repo, release.Id, releaseUpdate);
+        }
+
+        return release;
+    }
+
+    public async Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<PackageEntry> entries, bool enablePublishPackagesInDraft)
+    {
+        var release = await CreateOrUpdateChangelog(user, repo, version, changelog);
+        // Don't publish packages if draft is enabled but not packages
+        if (version.IsDraft && !enablePublishPackagesInDraft)
+        {
+            return;
         }
 
         var assets = await _client.Repository.Release.GetAllAssets(user, repo, release.Id, ApiOptions.None);
@@ -271,7 +293,7 @@ internal class GitHubDevHosting : IDevHosting
             {
                 try
                 {
-                    _log.Info($"{(i > 0 ? $"Retry ({{i}}/{maxHttpRetry - 1}) " : "")}Uploading {filename} to GitHub Release: {versionOnGitHub} (Size: {new FileInfo(entry.Path).Length / (1024 * 1024)}MB)");
+                    _log.Info($"{(i > 0 ? $"Retry ({{i}}/{maxHttpRetry - 1}) " : "")}Uploading {filename} to GitHub Release: {release.TagName} (Size: {new FileInfo(entry.Path).Length / (1024 * 1024)}MB)");
                     // Upload assets
                     using var stream = File.OpenRead(entry.Path);
 

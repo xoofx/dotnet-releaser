@@ -50,6 +50,8 @@ public class ChangelogConfiguration : ConfigurationBase
 
     public string PullRequestChangeTemplate { get; set; }
 
+    public bool DisableDraftForBuild { get; set; }
+
     public ChangelogExclude Exclude { get; }
 
     public List<string> IncludeLabels { get; }

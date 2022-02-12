@@ -30,6 +30,8 @@ public class ReleaserConfiguration
 
     public string ArtifactsFolder { get; set; }
 
+    public bool EnablePublishPackagesInDraft { get; set; }
+
     public MSBuildConfiguration MSBuild { get; }
 
     [DataMember(Name="github")]

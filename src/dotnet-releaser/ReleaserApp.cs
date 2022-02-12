@@ -330,6 +330,9 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Publish all packages NuGet + (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
+        // Draft if we are just building and not publishing (to allow to update the changelog)
+        var releaseVersion = new ReleaseVersion(packageInfo.Version, IsDraft: _buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{packageInfo.Version}");
+
         if (_buildKind == BuildKind.Publish)
         {
             if (willDoNuGetPack)
@@ -341,7 +344,8 @@ public partial class ReleaserApp : ISimpleLogger
             // Otherwise publish any packages that we have generated before
             if (!HasErrors && devHosting is not null)
             {
-                await devHosting.UploadRelease(hostingConfiguration.User, hostingConfiguration.Repo, packageInfo.Version, changelog, entriesToPublish);
+                // In the case of a build, we still want to upload a draft release notes
+                await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
 
                 if (!HasErrors && _config.Brew.Publish)
                 {
@@ -353,11 +357,15 @@ public partial class ReleaserApp : ISimpleLogger
                     }
                 }
             }
+
+        }
+        else if (_buildKind == BuildKind.Build && devHosting is not null && !_config.Changelog.DisableDraftForBuild)
+        {
+            await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
         }
 
         return !HasErrors;
     }
-
 
     public bool HasErrors => _logger.HasErrors;
 
