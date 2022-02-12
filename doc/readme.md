@@ -116,27 +116,20 @@ The configuration is all done with a configuration file in the [TOML](https://to
 
 The following properties can only be set before any of the sections (e.g `[msbuild]`, `[nuget]`...)
 
-___
-> `profile` : string
 
-Defines which packs are created by default. See [packaging](#24-packaging) for more details.
+| Global           | Type       | Description                |
+|------------------|------------|----------------------------|
+| `profile`        | `string`   | Defines which packs are created by default. See [packaging](#24-packaging) for more details.
+| `artifacts_folder`| `string`  | Defines to which folder to output created packages. By default it is setup to `artifacts-dotnet-releaser` relative to where to TOML configuration file is.
 
 ```toml
 # This is the default, creating all the OS/CPU/Packages listed on the front readme.md
 profile = "default"
-# This will make no default packs. You need to configure them manually
-profile = "custom"
-```
-___
-> `artifacts_folder` : string
-
-Defines to which folder to output created packages. By default it is setup to `artifacts-dotnet-releaser` relative to where to TOML configuration file is.
-
-```toml
-# This is the default, creating all the OS/CPU/Packages listed on the front readme.md
+# Setting `custom` will make no default packs. You need to configure them manually
+# profile = "custom"
+# Store the artifacts to `myfolder`
 artifacts_folder = "myfolder"
 ```
-___
 ### 2.2) MSBuild
 
 This section defines:
@@ -155,18 +148,12 @@ configuration = "Release"
 [msbuild.properties]
 PublishReadyToRun = false # Disable PublishReadyToRun
 ```
-___
-> `msbuild.project` : string
 
-Specifies the path to the project to compile with MSBuild. If this path uses a relative path, it will be relative to the location of your TOML configuration file.
-
-___
-> `msbuild.configuration` : string
-
-Specifies the MSBuild `Configuration` property. By default this is set to `Release`.
-
-___
-> `[msbuild.properties]`
+| `[msbuild]`      | Type       | Description                |
+|------------------|------------|----------------------------|
+| `project`        | `string`   | Specifies the path to the project to compile with MSBuild. If this path uses a relative path, it will be relative to the location of your TOML configuration file.
+| `configuration`| `string`  | Specifies the MSBuild `Configuration` property. By default this is set to `Release`.
+| `configuration`| `map<string, string>`  | Allows to defines properties that will be pass by MSBuild.
 
 By default, `dotnet-releaser` is using the following MSBuild defaults for configuring your application as a single file/self contained application:
 
@@ -196,34 +183,14 @@ repo = "dotnet-releaser"
 # base = "https://github.com"
 # version_prefix = "v"
 ``` 
-___
-> `github.user` : string
 
-Defines the user or organization on your GitHub server.
+| `[github]`      | Type       | Description                |
+|-----------------|------------|----------------------------|
+| `user`          | `string`   | Defines the user or organization on your GitHub server.
+| `repo`          | `string`   | Defines the repository under your user or organization on your GitHub server.
+| `base`          | `string`   | Defines the base URL for your GitHub server. By default, it is using the public GitHub repository `https://github.com`
+| `version_prefix`| `string`   | Defines the prefix to add to the package version in order to find the associated tag release on GitHub. By default, there is no prefix defined (so the package version must be == the GitHub tag). Usually, it can require that you setup a `v` on your prefix in case your GitHub tags are prefixed by this letter (e.g `v1.0.0`).
 
-___
-> `github.repo` : string
-
-Defines the repository under your user or organization on your GitHub server.
-
-___
-> `github.base` : string
-
-Defines the base URL for your GitHub server. By default, it is using the public GitHub repository `https://github.com`
-
-___
-> `github.version_prefix` : string
-
-Defines the prefix to add to the package version in order to find the associated tag release on GitHub. By default, there is no prefix defined (so the package version must be == the GitHub tag).
-
-Usually, it can require that you setup a `v` on your prefix in case your GitHub tags are prefixed by this letter (e.g `v1.0.0`).
-
-```toml
-[github]
-user = "xoofx"
-repo = "dotnet-releaser"
-version_prefix = "v"
-``` 
 ___
 ### 2.4) Packaging
 
@@ -242,29 +209,32 @@ profile = "default"
 
 For this profile, it will use by default several packs pre-configured.
 
-A `[[pack]]` in the TOML configuration is defined by:
+A group of packages in the TOML configuration is defined by:
 
-- A RuntimeIdentifier aka a `rid`: See [https://docs.microsoft.com/en-us/dotnet/core/rid-catalog](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog) for all the possible values.
-- `kinds` of package:
-  - `zip`: Creates a zip archive. 
-  - `tar`: Creates a tar.gz archive. 
-  - `deb`: Creates a Debian package.
-  - `rpm`: Creates a Redhat package. 
+| `[[pack]]`      | Type       | Description                |
+|-----------------|------------|----------------------------|
+| `publish`       | `bool`     | You can disable a particular pack to be build/published. 
+| `rid`           | `string`   | The target OS + CPU by defining its runtime identifier. See [https://docs.microsoft.com/en-us/dotnet/core/rid-catalog](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog) for all the possible values.
+| `kinds`         | `string`   | Defines the kinds of package to create: `zip`, `tar`, `deb` or `rpm`.
+
+For each `rid` define in a pack, it will create the packages defined by `kinds`.
+
+For example, the default profile is creating the following packs:
 
 ```toml
-# Default targets for Windows
+# Create zip files only for Windows platforms
 [[pack]]
 rid = ["win-x64", "win-arm", "win-arm64"]
 kinds = ["zip"]
-# Default targets for Linux/Ubuntu Debian compatible distro
+# Default targets for Linux/Ubuntu Debian compatible distro with debian and tar packages
 [[pack]]
 rid = ["linux-x64", "linux-arm", "linux-arm64"]
 kinds = ["deb", "tar"]
-# Default targets for Linux/Redhat compatible distro
+# Default targets for Linux/Redhat compatible distro with rpm and tar packages
 [[pack]]
 rid = ["rhel-x64"]
 kinds = ["rpm", "tar"]
-# Default targets for macOS
+# Default targets for macOS, only tar files for this platform
 [[pack]]
 rid = ["osx-x64", "osx-arm64"]
 kinds = ["tar"]
@@ -280,9 +250,6 @@ kinds = ["zip", "tar"]
 ```
 
 Will only override the `win-x64` to generate a `zip` and a `tar.gz`
-
-___
-> `pack.publish` : bool
 
 You can disable a particular pack to be build/published.
 
@@ -309,39 +276,30 @@ But you can also extend the default profile by just defining this rid. It's up t
 
 Allow to publish to a NuGet registry. By default it is on and publishing to the official NuGet public registry.
 
-___
-> `nuget.source` : string
+| `[nuget]`       | Type       | Description                |
+|-----------------|------------|----------------------------|
+| `publish`       | `bool`     | Allow to disable publishing to NuGet.
+| `source`        | `string`   | Allow to override the default publish NuGet registry (`https://api.nuget.org/v3/index.json`) when publishing to NuGet.
 
-By default the publish NuGet registry is used `https://api.nuget.org/v3/index.json`, but you can override it with your own registry:
+For example:
 
 ```toml
 [nuget]
 source = "https://my.special.registry.nuget.org/v3/index.json"
 # publish = false
 ```
-___
-> `nuget.publish` : bool
-
-Allow to disable publishing to NuGet:
-
-```toml
-[nuget]
-publish = false
-```
 ### 2.6) Homebrew
 
 By default, a Homebrew repository and formula will be created if a `tar` file is generated for either a Linux or MacOS platform.
 
-You can disable Homebrew support via
-
-```toml
-[brew]
-publish = false
-```
+| `[brew]`        | Type       | Description                |
+|-----------------|------------|----------------------------|
+| `publish`       | `bool`     | Enable or disable Homebrew support. Default is enabled.
+| `home`          | `string`   | Allow to override the default homebrew repository name. See more details below.
 
 By default, if your application name is `my-application`, and your GitHub user `xyz`, it will create and update automatically a repository at `https://github.com/xyz/homebrew-my-application`.
 
-If you want to change this default behavior, and use your own homebrew repository, you can specify it by setting `brew.home`:
+If you want to change this default behavior, and use your own homebrew repository, you can specify it by setting `home`:
 
 ```toml
 [brew]
@@ -391,33 +349,18 @@ If you are publishing the `1.3.1` version of your package, it will extract the m
 
 And this will be uploaded to your tag release.
 
-___
-> `changelog.publish` : bool
+| `[changelog]`   | Type       | Description                |
+|-----------------|------------|----------------------------|
+| `publish`       | `bool`     | Enable or disable changelog. Default is `true`.
+| `path`          | `string`   | Defines the path for the predefined changelog. Can be relative to the TOML configuration file. By default, `dotnet-releaser` tries to look up in higher directory for a file `changelog.md`
+| `version`       | `string`   | Defines the default regex that will be used to match the Markdown header in the predefined changelog defined by `path` and look for the exact version. The default is `^#+\s+v?((\d+\.)*(\d+))`
 
-You can disable entirely changelog support:
-
-```toml
-[changelog]
-publish = false
-```
-___
-> `changelog.path` : string
-
-Override the default path to the changelog. Can be relative to the TOML configuration file. By default, `dotnet-releaser` tries to look up in higher directory for a file `changelog.md`
+For example:
 
 ```toml
 [changelog]
 path = "this/is/my/path/to/my/changelog.md"
-```
-
-___
-> `changelog.version` : string
-
-Overrides the default regex that will be used to match the Markdown header and look for the exact version:
-
-```toml
-[changelog]
-version = '^##\s+v?((\d+\.)*(\d+))' # This is the default
+version = '^#+\s+v?((\d+\.)*(\d+))' # This is the default
 ```
 
 `dotnet-releaser` can automatically transfer your changelog from a `changelog.md` to your GitHub release for the specific version of the package published.
@@ -452,25 +395,14 @@ After = "network.target"
 
 In the example above, we would like to pass to our service a file as an argument `/etc/my_configuration_file.toml`, launch the service with the user `xoofx` and make sure the service is started after the network.
 
-___
-> `service.systemd.arguments`: string
 
-Specifies the arguments that will be passed to your application when being run by systemd.
 
-___
-> `service.systemd.user`: string
-
-Specifies the user to use to launch the application as a service.
-
-___
-> `service.systemd.create_user`: bool
-
-Creates the user/group with the name specified by `service.systemd.user` that will be used by the service. Default is `false`.
-
-___
-> `service.systemd.sections`: object
-
-The sections provides access to the underlying [Unit file](https://manpages.debian.org/bullseye-backports/systemd/systemd.unit.5.en.html).
+| `[service.systemd]`   | Type       | Description                |
+|-----------------------|------------|----------------------------|
+| `arguments`           | `string`   | Specifies the arguments that will be passed to your application when being run by systemd.
+| `user`                | `string`   | Specifies the user to use to launch the application as a service.
+| `create_user`         | `string`   | Creates the user/group with the name specified by `service.systemd.user` that will be used by the service. Default is `false`.
+| `sections`            | `map`      | The sections provides access to the underlying [Unit file](https://manpages.debian.org/bullseye-backports/systemd/systemd.unit.5.en.html). See details below.
 
 Anything that is defined after `sections` will be transferred to the final Unit file.
 
@@ -481,7 +413,7 @@ There are pre-existing sections created, like `Unit` or `Install` or `Service`, 
 After = "network.target"
 ```
 
-The service created by dotnet-releaser comes with a few defaults:
+The service created by dotnet-releaser comes with the following defaults:
 
 ```ini
 [Unit]
@@ -499,7 +431,6 @@ Type = simple
 
 See the [Systemd configuration manual](https://manpages.debian.org/bullseye-backports/systemd/systemd.unit.5.en.html) for the meaning of these defaults.
 
-
 ### 2.9) Package Dependencies
 
 It is possible to define package dependencies if the underlying package model supports it.
@@ -516,9 +447,6 @@ name = ["your-runtime1.0", "your-runtime2.0", "your-runtime3.0"]
 ```
 
 In order to specify dependencies for `rpm`, you can use a similar syntax with `[[rpm.depends]]`.
-
-
-
 
 ## 3) Adding dotnet-releaser to your CI on GitHub
 
