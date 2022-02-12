@@ -1,5 +1,9 @@
 # Changelog
 
+> NOTE: Starting with `dotnet-releaser` `0.2.0+` the changelog is no longer maintained manually but is generated automatically from pull-requests and commits and is then uploaded to [`dotnet-releaser` GitHub releases](https://github.com/xoofx/dotnet-releaser/releases).
+>
+> See [changelog configuration]([https://](https://github.com/xoofx/dotnet-releaser/blob/main/doc/changelog_user_guide.md)) for more details
+
 ## 0.1.12 (8 Feb 2022)
 - Add support for specifying a custom homebrew repository (#15)
 
