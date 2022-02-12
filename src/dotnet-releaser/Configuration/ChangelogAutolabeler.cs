@@ -33,9 +33,27 @@ public class ChangelogAutolabeler
 
     public List<string> Branch { get; }
 
-    internal ChangelogAutolabeler AppendTitle(string title)
+    public ChangelogAutolabeler AppendTitle(params string[] title)
     {
-        Title.Add(title);
+        Title.AddRange(title);
+        return this;
+    }
+
+    public ChangelogAutolabeler AppendBody(params string[] body)
+    {
+        Body.AddRange(body);
+        return this;
+    }
+
+    public ChangelogAutolabeler AppendFiles(params string[] files)
+    {
+        Files.AddRange(files);
+        return this;
+    }
+    
+    public ChangelogAutolabeler AppendBranch(params string[] branch)
+    {
+        Branch.AddRange(branch);
         return this;
     }
 
@@ -46,7 +64,7 @@ public class ChangelogAutolabeler
             TitleRegex = RegexHelper.Compile(Title, "autolabeler.title", logger),
             BodyRegex = RegexHelper.Compile(Body, "autolabeler.body", logger),
             BranchRegex = RegexHelper.Compile(Branch, "autolabeler.branch", logger),
-            FileGlob = GlobHelper.Compile(Files, "autolabeler.file", logger)
+            FilesGlob = GlobHelper.Compile(Files, "autolabeler.file", logger)
         };
     }
 }
@@ -59,21 +77,21 @@ public class ChangelogAutolabelerCompiled
         TitleRegex = new List<Regex>();
         BodyRegex = new List<Regex>();
         BranchRegex = new List<Regex>();
-        FileGlob = new List<Glob>();
+        FilesGlob = new List<Glob>();
     }
 
     public string Label { get; }
     public List<Regex> TitleRegex { get; init; }
     public List<Regex> BodyRegex { get; init; }
     public List<Regex> BranchRegex { get; init; }
-    public List<Glob> FileGlob { get; init; }
+    public List<Glob> FilesGlob { get; init; }
 
     public bool Match(ChangelogPullRequestChangeModel change)
     {
         if (TitleRegex.IsMatch(change.Title)) return true;
         if (BodyRegex.IsMatch(change.Body)) return true;
         if (BranchRegex.IsMatch(change.Branch)) return true;
-        return change.Files.Any(file => FileGlob.IsMatch(file));
+        return change.Files.Any(file => FilesGlob.IsMatch(file));
     }
 
     public bool Match(ChangelogCommitChangeModel change)

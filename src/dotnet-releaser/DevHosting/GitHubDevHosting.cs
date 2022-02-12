@@ -55,7 +55,7 @@ internal class GitHubDevHosting : IDevHosting
         return true;
     }
 
-    public async Task<ChangelogCollection?> GetChanges(string user, string repo, string versionPrefix, string version)
+    public async Task<ChangelogCollection?> GetChanges(string user, string repo, string tagPrefix, string version)
     {
         //var info.Version
         //_config.GitHub.VersionPrefix
@@ -63,7 +63,7 @@ internal class GitHubDevHosting : IDevHosting
         _log.Info($"Building Changelog: collecting commits and PR for version {version}");
         
         var tags = await _client.Repository.GetAllTags(user, repo);
-        var regex = new Regex(@$"{versionPrefix}(\d+(\.\d+)+.*)");
+        var regex = new Regex(@$"{tagPrefix}(\d+(\.\d+)+.*)");
         var versions = new List<(RepositoryTag, NuGetVersion)>();
         NuGetVersion? versionForCurrent = null;
         foreach (var tag in tags)

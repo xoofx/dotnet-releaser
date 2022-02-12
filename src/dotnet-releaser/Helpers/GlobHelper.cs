@@ -36,8 +36,8 @@ public static class GlobHelper
         return list;
     }
 
-    public static bool IsMatch(this IEnumerable<Glob> regexList, string input)
+    public static bool IsMatch(this IEnumerable<Glob> globList, string input)
     {
-        return regexList.Any(regex => regex.IsMatch(input));
+        return globList.Any(regex => regex.IsMatch(input));
     }
 }

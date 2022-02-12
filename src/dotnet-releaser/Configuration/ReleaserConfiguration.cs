@@ -139,7 +139,11 @@ public class ReleaserConfiguration
         }
 
         // Initialize defaults for changelog
-        Changelog.InitializeDefaults(GitHub);
+        if (Changelog.Owners.Count == 0 && !string.IsNullOrEmpty(GitHub.User))
+        {
+            Changelog.Owners.Add(GitHub.User);
+        }
+        Changelog.AddDefaults();
 
         return true;
     }
