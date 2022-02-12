@@ -25,13 +25,7 @@ public class ChangelogBuilder
             return await GenerateFromExistingChangelog(devHosting, version);
         }
 
-        if (_config.Auto)
-        {
-
-            return await GenerateFromPullRequestsAndCommits(devHosting, version);
-        }
-
-        return null;
+        return await GenerateFromPullRequestsAndCommits(devHosting, version);
     }
     
 

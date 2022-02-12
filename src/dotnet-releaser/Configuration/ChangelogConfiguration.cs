@@ -6,7 +6,6 @@ public class ChangelogConfiguration : ConfigurationBase
 {
     public ChangelogConfiguration()
     {
-        Auto = true;
         Version = @"^#+\s+v?((\d+\.)*(\d+))";
         Categories = new List<ChangelogCategory>();
         NameTemplate = "{{ version.tag }}";
@@ -32,8 +31,6 @@ public class ChangelogConfiguration : ConfigurationBase
     public string? Path { get; set; }
 
     public string Version { get; set; }
-
-    public bool Auto { get; set; }
 
     public string NameTemplate { get; set; }
 
