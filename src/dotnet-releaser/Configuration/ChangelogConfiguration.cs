@@ -72,7 +72,7 @@ public class ChangelogConfiguration : ConfigurationBase
         Categories.Add(new ChangelogCategory("## 🚨 Breaking Changes", "breaking-change", "category: breaking-change"));
         Categories.Add(new ChangelogCategory("## ✨ New Features", "new-feature", "feature", "category: feature"));
         Categories.Add(new ChangelogCategory("## 🐛 Bug Fixes", "bugfix", "fix", "bug", "category: bug"));
-        Categories.Add(new ChangelogCategory("## 🚀 Enhancements", "enhancement", "refactor", "performance", "category: performance"));
+        Categories.Add(new ChangelogCategory("## 🚀 Enhancements", "enhancement", "refactor", "performance", "category: performance", "category: enhancement"));
         Categories.Add(new ChangelogCategory("## 🧰 Maintenance", "maintenance", "ci", "category: ci"));
         Categories.Add(new ChangelogCategory("## 🏭 Tests", "tests", "test", "category: tests"));
         Categories.Add(new ChangelogCategory("## 🛠 Examples", "examples", "samples", "category: samples", "category: examples"));
