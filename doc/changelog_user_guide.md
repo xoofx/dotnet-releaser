@@ -40,7 +40,7 @@ The image below is an example of an auto-generated changelog from pull-requests 
 
 | `[changelog]`                         | Type       | Description                |
 |---------------------------------------|------------|----------------------------|
-| `publish`                             | `bool`     | Enable to disable changelog publish. Default is `true`.
+| `publish`                             | `bool`     | Enable changelog publish. Default is `true`.
 | `name_template`                       | `string`   | A template for the title of the release. The default is `{{ version.tag }}`.
 | `owners_commit_change_template`       | `string`   | A template for each commit made by the owners of the repository. The default is `- {{ commit.title }} ({{ commit.sha}})`.
 | `owners_pull_request_change_template` | `string`   | A template for each pull-request made by the owners of the repository. The default is `- {{ pr.title }} (PR #{{ pr.number }})`.
@@ -69,7 +69,7 @@ The default of the `body_template` is the following [Scriban](https://github.com
 ```
 ### 1.3 Categories
 
-Categories allow to define how the changes are organized within your release notes. By default if `defaults = true` is kept `true`, the following categories will be define.
+Categories allow to define how the changes are organized within your release notes.
 
 | `[[changelog.category]]`              | Type       | Description                |
 |---------------------------------------|------------|----------------------------|
@@ -77,11 +77,11 @@ Categories allow to define how the changes are organized within your release not
 | `labels`                              | `string[]` | A list of pull-request labels that are associated with this category. Each pull-request that will have this label defined in this list will belong to this category.
 | `exclude.labels`                      | `string[]` | A list of pull-request labels that, if defined on a pull-request will exclude the pull-request to be part of this category.
 | `exclude.contributors`                | `string[]` | A list of pull-request contributors that, if are the authors in the pull-request will exclude the PR to be part of this category.
-| `order`                               | `int`      | An integer that defines the order of the category when it will be displayed in the release notes. A lower the value is, the higher in the list in the release notes the category will be displayed. If this value is not defined, it is assumed to be 0.
+| `order`                               | `int`      | An integer that defines the order of the category when it will be displayed in the release notes. The lower the value is, the higher in the list in the release notes the category will be displayed. If this value is not defined, it is assumed to be 0.
 
 > NOTE: The order of the category definitions as they appear in the configuration file will be used to match-first a category and will stop the search for matching categories. The following defaults are added after the user defined categories. This allows, for example, to easily override an existing category if necessary while keeping defaults enabled.
 
-By default, and if `changelog.defaults` is kept to `true`, the list of default categories is defined below:
+By default, and if `defaults` is kept to `true`, the following list of categories will used as defaults:
 
 ```toml
 [[changelog.category]]
@@ -372,7 +372,7 @@ And your configuration for the changelog can be described like this:
 ```toml
 [changelog]
 path = "../changelog.md" # Setting the path to a manual changelog.
-
+```
 If you are publishing the `1.3.1` version of your package, it will extract the markdown after the `## 1.3.1` header:
 
 ```md
