@@ -14,12 +14,14 @@ Table of Content
 
 - [1. Automatic changelogs](#1-automatic-changelogs)
   - [1.1 Overview](#11-overview)
-  - [1.2 General properties](#12-general-properties)
+  - [1.2 Properties](#12-properties)
   - [1.3 Categories](#13-categories)
   - [1.4 Auto-labelers](#14-auto-labelers)
   - [1.3 Templates](#13-templates)
-    - [1.3.1 Commit templates](#131-commit-templates)
-    - [1.3.1 Pull-Request templates](#131-pull-request-templates)
+    - [1.3.1 Commit template](#131-commit-template)
+    - [1.3.2 Pull-Request template](#132-pull-request-template)
+    - [1.3.3 Body template](#133-body-template)
+    - [1.3.4 Extra template properties](#134-extra-template-properties)
 - [2. Manual changelogs](#2-manual-changelogs)
 - [3. Disabling changelogs](#3-disabling-changelogs)
   
@@ -34,7 +36,7 @@ The image below is an example of an auto-generated changelog from pull-requests 
 
 ![changelog](changelog.png)
 
-### 1.2 General properties
+### 1.2 Properties
 
 | `[changelog]`                         | Type       | Description                |
 |---------------------------------------|------------|----------------------------|
@@ -43,7 +45,7 @@ The image below is an example of an auto-generated changelog from pull-requests 
 | `owners_commit_change_template`       | `string`   | A template for each commit made by the owners of the repository. The default is `- {{ commit.title }} ({{ commit.sha}})`.
 | `owners_pull_request_change_template` | `string`   | A template for each pull-request made by the owners of the repository. The default is `- {{ pr.title }} (PR #{{ pr.number }})`.
 | `commit_change_template`              | `string`   | A template for each commit made by contributors of the repository. The default is `- {{ commit.title }} ({{ commit.sha}}) by @{{ commit.author }}`. The difference with `owners_commit_change_template` is that it includes the mention of the contributor.
-| `pull_request_change_template`        | `string`   | A template for each pull-request made by contributors of the repository. The default is ` {{ pr.title }} (PR #{{ pr.number }}) by @{{ pr.author }}`. The difference with `owners_pull_request_change_template` is that it includes the mention of the contributor.
+| `pull_request_change_template`        | `string`   | A template for each pull-request made by contributors of the repository. The default is `- {{ pr.title }} (PR #{{ pr.number }}) by @{{ pr.author }}`. The difference with `owners_pull_request_change_template` is that it includes the mention of the contributor.
 | `include_commits`                     | `bool`     | Defines whether to include commits - not present in pull-requests - in the changelog. Default is `true`.
 | `defaults`                            | `bool`     | Defines whether to add all pre-configured default categories and auto-labelers. Default is `true`. See configuration following sections.
 | `owners`                              | `string[]` | The list of owners to consider in the changelog. By default, the owner defined in the `[github]` section is added automatically if `defaults = true`.
@@ -233,15 +235,16 @@ title = '.' # Matches any characters
 
 ### 1.3 Templates
 
-The following section defines the variables and objects accessible for each template.
+The following section defines the variables and objects accessible for each [Scriban](https://github.com/scriban/scriban) template. The text format for GitHub release notes is markdown, so the templates are in-fine emitting markdown text.
 
-#### 1.3.1 Commit templates
+#### 1.3.1 Commit template
 
-This is relevant for `owners_commit_change_template` and `commit_change_template`:
+This is relevant for both templates `owners_commit_change_template` and `commit_change_template`:
 
 | Variable             | Type       | Description                |
 |----------------------|------------|----------------------------|
 | `commit`             | `commit`   | The commit object defined below.
+| `properties`         | `properties` | [User defined extra properties](#134-extra-template-properties) from configuration.
 
 
 The `commit` object contains the following properties:
@@ -261,14 +264,14 @@ For example, the default template for `commit_change_template` is:
 [changelog]
 commit_change_template = "- {{ commit.title }} ({{ commit.sha}}) by @{{ commit.author }}"
 ```
+#### 1.3.2 Pull-Request template
 
-#### 1.3.1 Pull-Request templates
-
-This is relevant for `owners_pull_request_change_template` and `pull_request_change_template`:
+This is relevant for both templates `owners_pull_request_change_template` and `pull_request_change_template`:
 
 | Variable             | Type       | Description                |
 |----------------------|------------|----------------------------|
 | `pr`                 | `pr`       | The pull-request object defined below.
+| `properties`         | `properties` | [User defined extra properties](#134-extra-template-properties) from configuration.
 
 
 The `pr` object contains the following properties:
@@ -283,20 +286,61 @@ The `pr` object contains the following properties:
 | `pr.labels`      | `string[]` | The labels attaches to the pull-request.
 | `pr.files`       | `string[]` | The files modified by the pull-request.
 
-
 For example, the default template for `pull_request_change_template` is:
 
 ```toml
 [changelog]
-commit_change_template = "- {{ commit.title }} ({{ commit.sha}}) by @{{ commit.author }}"
+pull_request_change_template = "- {{ pr.title }} (PR #{{ pr.number }}) by @{{ pr.author }}"
 ```
 
+#### 1.3.3 Body template
+
+This is relevant for `body_template`:
+
+| Variable             | Type       | Description                |
+|----------------------|------------|----------------------------|
+| `changes`            | `string`   | The markdown text generated from the categories and the commit/PR templates.
+| `version`            | `version`  | The version object for the current version of the release.
+| `previous_version`   | `version`  | The version object for the previous version relative to the current release.
+| `url_full_changelog_compare_changes`   | `string`  | The URL to the full compare changelog between the previous and current version.
+| `properties`         | `properties` | [User defined extra properties](#134-extra-template-properties) from configuration.
+
+For example, the default body template is:
+
+```toml
+[changelog]
+body_template = '''
+# Changes
+
+{{ changes }}
+
+**Full Changelog**: {{ url_full_changelog_compare_changes }}
+'''
+```
+
+#### 1.3.4 Extra template properties
+
+You can define extra properties via `[changelog.template_properties]` that will be accessible from any of the templates listed above.
+
+```toml
+[changelog.template_properties]
+changes_pre_title = "Amazing"
+hello_number = 1
+```
+
+You can then reuse these properties from any templates. For example, using them from the `body_template`:
 
 
-Note that for all the templates, the variable `properties` is accessible and reflects the user-defined properties in the changelog 
+```toml
+[changelog]
+body_template = '''
+# {{ properties.changes_pre_title }} Changes {{ properties.hello_number }}
 
+{{ changes }}
 
-
+**Full Changelog**: {{ url_full_changelog_compare_changes }}
+'''
+```
 
 ## 2. Manual changelogs
 
