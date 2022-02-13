@@ -316,54 +316,11 @@ See for example the generated [Homebrew repository for grpc-curl](https://github
 
 ### 2.7) Changelog
 
-`dotnet-releaser` can automatically transfer your changelog from a `changelog.md` to your GitHub release for the specific version of the package published.
+`dotnet-releaser` comes with great defaults that can generate automatically your changelog from your commits and pull-requests.
 
-By default, it will try to search a `changelog.md` file in the upper directories of your TOML configuration file.
+The generated changelog can then be uploaded as part of the publish process when pushing a new release with packages.
 
-Then it will parse the file to search for a default regex for a header `^##\s+v?((\d+\.)*(\d+))`
-
-For example, if your changelog is setup like this:
-
-```md
-
-# Changelog
-
-## 1.3.1 (27 Oct 2021)
-
-### Fixes
-- Fix for this annoying bug...
-
-### Breaking changes
-- ...
-``` 
-
-If you are publishing the `1.3.1` version of your package, it will extract the markdown after the `## 1.3.1` header:
-
-```md
-### Fixes
-- Fix for this annoying bug...
-
-### Breaking changes
-- ...
-```
-
-And this will be uploaded to your tag release.
-
-| `[changelog]`   | Type       | Description                |
-|-----------------|------------|----------------------------|
-| `publish`       | `bool`     | Enable or disable changelog. Default is `true`.
-| `path`          | `string`   | Defines the path for the predefined changelog. Can be relative to the TOML configuration file. By default, `dotnet-releaser` tries to look up in higher directory for a file `changelog.md`
-| `version`       | `string`   | Defines the default regex that will be used to match the Markdown header in the predefined changelog defined by `path` and look for the exact version. The default is `^#+\s+v?((\d+\.)*(\d+))`
-
-For example:
-
-```toml
-[changelog]
-path = "this/is/my/path/to/my/changelog.md"
-version = '^#+\s+v?((\d+\.)*(\d+))' # This is the default
-```
-
-`dotnet-releaser` can automatically transfer your changelog from a `changelog.md` to your GitHub release for the specific version of the package published.
+Please follow the dedicated [user-guide for configuring changelog](changelog_user_guide.md).
 
 ### 2.8) Service
 
