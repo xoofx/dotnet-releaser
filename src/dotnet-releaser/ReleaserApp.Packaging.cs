@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using DotNetReleaser.Configuration;
 using DotNetReleaser.Runners;
 using Microsoft.Build.Framework;
 
@@ -123,7 +124,7 @@ public partial class ReleaserApp
 
             // Add dependencies for Debian/Rpm packages
             string? dependenciesPropertyName = null;
-            List<ReleaserConfiguration.PackageDependency>? dependencies = null;
+            List<PackageDependency>? dependencies = null;
 
             if (kind == PackageKind.Deb)
             {
@@ -179,10 +180,6 @@ public partial class ReleaserApp
 
     private string FormatRidAndKind(string rid, PackageKind kind) => $"target platform [{rid}] / [{kind.ToString().ToLowerInvariant()}] package";
 
-    private record PackageEntry(string Name, PackageKind Kind, string Path, string RuntimeId, string Mime, string Sha256, bool Publish)
-    {
-        public long GetFileSize() => new FileInfo(Path).Length;
-    }
 
     private string CopyToArtifacts(string source)
     {
@@ -227,12 +224,12 @@ public partial class ReleaserApp
         return null;
     }
 
-    private bool EnsureArtifactsFolders()
+    private bool EnsureArtifactsFolders(bool forceArtifactsFolder)
     {
         // Make sure that the artifacts folder is created
         if (Directory.Exists(_config.ArtifactsFolder))
         {
-            if (!_forceArtifactsFolder)
+            if (!forceArtifactsFolder)
             {
                 Error($"The artifacts folder `{_config.ArtifactsFolder}` already exists. Use `--force` to delete/recreate this folder during a `build`/`publish`.");
                 return false;
@@ -263,5 +260,4 @@ public partial class ReleaserApp
         return true;
     }
 
-    private record PackageInfo(string Name, string ExeName, string Version, string Description, string License, string ProjectUrl, bool IsNuGetPackable);
 }

@@ -6,5 +6,3 @@ project = "./dotnet-releaser/dotnet-releaser.csproj"
 [github]
 user = "xoofx"
 repo = "dotnet-releaser"
-[changelog]
-path = "../changelog.md"

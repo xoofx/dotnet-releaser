@@ -4,10 +4,16 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using DotNetReleaser.Changelog;
+using DotNetReleaser.Configuration;
+using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Octokit;
+using Microsoft.Extensions.Logging.Configuration;
+using Microsoft.Extensions.Logging.Console;
 
 namespace DotNetReleaser;
 
@@ -26,18 +32,10 @@ public partial class ReleaserApp : ISimpleLogger
     private static readonly string DotNetReleaserConfigFile = Path.Combine(AppContext.BaseDirectory, ReleaserConstants.DotNetReleaserFileName);
     
     private readonly ISimpleLogger _logger;
-    private string _githubApiToken;
-    private string _nugetApiToken;
-    private string _configurationFile;
-    private bool _forceArtifactsFolder;
-    private BuildKind _buildKind;
     private ReleaserConfiguration _config;
 
     private ReleaserApp(ISimpleLogger logger)
     {
-        _githubApiToken = string.Empty;
-        _nugetApiToken = string.Empty;
-        _configurationFile = string.Empty;
         _logger = logger;
         _config = new ReleaserConfiguration();
     }
@@ -52,10 +50,12 @@ public partial class ReleaserApp : ISimpleLogger
         // Create our log
         using var factory = LoggerFactory.Create(builder =>
         {
-            builder.AddSimpleConsole(configure: options =>
-            {
-                //options.SingleLine = true;
-            });
+
+            // Similar to builder.AddSimpleConsole();
+            // But we are using our own console that stays on the same line if the message doesn't have new lines
+            builder.AddConsoleFormatter<SimpleConsoleFormatter, SimpleConsoleFormatterOptions>(configure => { configure.SingleLine = true; });
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ConsoleLoggerProvider>());
+            LoggerProviderOptions.RegisterProviderOptions<ConsoleLoggerOptions, ConsoleLoggerProvider>(builder.Services);
         });
 
         var exeName = "dotnet-releaser";
@@ -76,7 +76,7 @@ public partial class ReleaserApp : ISimpleLogger
         app.Command("new", newCommand =>
             {
                 newCommand.Description = "Create a dotnet-releaser TOML configuration file for a specified project.";
-                var configurationFileArg = newCommand.Argument("dotnet-releaser.toml", "TOML configuration file path to create. Default is: dotnet-releaser.toml");
+                var configurationFileArg = AddTomlConfigurationArgument(newCommand, false);
                 var projectOption = newCommand.Option<string>("--project <project_file>", "A - relative - path to project file (csproj, vbproj, fsproj)", CommandOptionType.SingleValue).IsRequired();
                 var userOption = newCommand.Option<string>("--user <GitHub_user/org>", "The GitHub user/org where the packages will be published", CommandOptionType.SingleValue);
                 var repoOption = newCommand.Option<string>("--repo <GitHub_repo>", "The GitHub repo name where the packages will be published", CommandOptionType.SingleValue);
@@ -84,22 +84,51 @@ public partial class ReleaserApp : ISimpleLogger
 
                 newCommand.OnExecuteAsync(async token =>
                     {
-                        var result = await appReleaser.CreateConfigurationFile(configurationFileArg.Value, projectOption.ParsedValue, userOption.ParsedValue, repoOption.ParsedValue, forceOption.ParsedValue);
+                        var result = await appReleaser.CreateConfigurationFile(configurationFileArg.ParsedValue, projectOption.ParsedValue, userOption.ParsedValue, repoOption.ParsedValue, forceOption.ParsedValue);
                         return result ? 0 : 1;
                     }
                 );
             }
         );
 
+        app.Command("changelog", changelogCommand =>
+        {
+            changelogCommand.Description = "Generate changelog for the specified GitHub owner/repository and optionally upload them back.";
+
+            var configurationFileArg = AddTomlConfigurationArgument(changelogCommand, false);
+            var versionArgument = changelogCommand.Argument("version", "An optional version to generate the changelog for. If it is not defined, it will fetch all existing tags and generate the logs for them.");
+            var updateOption = changelogCommand.Option<bool>("--update", "Update the changelog on GitHub for the specified version or all versions if no versions are specified.", CommandOptionType.NoValue);
+            var githubToken = AddGitHubToken(changelogCommand).IsRequired();
+
+            changelogCommand.OnExecuteAsync(async (token) =>
+            {
+                var result = await appReleaser.ListOrUpdateChangelog(configurationFileArg.ParsedValue, githubToken.ParsedValue, versionArgument.Value ?? string.Empty, updateOption.ParsedValue);
+                return result ? 0 : 1;
+            });
+        });
+
+        CommandOption<string> AddGitHubToken(CommandLineApplication cmd)
+        {
+            return cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
+        }
+
+        CommandArgument<string> AddTomlConfigurationArgument(CommandLineApplication cmd, bool forNew)
+        {
+            var arg = cmd.Argument<string>("dotnet-releaser.toml", forNew ? "TOML configuration file path to create. Default is: dotnet-releaser.toml" : "The input TOML configuration file.");
+            if (!forNew) arg = arg.IsRequired();
+            return arg;
+        }
+
         void AddPublishOrBuildArgs(CommandLineApplication cmd)
         {
             CommandOption<string>? githubToken = null;
             CommandOption<string>? nugetToken = null;
 
+            githubToken = AddGitHubToken(cmd);
+
             if (cmd.Name == "publish")
             {
                 cmd.Description = "Build and publish the project.";
-                githubToken = cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
                 nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
             }
             else
@@ -108,25 +137,14 @@ public partial class ReleaserApp : ISimpleLogger
             }
 
             var forceOption = cmd.Option<bool>("--force", "Force deleting and recreating the artifacts folder.", CommandOptionType.NoValue);
-            var configurationFileArg = cmd.Argument<string>("dotnet-releaser.toml", "TOML configuration file").IsRequired();
+            var configurationFileArg = AddTomlConfigurationArgument(cmd, false);
 
             cmd.OnExecuteAsync(async (token) =>
             {
-                appReleaser._forceArtifactsFolder = forceOption.ParsedValue;
-
                 // Check configuration file
                 var configurationFilePath = configurationFileArg.ParsedValue;
-                configurationFilePath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, configurationFilePath));
-                if (!File.Exists(configurationFilePath))
-                {
-                    throw new AppException($"Configuration file `{configurationFilePath}' not found.");
-                }
-                appReleaser._configurationFile = configurationFilePath;
-                
-                appReleaser._buildKind = cmd.Name == "publish" ? BuildKind.Publish : BuildKind.Build;
-                if (githubToken is not null) appReleaser._githubApiToken = githubToken.ParsedValue;
-                if (nugetToken is not null) appReleaser._nugetApiToken = nugetToken.ParsedValue;
-                var result = await appReleaser.RunImpl();
+                var buildKind = cmd.Name == "publish" ? BuildKind.Publish : BuildKind.Build;
+                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue ?? string.Empty, nugetToken?.ParsedValue, forceOption.ParsedValue);
                 return result ? 0 : 1;
             });
         }
@@ -163,22 +181,30 @@ public partial class ReleaserApp : ISimpleLogger
         return result;
     }
 
-    /// <summary>
-    /// Runs the releaser app
-    /// </summary>
-    private async Task<bool> RunImpl()
+    private async Task<bool> LoadConfiguration(string configurationFile)
     {
         // ------------------------------------------------------------------
         // Load Configuration
         // ------------------------------------------------------------------
-        var configuration = await ReleaserConfiguration.From(_configurationFile, this);
+        var configuration = await ReleaserConfiguration.From(configurationFile, this);
         if (configuration is null) return false;
         _config = configuration;
-
+        
         // Don't continue if we had errors when deserializing the config file
-        if (HasErrors) return false;
+        return !HasErrors;
+    }
 
-        if (!EnsureArtifactsFolders()) return false;
+    /// <summary>
+    /// Runs the releaser app
+    /// </summary>
+    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? nugetApiToken, bool forceArtifactsFolder)
+    {
+        // ------------------------------------------------------------------
+        // Load Configuration
+        // ------------------------------------------------------------------
+        if (!await LoadConfiguration(configurationFile)) return false;
+
+        if (!EnsureArtifactsFolders(forceArtifactsFolder)) return false;
 
         // ------------------------------------------------------------------
         // Load Package Information from MSBuild project
@@ -199,27 +225,31 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Validate Publish parameters
         // ------------------------------------------------------------------
-        GitHubClient? gitHubClient = null;
-        if (_buildKind == BuildKind.Publish)
+        var hostingConfiguration = _config.GitHub;
+        IDevHosting? devHosting = null;
+
+        // Connect to GitHub if we have a token
+        if (!string.IsNullOrEmpty(githubApiToken))
         {
-            if (_config.GitHub.Publish)
+            devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken);
+            if (devHosting is null)
             {
-                if (string.IsNullOrEmpty(_githubApiToken))
+                return false;
+            }
+        }
+        
+        if (buildKind == BuildKind.Publish)
+        {
+            if (hostingConfiguration.Publish)
+            {
+                if (string.IsNullOrEmpty(githubApiToken))
                 {
-                    Error("Publishing to GitHub requires to pass --github-token");
+                    Error($"Publishing to {hostingConfiguration.Provider} requires to pass --github-token");
                     return false;
-                }
-                else
-                {
-                    gitHubClient = await ConnectGitHubClient();
-                    if (gitHubClient is null)
-                    {
-                        return false;
-                    }
                 }
             }
 
-            if (willDoNuGetPack && string.IsNullOrEmpty(_nugetApiToken))
+            if (willDoNuGetPack && string.IsNullOrEmpty(nugetApiToken))
             {
                 Error("Publishing to NuGet requires to pass --nuget-token");
                 return false;
@@ -232,13 +262,13 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Parse Changelog
         // ------------------------------------------------------------------
-        string? changelog = null;
-        if (_config.Changelog.Publish)
+        ChangelogResult? changelog = null;
+        if (_config.Changelog.Publish && devHosting is not null)
         {
-            changelog = await LoadChangeLog(packageInfo);
+            changelog = await CreateChangeLog(devHosting, packageInfo.Version);
             if (changelog is not null)
             {
-                Info($"Changelog found:{Environment.NewLine}{changelog}");
+                Info($"Changelog:{Environment.NewLine}{changelog}");
             }
             else if (HasErrors)
             {
@@ -267,7 +297,7 @@ public partial class ReleaserApp : ISimpleLogger
             foreach (var rid in pack.RuntimeIdentifiers)
             {
                 if (pack.Publish) hasPackagesToBuild = true;
-                builder.AppendLine($"Build configured for {ReleaserConfiguration.Packaging.ToStringRidAndKinds(new () { rid }, pack.Kinds)}");
+                builder.AppendLine($"Build configured for {PackagingConfiguration.ToStringRidAndKinds(new () { rid }, pack.Kinds)}");
             }
         }
         // Don't log an empty line
@@ -317,29 +347,42 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Publish all packages NuGet + (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
-        if (_buildKind == BuildKind.Publish)
+        // Draft if we are just building and not publishing (to allow to update the changelog)
+        var releaseVersion = new ReleaseVersion(packageInfo.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{packageInfo.Version}");
+
+        if (buildKind == BuildKind.Publish)
         {
-            if (willDoNuGetPack)
+            if (willDoNuGetPack && nugetApiToken is not null)
             {
-                await PublishNuGet(packageInfo, _nugetApiToken);
+                await PublishNuGet(packageInfo, nugetApiToken);
             }
 
             // Don't try to continue publishing if we had errors with NuGet publishing
             // Otherwise publish any packages that we have generated before
-            if (!HasErrors && gitHubClient is not null)
+            if (!HasErrors && devHosting is not null)
             {
-                await UpdateGitHub(gitHubClient, packageInfo, changelog, entriesToPublish);
+                // In the case of a build, we still want to upload a draft release notes
+                await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
 
                 if (!HasErrors && _config.Brew.Publish)
                 {
-                    await UploadBrewFormula(gitHubClient, packageInfo, entriesToPublish);
+                    var brewFormula = HomebrewHelper.CreateFormula(devHosting, packageInfo, entriesToPublish);
+
+                    if (brewFormula is not null)
+                    {
+                        await devHosting.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
+                    }
                 }
             }
+
+        }
+        else if (buildKind == BuildKind.Build && devHosting is not null && !_config.Changelog.DisableDraftForBuild)
+        {
+            await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
         }
 
         return !HasErrors;
     }
-
 
     public bool HasErrors => _logger.HasErrors;
 
