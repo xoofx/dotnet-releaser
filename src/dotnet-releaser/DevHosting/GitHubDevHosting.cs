@@ -55,32 +55,59 @@ internal class GitHubDevHosting : IDevHosting
         return true;
     }
 
+    public async Task<List<ReleaseVersion>> GetAllReleaseTags(string user, string repo, string tagPrefix)
+    {
+        var versions = await GetAllReleaseTagsImpl(user, repo, tagPrefix);
+        var allReleases = await _client.Repository.Release.GetAll(user, repo);
+        var result = new List<ReleaseVersion>();
+        foreach (var (repoTag, nuGetVersion) in versions)
+        {
+            var release = allReleases.FirstOrDefault(x => x.TagName == repoTag.Name);
+            result.Add(new ReleaseVersion(nuGetVersion.OriginalVersion, release?.Draft ?? false, repoTag.Name));
+        }
+
+        return result;
+    }
+
+    private async Task<List<(RepositoryTag, NuGetVersion)>> GetAllReleaseTagsImpl(string user, string repo, string tagPrefix)
+    {
+        var tags = await _client.Repository.GetAllTags(user, repo);
+        var regex = new Regex(@$"{tagPrefix}(\d+(\.\d+)+.*)");
+        var versions = new List<(RepositoryTag, NuGetVersion)>();
+        foreach (var tag in tags)
+        {
+            var match = regex.Match(tag.Name);
+            if (match.Success && NuGetVersion.TryParse(match.Groups[1].Value, out var nubGetVersion))
+            {
+                versions.Add((tag, nubGetVersion));
+            }
+        }
+
+        // Reorder the releases by versions
+        versions = versions.OrderBy(x => x.Item2).ToList();
+        return versions;
+    }
+
     public async Task<ChangelogCollection?> GetChanges(string user, string repo, string tagPrefix, string version)
     {
         //var info.Version
         //_config.GitHub.VersionPrefix
 
         _log.Info($"Building Changelog: collecting commits and PR for version {version}");
-        
-        var tags = await _client.Repository.GetAllTags(user, repo);
-        var regex = new Regex(@$"{tagPrefix}(\d+(\.\d+)+.*)");
-        var versions = new List<(RepositoryTag, NuGetVersion)>();
+        var versions = await GetAllReleaseTagsImpl(user, repo, tagPrefix);
         NuGetVersion? versionForCurrent = null;
-        foreach (var tag in tags)
+        foreach (var (tag, nuGetVersion) in versions)
         {
-            var match = regex.Match(tag.Name);
-            if (match.Success && NuGetVersion.TryParse(match.Groups[1].Value, out var nubGetVersion))
+            if (nuGetVersion.OriginalVersion.Equals(version, StringComparison.OrdinalIgnoreCase))
             {
-                var tagVersion = match.Groups[1].Value.Trim();
-                if (tagVersion.Equals(version, StringComparison.OrdinalIgnoreCase))
-                {
-                    versionForCurrent = nubGetVersion;
-                }
-                versions.Add((tag, nubGetVersion));
+                versionForCurrent = nuGetVersion;
+                break;
             }
         }
 
-        var versionForPrevious = versions.Select(x => x.Item2).Where(x => x != versionForCurrent).Max();
+        var versionForPrevious = versionForCurrent is not null
+            ? versions.Select(x => x.Item2).Where(x => x < versionForCurrent).Max()
+            : versions.Select(x => x.Item2).Max();
         var shaForPrevious = versions.FirstOrDefault(x => x.Item2 == versionForPrevious).Item1?.Commit?.Sha;
         var shaForCurrent = versions.FirstOrDefault(x => x.Item2 == versionForCurrent).Item1?.Commit?.Sha;
 
@@ -132,7 +159,7 @@ internal class GitHubDevHosting : IDevHosting
 
         var compareCommits = await _client.Repository.Commit.Compare(user, repo, shaForPrevious, shaForCurrent);
 
-        var shaCommitsToExclude = new List<string>();
+        var shaCommitsToExclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var allCommits = new List<GitHubCommit>();
         var changeLogCollection = new ChangelogCollection();
@@ -175,7 +202,10 @@ internal class GitHubDevHosting : IDevHosting
                 // Merge pull request #
                 var pr = await _client.PullRequest.Get(user, repo, prNumber);
                 var commitsInPr = await _client.PullRequest.Commits(user, repo, prNumber);
-                shaCommitsToExclude.AddRange(commitsInPr.Select(x => x.Sha));
+                foreach (var commitInPr in commitsInPr)
+                {
+                    shaCommitsToExclude.Add(commitInPr.Sha);
+                }
 
                 // Collect files modified by commits
                 var filesModifiedByPr = new List<string>();
@@ -196,10 +226,13 @@ internal class GitHubDevHosting : IDevHosting
         }
 
         // Add commit change
-        var commitsNotInPR = allCommits.Where(x => !shaCommitsToExclude.Contains(x.Commit.Sha)).ToList();
+        var commitsNotInPR = allCommits.Where(x => !shaCommitsToExclude.Contains(x.Sha)).ToList();
         foreach (var commit in commitsNotInPR)
         {
-            changeLogCollection.AddCommitChange(GetTitle(commit.Commit.Message), commit.Commit.Message, commit.Committer.Login, commit.Sha);
+            // If we don't have a login information, skip the commit
+            var author = commit.Author?.Login ?? commit.Committer?.Login;
+            if (author is null) continue;
+            changeLogCollection.AddCommitChange(GetTitle(commit.Commit.Message), commit.Commit.Message, author, commit.Sha);
         }
 
         changeLogCollection.Version = new ChangelogVersionModel(Configuration.VersionPrefix, versionForCurrent, shaForCurrent);
@@ -215,7 +248,12 @@ internal class GitHubDevHosting : IDevHosting
     private static string GetTitle(string message) => new StringReader(message).ReadLine() ?? string.Empty;
 
 
-    private async Task<Release> CreateOrUpdateChangelog(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
+    public async Task CreateOrUpdateChangelog(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
+    {
+        await CreateOrUpdateChangelogImpl(user, repo, version, changelog);
+    }
+
+    private async Task<Release> CreateOrUpdateChangelogImpl(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
     {
         var releases = await _client.Repository.Release.GetAll(user, repo);
 
@@ -264,7 +302,7 @@ internal class GitHubDevHosting : IDevHosting
 
     public async Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<PackageEntry> entries, bool enablePublishPackagesInDraft)
     {
-        var release = await CreateOrUpdateChangelog(user, repo, version, changelog);
+        var release = await CreateOrUpdateChangelogImpl(user, repo, version, changelog);
         // Don't publish packages if draft is enabled but not packages
         if (version.IsDraft && !enablePublishPackagesInDraft)
         {

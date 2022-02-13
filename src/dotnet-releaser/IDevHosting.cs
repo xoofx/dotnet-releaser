@@ -22,7 +22,11 @@ public interface IDevHosting
     
     Task<bool> Connect();
 
+    Task<List<ReleaseVersion>> GetAllReleaseTags(string user, string repo, string tagPrefix);
+
     Task<ChangelogCollection?> GetChanges(string user, string repo, string tagPrefix, string version);
+
+    Task CreateOrUpdateChangelog(string user, string repo, ReleaseVersion version, ChangelogResult? changelog);
 
     Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<PackageEntry> entries, bool enablePublishPackagesInDraft);
 

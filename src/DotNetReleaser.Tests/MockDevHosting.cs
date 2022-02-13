@@ -26,7 +26,16 @@ public class MockDevHosting : IDevHosting
         return Task.FromResult(true);
     }
 
+    public Task<List<ReleaseVersion>> GetAllReleaseTags(string user, string repo, string tagPrefix)
+    {
+        throw new System.NotImplementedException();
+    }
 
+    public Task CreateOrUpdateChangelog(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
+    {
+        return Task.CompletedTask;
+    }
+    
     public delegate ChangelogCollection? GetChangesDelegate(IDevHosting hosting, string user, string repo, string tagPrefix, string version);
 
 
@@ -36,6 +45,8 @@ public class MockDevHosting : IDevHosting
     {
         return Task.FromResult(GetChangesImpl?.Invoke(this, user, repo, tagPrefix, version));
     }
+
+
 
     public Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<PackageEntry> entries, bool enablePublishPackagesInDraft)
     {

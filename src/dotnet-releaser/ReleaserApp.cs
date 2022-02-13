@@ -99,12 +99,41 @@ public partial class ReleaserApp : ISimpleLogger
             }
         );
 
+        app.Command("changelog", changelogCommand =>
+        {
+            changelogCommand.Description = "Generate changelog for the specified GitHub owner/repository and version.";
+
+            var ownerRepositoryArgument = changelogCommand.Argument("owner/repository", "The GitHub owner/repository to extract changelog from.").IsRequired();
+            var versionArgument = changelogCommand.Argument("version", "The version to generate the .");
+            var updateOption = changelogCommand.Option<bool>("--update", "Update the changelog for the specified version or all versions if no versions are specified", CommandOptionType.NoValue);
+            var githubToken = AddGitHubToken(changelogCommand).IsRequired();
+
+            changelogCommand.OnExecuteAsync(async (token) =>
+            {
+                appReleaser._githubApiToken = githubToken.ParsedValue;
+
+                var ownerAndRepo = ownerRepositoryArgument.Value;
+                var indexOfSplit = ownerAndRepo.IndexOf('/');
+                if (indexOfSplit < 0) throw new AppException($"Invalid owner/repo `{ownerAndRepo}`. Missing a `/` splitting the owner from the repo. Example: `xoofx/dotnet-releaser`.");
+                var owner = ownerAndRepo.Substring(0, indexOfSplit);
+                var repo = ownerAndRepo.Substring(indexOfSplit + 1);
+                var result = await appReleaser.ListOrUpdateChangelog(owner, repo, versionArgument.Value ?? string.Empty, "", updateOption.ParsedValue);
+                return result ? 0 : 1;
+            });
+
+        });
+
+        CommandOption<string> AddGitHubToken(CommandLineApplication cmd)
+        {
+            return cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
+        }
+
         void AddPublishOrBuildArgs(CommandLineApplication cmd)
         {
             CommandOption<string>? githubToken = null;
             CommandOption<string>? nugetToken = null;
 
-            githubToken = cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
+            githubToken = AddGitHubToken(cmd);
 
             if (cmd.Name == "publish")
             {
