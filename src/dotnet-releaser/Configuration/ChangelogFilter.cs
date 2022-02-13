@@ -2,9 +2,9 @@
 
 namespace DotNetReleaser.Configuration;
 
-public class ChangelogExclude
+public class ChangelogFilter
 {
-    public ChangelogExclude()
+    public ChangelogFilter()
     {
         Labels = new List<string>();
         Contributors = new List<string>();

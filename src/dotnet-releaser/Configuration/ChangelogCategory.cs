@@ -8,20 +8,22 @@ public class ChangelogCategory
     {
         Title = string.Empty;
         Labels = new List<string>();
-        Exclude = new ChangelogExclude();
+        Exclude = new ChangelogFilter();
     }
 
-    public ChangelogCategory(string title, params string[] labels)
+    public ChangelogCategory(int order, string title, params string[] labels)
     {
+        Order = order;
         Title = title;
         Labels = new List<string>(labels);
-        Exclude = new ChangelogExclude();
+        Exclude = new ChangelogFilter();
     }
-    
-    public string Title { get; set; }
 
+    public int Order { get; set; }
+
+    public string Title { get; set; }
+    
     public List<string> Labels { get; }
 
-
-    public ChangelogExclude Exclude { get; }
+    public ChangelogFilter Exclude { get; }
 }

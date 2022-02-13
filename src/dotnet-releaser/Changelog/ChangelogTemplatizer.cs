@@ -54,7 +54,12 @@ public sealed class ChangelogTemplatizer
         var changes = GenerateChanges();
         if (changes is null) return null;
 
-        var title = SafeRender(_nameTemplateScriban, new { version = changelogCollection.Version }, "name");
+        var title = SafeRender(_nameTemplateScriban, new
+        {
+            version = changelogCollection.Version,
+            previous_version = changelogCollection.PreviousVersion,
+            properties = new Dictionary<string, object>(_config.TemplateProperties)
+        }, "name");
         if (title is null) return null;
 
         // Create diff link
@@ -62,7 +67,14 @@ public sealed class ChangelogTemplatizer
         var currentVersion = changelogCollection.Version;
         var compareLink = $"[{(previousVersion.HasVersion ? previousVersion.Tag : previousVersion.Sha)}...{(currentVersion.HasVersion ? currentVersion.Tag : currentVersion.Sha)}]({changelogCollection.CompareUrl})";
         
-        var body = SafeRender(_bodyTemplateScriban, new { version = changelogCollection.Version, previous_version = changelogCollection.PreviousVersion, changes = changes, url_full_changelog_compare_changes = compareLink }, "body");
+        var body = SafeRender(_bodyTemplateScriban, new
+        {
+            version = changelogCollection.Version, 
+            previous_version = changelogCollection.PreviousVersion, 
+            changes = changes, 
+            url_full_changelog_compare_changes = compareLink,
+            properties = new Dictionary<string, object>(_config.TemplateProperties)
+        }, "body");
         if (body is null) return null;
 
         return new ChangelogResult(title, body);
@@ -86,7 +98,8 @@ public sealed class ChangelogTemplatizer
     private string? GenerateChanges()
     {
         var builder = new StringBuilder();
-        foreach (var category in _config.Categories)
+        // We generate the properties by order
+        foreach (var category in _config.Categories.OrderBy(x => x.Order))
         {
             if (_categoryToChanges.TryGetValue(category, out var changesListPerCategory))
             {
@@ -96,14 +109,22 @@ public sealed class ChangelogTemplatizer
                 foreach (var pr in changesListPerCategory.PullRequestChanges)
                 {
                     var template = IsFromOwner(pr) ? _ownersPullRequestChangeTemplateScriban : _pullRequestChangeTemplateScriban;
-                    var result = SafeRender(template, new { pr }, $"for category `{category.Title}`");
+                    var result = SafeRender(template, new
+                    {
+                        pr,
+                        properties = new Dictionary<string, object>(_config.TemplateProperties)
+                    }, $"for category `{category.Title}`");
                     if (result is null) return null;
                     builder.AppendLine(result);
                 }
                 foreach (var commit in changesListPerCategory.CommitChanges)
                 {
                     var template = IsFromOwner(commit) ? _ownersCommitChangeTemplateScriban : _commitChangeTemplateScriban;
-                    var result = SafeRender(template, new { commit }, $"for category `{category.Title}`");
+                    var result = SafeRender(template, new
+                    {
+                        commit,
+                        properties = new Dictionary<string, object>(_config.TemplateProperties)
+                    }, $"for category `{category.Title}`");
                     if (result is null) return null;
                     builder.AppendLine(result);
                 }
@@ -141,7 +162,7 @@ public sealed class ChangelogTemplatizer
 
     private void DispatchPullRequestAndCommitChangesToCategories(ChangelogCollection changelogCollection)
     {
-        var labelers = _config.Autolabeler.Select(x => x.Compile(_log)).ToList();
+        var labelers = _config.Autolabelers.Select(x => x.Compile(_log)).ToList();
 
         // Exit if we had any errors when parsing auto-labelers
         if (_log.HasErrors) return;
@@ -163,7 +184,9 @@ public sealed class ChangelogTemplatizer
             bool added = false;
 
             // If we have an include labels list and the PR doesn't have it, don't include the PR change
-            if (_config.IncludeLabels.Count > 0 && !_config.IncludeLabels.Any(x => pr.Labels.Any(y => EqualsIgnoreCase(x, y)))
+            if (_config.Include.Labels.Count > 0 && !_config.Include.Labels.Any(x => pr.Labels.Any(y => EqualsIgnoreCase(x, y))) ||
+                // include contributors only
+                _config.Include.Contributors.Count > 0 && !_config.Include.Contributors.Any(x => EqualsIgnoreCase(x, pr.Author))
                 // Check if the PR is excluded by labels
                 || _config.Exclude.Labels.Any(x => pr.Labels.Any(y => EqualsIgnoreCase(x, y)))
                 // Check if the PR is excluded by contributors

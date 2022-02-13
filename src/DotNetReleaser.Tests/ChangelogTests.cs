@@ -20,7 +20,7 @@ public class ChangelogTests
 
 ## ✨ New Features
 
-- Maybe support for xyz (#1) by @mister_pr_feature
+- Maybe support for xyz (PR #1) by @mister_pr_feature
 - Add support for new feature y (3608a391) by @mister_feature
 
 ## 🐛 Bug Fixes
@@ -37,12 +37,12 @@ public class ChangelogTests
 
 ## 🏭 Tests
 
-- Add tests for abc (#3)
+- Add tests for abc (PR #3)
 - Add tests (64774134) by @mister_test
 
 ## 🛠 Examples
 
-- Add example for alpha (#2) by @mister_pr_example
+- Add example for alpha (PR #2) by @mister_pr_example
 - Improve example (51bfc6bc) by @mister_example
 
 ## 📚 Documentation
@@ -73,15 +73,15 @@ public class ChangelogTests
 
 ## ✨ New Features
 
-- Maybe support for xyz (#1) by @mister_pr_feature
+- Maybe support for xyz (PR #1) by @mister_pr_feature
 
 ## 🏭 Tests
 
-- Add tests for abc (#3)
+- Add tests for abc (PR #3)
 
 ## 🛠 Examples
 
-- Add example for alpha (#2) by @mister_pr_example
+- Add example for alpha (PR #2) by @mister_pr_example
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
 ", GetBigChangesImpl, configuration =>
@@ -97,16 +97,33 @@ public class ChangelogTests
 
 ## ✨ New Features
 
-- Maybe support for xyz (#1) by @mister_pr_feature
+- Maybe support for xyz (PR #1) by @mister_pr_feature
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
 ", GetBigChangesImpl, configuration =>
         {
             configuration.IncludeCommits = false;
-            configuration.IncludeLabels.Add("feature");
+            configuration.Include.Labels.Add("feature");
         });
     }
 
+    [Test]
+    public async Task TestBigWithoutCommitsAndIncludeContributors()
+    {
+        await AssertTemplate(@"# Changes
+
+## 🛠 Examples
+
+- Add example for alpha (PR #2) by @mister_pr_example
+
+**Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+", GetBigChangesImpl, configuration =>
+        {
+            configuration.IncludeCommits = false;
+            configuration.Include.Contributors.Add("mister_pr_example");
+        });
+    }
+    
     [Test]
     public async Task TestBigWithoutCommitsAndExcludeContributor()
     {
@@ -114,11 +131,11 @@ public class ChangelogTests
 
 ## ✨ New Features
 
-- Maybe support for xyz (#1) by @mister_pr_feature
+- Maybe support for xyz (PR #1) by @mister_pr_feature
 
 ## 🏭 Tests
 
-- Add tests for abc (#3)
+- Add tests for abc (PR #3)
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
 ", GetBigChangesImpl, configuration =>
@@ -135,11 +152,11 @@ public class ChangelogTests
 
 ## 🏭 Tests
 
-- Add tests for abc (#3)
+- Add tests for abc (PR #3)
 
 ## 🛠 Examples
 
-- Add example for alpha (#2) by @mister_pr_example
+- Add example for alpha (PR #2) by @mister_pr_example
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
 ", GetBigChangesImpl, configuration =>
@@ -156,16 +173,16 @@ public class ChangelogTests
 
 ## 📚 Documentation
 
-- This is a change of doc 1 (#1) by @mister_pr_doc
+- This is a change of doc 1 (PR #1) by @mister_pr_doc
 
 ## 🧰 Misc
 
-- This is not a change of doc 2 (#2) by @mister_pr_misc
+- This is not a change of doc 2 (PR #2) by @mister_pr_misc
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
 ", GetBranchAndFilesDispatchChangesImpl, configuration =>
         {
-            configuration.Autolabeler.Insert(0, new ChangelogAutolabeler("doc").AppendFiles("/doc/*.md"));
+            configuration.Autolabelers.Insert(0, new ChangelogAutolabeler("doc").AppendFiles("/doc/*.md"));
         });
     }
 
@@ -176,16 +193,16 @@ public class ChangelogTests
 
 ## 🛠 Examples
 
-- This is not a change of doc 2 (#2) by @mister_pr_misc
+- This is not a change of doc 2 (PR #2) by @mister_pr_misc
 
 ## 🧰 Misc
 
-- This is a change of doc 1 (#1) by @mister_pr_doc
+- This is a change of doc 1 (PR #1) by @mister_pr_doc
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
 ", GetBranchAndFilesDispatchChangesImpl, configuration =>
         {
-            configuration.Autolabeler.Insert(0, new ChangelogAutolabeler("samples").AppendBranch(@"special_branch\d+"));
+            configuration.Autolabelers.Insert(0, new ChangelogAutolabeler("samples").AppendBranch(@"special_branch\d+"));
         });
     }
 
@@ -196,16 +213,44 @@ public class ChangelogTests
 
 ## ✨ New Features
 
-- This is not a change of doc 2 (#2) by @mister_pr_misc
+- This is not a change of doc 2 (PR #2) by @mister_pr_misc
 
 ## 🧰 Misc
 
-- This is a change of doc 1 (#1) by @mister_pr_doc
+- This is a change of doc 1 (PR #1) by @mister_pr_doc
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
 ", GetBranchAndFilesDispatchChangesImpl, configuration =>
         {
-            configuration.Autolabeler.Insert(0, new ChangelogAutolabeler("feature").AppendBody(@"special \d+ comment"));
+            configuration.Autolabelers.Insert(0, new ChangelogAutolabeler("feature").AppendBody(@"special \d+ comment"));
+        });
+    }
+
+    [Test]
+    public async Task TestBodyTemplateWithProperties()
+    {
+        await AssertTemplate(@"# Amazing Changes 1
+
+## ✨ New Features
+
+- This is not a change of doc 2 (PR #2) by @mister_pr_misc
+
+## 🧰 Misc
+
+- This is a change of doc 1 (PR #1) by @mister_pr_doc
+
+**Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+", GetBranchAndFilesDispatchChangesImpl, configuration =>
+        {
+            configuration.BodyTemplate = @"# {{ properties.changes_pre_title }} Changes {{ properties.hello_number }}
+
+{{ changes }}
+
+**Full Changelog**: {{ url_full_changelog_compare_changes }}
+";
+            configuration.TemplateProperties.Add("changes_pre_title", "Amazing");
+            configuration.TemplateProperties.Add("hello_number", 1);
+            configuration.Autolabelers.Insert(0, new ChangelogAutolabeler("feature").AppendBody(@"special \d+ comment"));
         });
     }
 
@@ -214,7 +259,7 @@ public class ChangelogTests
     {
         var (log, result) = await CreateChangelog(GetBigChangesImpl, configuration =>
         {
-            configuration.Autolabeler.Add(new ChangelogAutolabeler("feature").AppendBody(@"[\d+ invalid regex"));
+            configuration.Autolabelers.Add(new ChangelogAutolabeler("feature").AppendBody(@"[\d+ invalid regex"));
         });
         Assert.True(log.HasErrors, $"No errors while expecting: {log.Output}");
         AssertHelper.Equals(@"error: Invalid regex `[\d+ invalid regex` for property `autolabeler.body. Invalid pattern '[\d+ invalid regex' at offset 18. Unterminated [] set.", log.Output.ToString().Trim());

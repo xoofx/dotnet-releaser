@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -10,23 +11,24 @@ public class ChangelogConfiguration : ConfigurationBase
         Categories = new List<ChangelogCategory>();
         NameTemplate = "{{ version.tag }}";
         OwnersCommitChangeTemplate = "- {{ commit.title }} ({{ commit.sha}})";
-        OwnersPullRequestChangeTemplate = "- {{ pr.title }} (#{{ pr.number }})";
+        OwnersPullRequestChangeTemplate = "- {{ pr.title }} (PR #{{ pr.number }})";
         CommitChangeTemplate = "- {{ commit.title }} ({{ commit.sha}}) by @{{ commit.author }}";
-        PullRequestChangeTemplate = "- {{ pr.title }} (#{{ pr.number }}) by @{{ pr.author }}";
+        PullRequestChangeTemplate = "- {{ pr.title }} (PR #{{ pr.number }}) by @{{ pr.author }}";
         IncludeCommits = true;
         Defaults = true;
         //ChangeTitleEscape = @"\<*_&@";
         Owners = new List<string>();
-        Autolabeler = new List<ChangelogAutolabeler>();
+        Autolabelers = new List<ChangelogAutolabeler>();
         Replacers = new List<ChangelogReplacer>();
-        Exclude = new ChangelogExclude();
-        IncludeLabels = new List<string>();
+        Include = new ChangelogFilter();
+        Exclude = new ChangelogFilter();
         BodyTemplate = @"# Changes
 
 {{ changes }}
 
 **Full Changelog**: {{ url_full_changelog_compare_changes }}
 ";
+        TemplateProperties = new Dictionary<string, object>();
     }
     public string? Path { get; set; }
 
@@ -52,46 +54,51 @@ public class ChangelogConfiguration : ConfigurationBase
 
     public bool DisableDraftForBuild { get; set; }
 
-    public ChangelogExclude Exclude { get; }
+    public ChangelogFilter Include { get; }
 
-    public List<string> IncludeLabels { get; }
+    public ChangelogFilter Exclude { get; }
 
-    public List<ChangelogAutolabeler> Autolabeler { get; }
+    [DataMember(Name = "autolabeler")]
+    public List<ChangelogAutolabeler> Autolabelers { get; }
 
-    public List<ChangelogReplacer> Replacers { get; }
+    [DataMember(Name = "replacer")]
+    public List<ChangelogReplacer> Replacers { get; } // TBD: not implemented yet
     
+    [DataMember(Name = "category")]
     public List<ChangelogCategory> Categories { get; }
+
+    public Dictionary<string, object> TemplateProperties { get; }
 
     public void AddDefaults()
     {
-        // Add defaults unless user is explicit asking not for them
+        // Add defaults unless user is explicitly disabling them.
         if (!Defaults) return;
 
         Exclude.Labels.Add("skip-release-notes");
 
-        Categories.Add(new ChangelogCategory("## 🚨 Breaking Changes", "breaking-change", "category: breaking-change"));
-        Categories.Add(new ChangelogCategory("## ✨ New Features", "new-feature", "feature", "category: feature"));
-        Categories.Add(new ChangelogCategory("## 🐛 Bug Fixes", "bugfix", "fix", "bug", "category: bug"));
-        Categories.Add(new ChangelogCategory("## 🚀 Enhancements", "enhancement", "refactor", "performance", "category: performance", "category: enhancement"));
-        Categories.Add(new ChangelogCategory("## 🧰 Maintenance", "maintenance", "ci", "category: ci"));
-        Categories.Add(new ChangelogCategory("## 🏭 Tests", "tests", "test", "category: tests"));
-        Categories.Add(new ChangelogCategory("## 🛠 Examples", "examples", "samples", "category: samples", "category: examples"));
-        Categories.Add(new ChangelogCategory("## 📚 Documentation", "documentation", "doc", "category: documentation", "category: doc"));
-        Categories.Add(new ChangelogCategory("## 🌎 Accessibility", "translations", "accessibility"));
-        Categories.Add(new ChangelogCategory("## 📦 Dependencies", "dependencies", "deps"));
-        Categories.Add(new ChangelogCategory("## 🧰 Misc", "misc"));
+        Categories.Add(new ChangelogCategory(10, "## 🚨 Breaking Changes", "breaking-change", "category: breaking-change"));
+        Categories.Add(new ChangelogCategory(20, "## ✨ New Features", "new-feature", "feature", "category: feature"));
+        Categories.Add(new ChangelogCategory(30, "## 🐛 Bug Fixes", "bugfix", "fix", "bug", "category: bug"));
+        Categories.Add(new ChangelogCategory(40, "## 🚀 Enhancements", "enhancement", "refactor", "performance", "category: performance", "category: enhancement"));
+        Categories.Add(new ChangelogCategory(50, "## 🧰 Maintenance", "maintenance", "ci", "category: ci"));
+        Categories.Add(new ChangelogCategory(60, "## 🏭 Tests", "tests", "test", "category: tests"));
+        Categories.Add(new ChangelogCategory(70, "## 🛠 Examples", "examples", "samples", "category: samples", "category: examples"));
+        Categories.Add(new ChangelogCategory(80, "## 📚 Documentation", "documentation", "doc", "category: documentation", "category: doc"));
+        Categories.Add(new ChangelogCategory(90, "## 🌎 Accessibility", "translations", "accessibility", "category: accessibility"));
+        Categories.Add(new ChangelogCategory(100, "## 📦 Dependencies", "dependencies", "deps", "category: dependencies"));
+        Categories.Add(new ChangelogCategory(110, "## 🧰 Misc", "misc", "category: misc"));
 
         var addImproveFix = @"^(([Aa]dd)|([Ii]mprove)|([Ff]ix)|([Uu]pdate))\s+";
-        Autolabeler.Add(new ChangelogAutolabeler("breaking-change").AppendTitle(@"^[Bb]reaking\s+[Cc]hange"));
-        Autolabeler.Add(new ChangelogAutolabeler("maintenance").AppendTitle(@$"{addImproveFix}ci\b"));
-        Autolabeler.Add(new ChangelogAutolabeler("documentation").AppendTitle(@$"{addImproveFix}[Dd]oc"));
-        Autolabeler.Add(new ChangelogAutolabeler("tests").AppendTitle(@$"{addImproveFix}[Tt]est"));
-        Autolabeler.Add(new ChangelogAutolabeler("examples").AppendTitle(@$"{addImproveFix}[Ee]xample"));
-        Autolabeler.Add(new ChangelogAutolabeler("accessibility").AppendTitle(@$"{addImproveFix}[Tt]ranslation").AppendTitle(@$"{addImproveFix}[Aa]ccessibility"));
-        Autolabeler.Add(new ChangelogAutolabeler("bugfix").AppendTitle(@"^(([Ff]ix)|([Bb]ugfix))"));
-        Autolabeler.Add(new ChangelogAutolabeler("feature").AppendTitle(@"^([Aa]dd)\s+"));
-        Autolabeler.Add(new ChangelogAutolabeler("enhancement").AppendTitle(@"^(([Ee]nhance)|([Rr]efactor))").AppendTitle(@"^([Ii]mprove)\s+[Pp]erf"));
-        Autolabeler.Add(new ChangelogAutolabeler("dependencies").AppendTitle(@"^([Uu]pdate)\s+[Dd]epend").AppendTitle(@"^([Bb]ump)\s+\w{3,}")); // We match more then Bump xxx to make sure that we won't match a "Bump to 0.9.1"
-        Autolabeler.Add(new ChangelogAutolabeler("misc").AppendTitle(@".")); // match anything left
+        Autolabelers.Add(new ChangelogAutolabeler("breaking-change").AppendTitle(@"^[Bb]reaking\s+[Cc]hange"));
+        Autolabelers.Add(new ChangelogAutolabeler("maintenance").AppendTitle(@$"{addImproveFix}ci\b"));
+        Autolabelers.Add(new ChangelogAutolabeler("documentation").AppendTitle(@$"{addImproveFix}[Dd]oc"));
+        Autolabelers.Add(new ChangelogAutolabeler("tests").AppendTitle(@$"{addImproveFix}[Tt]est"));
+        Autolabelers.Add(new ChangelogAutolabeler("examples").AppendTitle(@$"{addImproveFix}[Ee]xample"));
+        Autolabelers.Add(new ChangelogAutolabeler("accessibility").AppendTitle(@$"{addImproveFix}[Tt]ranslation").AppendTitle(@$"{addImproveFix}[Aa]ccessibility"));
+        Autolabelers.Add(new ChangelogAutolabeler("bugfix").AppendTitle(@"^(([Ff]ix)|([Bb]ugfix))"));
+        Autolabelers.Add(new ChangelogAutolabeler("feature").AppendTitle(@"^([Aa]dd)\s+"));
+        Autolabelers.Add(new ChangelogAutolabeler("enhancement").AppendTitle(@"^(([Ee]nhance)|([Rr]efactor))").AppendTitle(@"^([Ii]mprove)\s+[Pp]erf"));
+        Autolabelers.Add(new ChangelogAutolabeler("dependencies").AppendTitle(@"^([Uu]pdate)\s+[Dd]epend").AppendTitle(@"^([Bb]ump)\s+\w{3,}")); // We match more then Bump xxx to make sure that we won't match a "Bump to 0.9.1"
+        Autolabelers.Add(new ChangelogAutolabeler("misc").AppendTitle(@".")); // match anything left
     }
 }
