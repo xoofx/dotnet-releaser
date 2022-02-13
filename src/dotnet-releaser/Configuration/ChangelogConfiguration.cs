@@ -25,7 +25,7 @@ public class ChangelogConfiguration : ConfigurationBase
 
 {{ changes }}
 
-** Full Changelog**: {{ url_full_changelog_compare_changes }}
+**Full Changelog**: {{ url_full_changelog_compare_changes }}
 ";
     }
     public string? Path { get; set; }
@@ -81,7 +81,7 @@ public class ChangelogConfiguration : ConfigurationBase
         Categories.Add(new ChangelogCategory("## 📦 Dependencies", "dependencies", "deps"));
         Categories.Add(new ChangelogCategory("## 🧰 Misc", "misc"));
 
-        var addImproveFix = @"^(([Aa]dd)|([Ii]mprove)|([Ff]ix))\s+";
+        var addImproveFix = @"^(([Aa]dd)|([Ii]mprove)|([Ff]ix)|([Uu]pdate))\s+";
         Autolabeler.Add(new ChangelogAutolabeler("breaking-change").AppendTitle(@"^[Bb]reaking\s+[Cc]hange"));
         Autolabeler.Add(new ChangelogAutolabeler("maintenance").AppendTitle(@$"{addImproveFix}ci\b"));
         Autolabeler.Add(new ChangelogAutolabeler("documentation").AppendTitle(@$"{addImproveFix}[Dd]oc"));
@@ -91,7 +91,7 @@ public class ChangelogConfiguration : ConfigurationBase
         Autolabeler.Add(new ChangelogAutolabeler("bugfix").AppendTitle(@"^(([Ff]ix)|([Bb]ugfix))"));
         Autolabeler.Add(new ChangelogAutolabeler("feature").AppendTitle(@"^([Aa]dd)\s+"));
         Autolabeler.Add(new ChangelogAutolabeler("enhancement").AppendTitle(@"^(([Ee]nhance)|([Rr]efactor))").AppendTitle(@"^([Ii]mprove)\s+[Pp]erf"));
-        Autolabeler.Add(new ChangelogAutolabeler("dependencies").AppendTitle(@"^([Uu]pdate)\s+[Dd]epend").AppendTitle(@"^([Bb]ump)\s+\w+"));
+        Autolabeler.Add(new ChangelogAutolabeler("dependencies").AppendTitle(@"^([Uu]pdate)\s+[Dd]epend").AppendTitle(@"^([Bb]ump)\s+\w{3,}")); // We match more then Bump xxx to make sure that we won't match a "Bump to 0.9.1"
         Autolabeler.Add(new ChangelogAutolabeler("misc").AppendTitle(@".")); // match anything left
     }
 }
