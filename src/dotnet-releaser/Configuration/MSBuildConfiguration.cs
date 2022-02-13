@@ -5,7 +5,7 @@ namespace DotNetReleaser.Configuration;
 /// <summary>
 /// MSBuild Configuration.
 /// </summary>
-public class MSBuildConfiguration
+public class MSBuildConfiguration : ConfigurationBase
 {
     public MSBuildConfiguration()
     {
@@ -42,6 +42,6 @@ public class MSBuildConfiguration
 
     public override string ToString()
     {
-        return $"{nameof(Project)}: {Project}, {nameof(Configuration)}: {Configuration}, {nameof(Properties)} Count = {Properties.Count}";
+        return $"{base.ToString()} {nameof(Project)}: {Project}, {nameof(Configuration)}: {Configuration}, {nameof(Properties)} Count = {Properties.Count}";
     }
 }

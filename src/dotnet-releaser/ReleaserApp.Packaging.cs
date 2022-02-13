@@ -224,12 +224,12 @@ public partial class ReleaserApp
         return null;
     }
 
-    private bool EnsureArtifactsFolders()
+    private bool EnsureArtifactsFolders(bool forceArtifactsFolder)
     {
         // Make sure that the artifacts folder is created
         if (Directory.Exists(_config.ArtifactsFolder))
         {
-            if (!_forceArtifactsFolder)
+            if (!forceArtifactsFolder)
             {
                 Error($"The artifacts folder `{_config.ArtifactsFolder}` already exists. Use `--force` to delete/recreate this folder during a `build`/`publish`.");
                 return false;

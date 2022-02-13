@@ -70,6 +70,13 @@ public class ReleaserConfiguration
     {
         try
         {
+            filePath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, filePath));
+            if (!File.Exists(filePath))
+            {
+                logger.Error($"Configuration file `{filePath}' not found.");
+                return null;
+            }
+
             logger.Info($"Loading configuration from {filePath}");
             var content = await File.ReadAllTextAsync(filePath);
 
@@ -109,11 +116,14 @@ public class ReleaserConfiguration
         ArtifactsFolder = Path.GetFullPath(Path.Combine(configurationDirectory, ArtifactsFolder));
 
         // Make sure that the path is absolute
-        MSBuild.Project = Path.GetFullPath(Path.Combine(configurationDirectory, MSBuild.Project));
-        if (!File.Exists(MSBuild.Project))
+        if (MSBuild.Publish && !string.IsNullOrEmpty(MSBuild.Project))
         {
-            logger.Error($"The MSBuild project file `{MSBuild.Project}` was not found.");
-            return false;
+            MSBuild.Project = Path.GetFullPath(Path.Combine(configurationDirectory, MSBuild.Project));
+            if (!File.Exists(MSBuild.Project))
+            {
+                logger.Error($"The MSBuild project file `{MSBuild.Project}` was not found.");
+                return false;
+            }
         }
 
         // Check changelog

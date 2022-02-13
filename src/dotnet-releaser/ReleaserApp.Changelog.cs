@@ -18,19 +18,33 @@ public partial class ReleaserApp
         return result;
     }
 
-    private async Task<bool> ListOrUpdateChangelog(string user, string repo, string version, string tagPrefix, bool update)
+    private async Task<bool> ListOrUpdateChangelog(string configurationFilePath, string githubApiToken, string version, bool update)
     {
-        var hosting = new GitHubDevHosting(_logger, new GitHubDevHostingConfiguration() { User = user, Repo = repo }, _githubApiToken);
-        if (!await hosting.Connect()) return false;
+        if (!await LoadConfiguration(configurationFilePath))
+        {
+            return false;
+        }
+        
+        var devHosting = await ConnectToDevHosting(_config.GitHub, githubApiToken);
+        if (devHosting is null) return false;
 
+        return await ListOrUpdateChangelog(devHosting, version, update);
+    }
+
+    private async Task<bool> ListOrUpdateChangelog(IDevHosting devHosting, string version, bool update)
+    {
         // TODO: allow to use settings from existing file
+        var user = devHosting.Configuration.User;
+        var repo = devHosting.Configuration.Repo;
+        var tagPrefix = devHosting.Configuration.VersionPrefix;
+
         var changelogConfiguration = new ChangelogConfiguration();
         changelogConfiguration.Owners.Add(user);
         changelogConfiguration.AddDefaults();
 
         bool hasErrors = false;
         Info($"Updating changelog for for repository `{user}/{repo}`. Fetching tags.");
-        var versions = await hosting.GetAllReleaseTags(user, repo, tagPrefix);
+        var versions = await devHosting.GetAllReleaseTags(user, repo, tagPrefix);
 
         // If we specify a version, filter only this one
         if (!string.IsNullOrEmpty(version))
@@ -49,7 +63,7 @@ public partial class ReleaserApp
         {
             Info($"Building changelog for repository `{user}/{repo}` for version {releaseVersion.Version}");
             var builder = new ChangelogBuilder(changelogConfiguration, _logger);
-            var changelogResult = await builder.Generate(hosting, releaseVersion.Version);
+            var changelogResult = await builder.Generate(devHosting, releaseVersion.Version);
             if (changelogResult is not null)
             {
                 _logger.Info($"Title: {changelogResult.Title}");
@@ -57,7 +71,7 @@ public partial class ReleaserApp
                 if (update)
                 {
                     Info($"Updating changelog for repository `{user}/{repo}` for version {releaseVersion.Version}");
-                    await hosting.CreateOrUpdateChangelog(user, repo, releaseVersion, changelogResult);
+                    await devHosting.CreateOrUpdateChangelog(user, repo, releaseVersion, changelogResult);
                 }
             }
             else
