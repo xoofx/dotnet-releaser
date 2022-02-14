@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -9,7 +10,7 @@ public class MSBuildConfiguration : ConfigurationBase
 {
     public MSBuildConfiguration()
     {
-        Project = string.Empty;
+        Projects = new List<string>();
         Configuration = "Release";
 
         // Default properties for publishing a native app
@@ -28,7 +29,8 @@ public class MSBuildConfiguration : ConfigurationBase
     /// <summary>
     /// Gets or sets the path to the project that contains the app to build.
     /// </summary>
-    public string Project { get; set; }
+    [DataMember(Name = "project")]
+    public List<string> Projects { get; }
 
     /// <summary>
     /// The configuration to compile
@@ -42,6 +44,6 @@ public class MSBuildConfiguration : ConfigurationBase
 
     public override string ToString()
     {
-        return $"{base.ToString()} {nameof(Project)}: {Project}, {nameof(Configuration)}: {Configuration}, {nameof(Properties)} Count = {Properties.Count}";
+        return $"{base.ToString()} {nameof(Projects)}: [{string.Join(", ", Projects)}], {nameof(Configuration)}: {Configuration}, {nameof(Properties)} Count = {Properties.Count}";
     }
 }

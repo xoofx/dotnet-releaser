@@ -206,7 +206,7 @@ public partial class ReleaserApp
     {
         using var program = new MSBuildRunner()
         {
-            Project = _config.MSBuild.Project,
+            Project = _config.MSBuild.Projects.First(), // TBD change this later
             Configuration = _config.MSBuild.Configuration,
             CustomAfterMicrosoftCommonTargets = DotNetReleaserConfigFile,
             Targets =
