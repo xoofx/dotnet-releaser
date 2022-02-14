@@ -2,7 +2,7 @@
 # Disable default packs - It will only publish NuGet and the Changelog
 profile = "custom"
 [msbuild]
-project = "./dotnet-releaser/dotnet-releaser.csproj"
+project = "dotnet-releaser.sln"
 [github]
 user = "xoofx"
 repo = "dotnet-releaser"

@@ -34,13 +34,14 @@
   <Target Name="DotNetReleaserGetPackageInfo"  DependsOnTargets="GetAssemblyVersion" Outputs="@(_DotNetReleaserGetPackageInfo)">
     <ItemGroup>
       <_DotNetReleaserGetPackageInfo Include="$(PackageId)" Kind="PackageId"/>
-      <_DotNetReleaserGetPackageInfo Include="$(AssemblyName)" Kind="ExeName"/>
+      <_DotNetReleaserGetPackageInfo Include="$(AssemblyName)" Kind="AssemblyName"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageDescription)" Kind="PackageDescription"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageVersion)" Kind="PackageVersion"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageLicenseExpression)" Kind="PackageLicenseExpression"/>
       <_DotNetReleaserGetPackageInfo Include="$(OutputType)" Kind="PackageOutputType"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageProjectUrl)" Kind="PackageProjectUrl"/>
       <_DotNetReleaserGetPackageInfo Include="$(IsPackable)" Kind="IsNuGetPackable"/>
+      <_DotNetReleaserGetPackageInfo Include="$(IsTestProject)" Kind="IsTestProject"/>
     </ItemGroup>
   </Target>
 

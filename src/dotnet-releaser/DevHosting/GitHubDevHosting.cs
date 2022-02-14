@@ -374,9 +374,9 @@ internal class GitHubDevHosting : IDevHosting
         }
     }
 
-    public async Task UploadHomebrewFormula(string user, string repo, PackageInfo packageInfo, string brewFormula)
+    public async Task UploadHomebrewFormula(string user, string repo, ProjectPackageInfo projectPackageInfo, string brewFormula)
     {
-        var appName = packageInfo.ExeName;
+        var appName = projectPackageInfo.AssemblyName;
         var filePath = $"Formula/{appName}.rb";
 
         Repository? existingRepository = null;
@@ -393,9 +393,9 @@ internal class GitHubDevHosting : IDevHosting
         {
             _log.Info($"Creating Homebrew repository {user}/{repo}");
             var newRepository = new NewRepository(repo);
-            newRepository.Description = $"Homebrew repository for {packageInfo.ProjectUrl}";
+            newRepository.Description = $"Homebrew repository for {projectPackageInfo.ProjectUrl}";
             newRepository.AutoInit = true;
-            newRepository.LicenseTemplate = packageInfo.License;
+            newRepository.LicenseTemplate = projectPackageInfo.License;
             existingRepository = await _client.Repository.Create(newRepository);
         }
         else
@@ -418,7 +418,7 @@ internal class GitHubDevHosting : IDevHosting
         if (shouldCreate)
         {
             _log.Info($"Creating Homebrew Formula {user}/{repo}");
-            await _client.Repository.Content.CreateFile(user, repo, filePath, new CreateFileRequest($"{packageInfo.Version}", brewFormula));
+            await _client.Repository.Content.CreateFile(user, repo, filePath, new CreateFileRequest($"{projectPackageInfo.Version}", brewFormula));
         }
         else
         {
@@ -427,7 +427,7 @@ internal class GitHubDevHosting : IDevHosting
             if (file.Content != brewFormula)
             {
                 _log.Info($"Updating Homebrew Formula {user}/{repo}");
-                await _client.Repository.Content.UpdateFile(user, repo, filePath, new UpdateFileRequest($"{packageInfo.Version}", brewFormula, file.Sha));
+                await _client.Repository.Content.UpdateFile(user, repo, filePath, new UpdateFileRequest($"{projectPackageInfo.Version}", brewFormula, file.Sha));
             }
             else
             {

@@ -8,35 +8,39 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task<bool> BuildNuGetPackage()
+    private async Task<bool> BuildNuGetPackage(BuildInformation buildInfo)
     {
         if (!_config.NuGet.Publish) return true;
 
-        var nugetPackages = await BuildNuGetPackageImpl();
-        if (nugetPackages is null)
+        foreach (var projectPackageInfo in buildInfo.GetAllPackableProjects())
         {
-            Error("Failed to build nuget packages or no packages were found.");
-            return false;
+            var nugetPackages = await BuildNuGetPackageImpl(projectPackageInfo);
+            if (nugetPackages is null)
+            {
+                Error("Failed to build nuget packages or no packages were found.");
+            }
+            else
+            {
+                foreach (var nugetPackage in nugetPackages)
+                {
+                    Info($"NuGet Package built: {nugetPackage}");
+                }
+            }
         }
 
-        foreach (var nugetPackage in nugetPackages)
-        {
-            Info($"NuGet Package built: {nugetPackage}");
-        }
-
-        return true;
+        return !HasErrors;
     }
 
-    private async Task<List<string>?> BuildNuGetPackageImpl()
+    private async Task<List<string>?> BuildNuGetPackageImpl(ProjectPackageInfo projectPackageInfo)
     {
         Info($"Building NuGet Package");
-        var restoreResult = await RunMSBuild("Restore");
+        var restoreResult = await RunMSBuild(projectPackageInfo.ProjectFullPath, "Restore");
         if (restoreResult is null)
         {
             return null;
         }
 
-        var outputs = await RunMSBuild(ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput);
+        var outputs = await RunMSBuild(projectPackageInfo.ProjectFullPath, ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput);
         if (outputs is null) return null;
 
         // Copy to artifacts
@@ -50,9 +54,9 @@ public partial class ReleaserApp
         return list.Count == 0 ? null : list;
     }
 
-    private async Task PublishNuGet(PackageInfo packageInfo, string nugetSecretKey)
+    private async Task PublishNuGet(ProjectPackageInfo projectPackageInfo, string nugetSecretKey)
     {
-        Info($"Publishing NuGet {packageInfo.Version}");
+        Info($"Publishing NuGet {projectPackageInfo.Version}");
         try
         {
             var program = new DotNetRunner("nuget")

@@ -11,11 +11,19 @@ using Microsoft.Build.Framework;
 
 namespace DotNetReleaser;
 
+public enum PackageOutputType
+{
+    Exe,
+    WinExe,
+    AppContainerExe,
+    Library,
+}
+
 public partial class ReleaserApp 
 {
-    private async Task<PackageInfo?> LoadPackageInfo()
+    private async Task<ProjectPackageInfo?> LoadPackageInfo(string project)
     {
-        var outputs = await RunMSBuild(ReleaserConstants.DotNetReleaserGetPackageInfo);
+        var outputs = await RunMSBuild(project, ReleaserConstants.DotNetReleaserGetPackageInfo);
         if (outputs is null) return null;
 
         if (outputs.Count == 0)
@@ -27,22 +35,22 @@ public partial class ReleaserApp
         try
         {
             var packageId = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageId).ItemSpec!;
-            var exeName = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.ExeName).ItemSpec!;
+            var assemblyName = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.AssemblyName).ItemSpec!;
             var packageVersion = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageVersion).ItemSpec;
             var packageDescription = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageDescription)?.ItemSpec;
             var packageLicenseExpression = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageLicenseExpression)?.ItemSpec;
-            var packageOutputType = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.ItemSpec;
+            var packageOutputType = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.ItemSpec?.Trim() ?? string.Empty;
             var packageProjectUrl = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageProjectUrl)?.ItemSpec ?? $"{_config.GitHub.GetUrl()}";
-            var isNuGetPackable = string.Compare(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsNuGetPackable)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase) == 0;
+            var isNuGetPackable = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsNuGetPackable)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+            var isTestProject = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestProject)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
 
-            // Check that the output type is actually an exe
-            if (packageOutputType is null || !packageOutputType.Contains("exe", StringComparison.OrdinalIgnoreCase))
+            if (!Enum.TryParse<PackageOutputType>(packageOutputType, true, out var result))
             {
-                Error($"The project is not an executable but is of type {packageOutputType}. This tool supports only packaging executables.");
+                Error($"Unsupported project type `{packageOutputType}` found for project `{project}`");
                 return null;
             }
-
-            return new PackageInfo(packageId, exeName, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable);
+            
+            return new ProjectPackageInfo(project, packageId, assemblyName, result, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject);
         }
         catch (Exception ex)
         {
@@ -54,7 +62,7 @@ public partial class ReleaserApp
     /// <summary>
     /// This is the part that handles the packaging for tar, zip, deb, rpm
     /// </summary>
-    private async Task<List<PackageEntry>?> PackPlatform(PackageInfo packageInfo, bool publish, string rid, params PackageKind[] kinds)
+    private async Task<List<PackageEntry>?> PackPlatform(ProjectPackageInfo projectPackageInfo, bool publish, string rid, params PackageKind[] kinds)
     {
         var properties = new Dictionary<string, object>(_config.MSBuild.Properties)
         {
@@ -99,7 +107,7 @@ public partial class ReleaserApp
             clock.Restart();
 
             // We need to explicitly restore the platform RID before trying to build it
-            var restoreResult = await RunMSBuild("Restore", propertiesForTarget);
+            var restoreResult = await RunMSBuild(projectPackageInfo.ProjectFullPath, "Restore", propertiesForTarget);
             if (restoreResult is null)
             {
                 // Stop on first error
@@ -114,7 +122,7 @@ public partial class ReleaserApp
                     if (kind == PackageKind.Deb || kind == PackageKind.Rpm)
                     {
                         Info($"Creating service file for {FormatRidAndKind(rid, kind)}.");
-                        var systemdFile = await CreateSystemdServiceFile(packageInfo);
+                        var systemdFile = await CreateSystemdServiceFile(projectPackageInfo);
                         if (systemdFile is null)
                         {
                             break;
@@ -161,7 +169,7 @@ public partial class ReleaserApp
             }
 
             // Publish
-            var result = await RunMSBuild(target, propertiesForTarget);
+            var result = await RunMSBuild(projectPackageInfo.ProjectFullPath, target, propertiesForTarget);
 
             if (result is null)
             {
@@ -200,42 +208,6 @@ public partial class ReleaserApp
         var dest = Path.Combine(_config.ArtifactsFolder, Path.GetFileName(source));
         File.Copy(source, dest);
         return dest;
-    }
-
-    private async Task<List<ITaskItem>?> RunMSBuild(string target, IDictionary<string, object>? properties = null)
-    {
-        using var program = new MSBuildRunner()
-        {
-            Project = _config.MSBuild.Projects.First(), // TBD change this later
-            Configuration = _config.MSBuild.Configuration,
-            CustomAfterMicrosoftCommonTargets = DotNetReleaserConfigFile,
-            Targets =
-            {
-                target
-            }
-        };
-
-        // Copy properties
-        if (properties is not null)
-        {
-            foreach (var property in properties)
-            {
-                program.Properties[property.Key] = property.Value;
-            }
-        }
-        
-        var result = await program.Run(this);
-
-        if (result.TargetOutputs.TryGetValue(target, out var outputs))
-        {
-            return outputs;
-        }
-        else if (!result.HasErrors)
-        {
-            return new List<ITaskItem>();
-        }
-
-        return null;
     }
 
     private bool EnsureArtifactsFolders(bool forceArtifactsFolder)

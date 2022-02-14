@@ -23,11 +23,12 @@ static class ReleaserConstants
 
     public const string ItemSpecKind = "Kind";
     public const string PackageId = nameof(PackageId);
-    public const string ExeName = nameof(ExeName);
+    public const string AssemblyName = nameof(AssemblyName);
     public const string PackageVersion = nameof(PackageVersion);
     public const string PackageDescription = nameof(PackageDescription);
     public const string PackageLicenseExpression = nameof(PackageLicenseExpression);
     public const string PackageOutputType = nameof(PackageOutputType);
     public const string PackageProjectUrl = nameof(PackageProjectUrl);
     public const string IsNuGetPackable = nameof(IsNuGetPackable);
+    public const string IsTestProject = nameof(IsTestProject);
 }

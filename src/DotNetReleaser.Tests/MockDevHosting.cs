@@ -53,7 +53,7 @@ public class MockDevHosting : IDevHosting
         return Task.CompletedTask;
     }
 
-    public Task UploadHomebrewFormula(string user, string repo, PackageInfo packageInfo, string brewFormula)
+    public Task UploadHomebrewFormula(string user, string repo, ProjectPackageInfo projectPackageInfo, string brewFormula)
     {
         return Task.CompletedTask;
     }

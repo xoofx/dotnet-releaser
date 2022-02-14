@@ -209,18 +209,8 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Load Package Information from MSBuild project
         // ------------------------------------------------------------------
-        var packageInfo = await LoadPackageInfo();
-        if (packageInfo is null) return false;
-
-        Info($"Package to build: {packageInfo}");
-
-        // If the project is not packable as a NuGet package but we still (by default)
-        // ask for a NuGet package, produce a warning
-        var willDoNuGetPack = packageInfo.IsNuGetPackable && _config.NuGet.Publish;
-        if (!packageInfo.IsNuGetPackable && _config.NuGet.Publish)
-        {
-            Warn("The project is not packable as a NuGet package (IsPackable = false). Skipping NuGet building/publishing.");
-        }
+        var buildInformation = await LoadProjects();
+        if (HasErrors) return false;
 
         // ------------------------------------------------------------------
         // Validate Publish parameters
@@ -249,7 +239,7 @@ public partial class ReleaserApp : ISimpleLogger
                 }
             }
 
-            if (willDoNuGetPack && string.IsNullOrEmpty(nugetApiToken))
+            if (string.IsNullOrEmpty(nugetApiToken))
             {
                 Error("Publishing to NuGet requires to pass --nuget-token");
                 return false;
@@ -257,15 +247,18 @@ public partial class ReleaserApp : ISimpleLogger
         }
 
         // Update homebrew config (and log if necessary)
-        UpdateHomebrewConfigurationFromPackage(packageInfo);
-        
+        foreach (var projectPackageInfo in buildInformation.GetAllPackableProjects())
+        {
+            UpdateHomebrewConfigurationFromPackage(projectPackageInfo);
+        }
+
         // ------------------------------------------------------------------
         // Parse Changelog
         // ------------------------------------------------------------------
         ChangelogResult? changelog = null;
         if (_config.Changelog.Publish && devHosting is not null)
         {
-            changelog = await CreateChangeLog(devHosting, packageInfo.Version);
+            changelog = await CreateChangeLog(devHosting, buildInformation.Version);
             if (changelog is not null)
             {
                 Info($"Changelog:{Environment.NewLine}{changelog}");
@@ -283,102 +276,106 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Build NuGet package
         // ------------------------------------------------------------------
-        if (!await BuildNuGetPackage()) return false;
+        if (!await BuildNuGetPackage(buildInformation)) return false;
 
         // ------------------------------------------------------------------
         // Build executable packages (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
-        var entriesToPublish = new List<PackageEntry>();
+        foreach (var packageInfo in buildInformation.GetAllPackableProjects())
+        {
+            var entriesToPublish = new List<PackageEntry>();
 
-        var builder = new StringBuilder();
-        bool hasPackagesToBuild = false;
-        foreach (var pack in _config.Packs)
-        {
-            foreach (var rid in pack.RuntimeIdentifiers)
-            {
-                if (pack.Publish) hasPackagesToBuild = true;
-                builder.AppendLine($"Build configured for {PackagingConfiguration.ToStringRidAndKinds(new () { rid }, pack.Kinds)}");
-            }
-        }
-        // Don't log an empty line
-        if (builder.Length > 0)
-        {
-            Info(builder.ToString());
-        }
-
-        if (hasPackagesToBuild)
-        {
-            Info("Begin building platform packages...");
+            var builder = new StringBuilder();
+            bool hasPackagesToBuild = false;
             foreach (var pack in _config.Packs)
             {
                 foreach (var rid in pack.RuntimeIdentifiers)
                 {
-                    var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
-                    if (HasErrors) goto exitPackOnError; // break on first errors
-
-                    if (list is not null && pack.Publish)
-                    {
-                        entriesToPublish.AddRange(list);
-                    }
+                    if (pack.Publish) hasPackagesToBuild = true;
+                    builder.AppendLine($"Build configured for {PackagingConfiguration.ToStringRidAndKinds(new() { rid }, pack.Kinds)}");
                 }
             }
 
-            exitPackOnError:
-            if (HasErrors)
+            // Don't log an empty line
+            if (builder.Length > 0)
             {
-                Error("Error while building platform packages.");
+                Info(builder.ToString());
+            }
+
+            if (hasPackagesToBuild)
+            {
+                Info("Begin building platform packages...");
+                foreach (var pack in _config.Packs)
+                {
+                    foreach (var rid in pack.RuntimeIdentifiers)
+                    {
+                        var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
+                        if (HasErrors) goto exitPackOnError; // break on first errors
+
+                        if (list is not null && pack.Publish)
+                        {
+                            entriesToPublish.AddRange(list);
+                        }
+                    }
+                }
+
+                exitPackOnError:
+                if (HasErrors)
+                {
+                    Error("Error while building platform packages.");
+                }
+                else
+                {
+                    Info("End building platform packages successful.");
+                }
             }
             else
             {
-                Info("End building platform packages successful.");
-            }
-        }
-        else
-        {
-            Info("No packages to build");
-        }
-
-        // Exit if we have any errors.
-        if (HasErrors)
-        {
-            return false;
-        }
-
-        // ------------------------------------------------------------------
-        // Publish all packages NuGet + (deb, zip, rpm, tar...)
-        // ------------------------------------------------------------------
-        // Draft if we are just building and not publishing (to allow to update the changelog)
-        var releaseVersion = new ReleaseVersion(packageInfo.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{packageInfo.Version}");
-
-        if (buildKind == BuildKind.Publish)
-        {
-            if (willDoNuGetPack && nugetApiToken is not null)
-            {
-                await PublishNuGet(packageInfo, nugetApiToken);
+                Info("No packages to build");
             }
 
-            // Don't try to continue publishing if we had errors with NuGet publishing
-            // Otherwise publish any packages that we have generated before
-            if (!HasErrors && devHosting is not null)
+            // Exit if we have any errors.
+            if (HasErrors)
             {
-                // In the case of a build, we still want to upload a draft release notes
-                await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
+                return false;
+            }
 
-                if (!HasErrors && _config.Brew.Publish)
+            // ------------------------------------------------------------------
+            // Publish all packages NuGet + (deb, zip, rpm, tar...)
+            // ------------------------------------------------------------------
+            // Draft if we are just building and not publishing (to allow to update the changelog)
+            var releaseVersion = new ReleaseVersion(buildInformation.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{buildInformation.Version}");
+
+            if (buildKind == BuildKind.Publish)
+            {
+                if (nugetApiToken is not null)
                 {
-                    var brewFormula = HomebrewHelper.CreateFormula(devHosting, packageInfo, entriesToPublish);
+                    await PublishNuGet(packageInfo, nugetApiToken);
+                }
 
-                    if (brewFormula is not null)
+                // Don't try to continue publishing if we had errors with NuGet publishing
+                // Otherwise publish any packages that we have generated before
+                if (!HasErrors && devHosting is not null)
+                {
+                    // In the case of a build, we still want to upload a draft release notes
+                    await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
+
+                    if (!HasErrors && _config.Brew.Publish)
                     {
-                        await devHosting.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
+                        var brewFormula = HomebrewHelper.CreateFormula(devHosting, packageInfo, entriesToPublish);
+
+                        if (brewFormula is not null)
+                        {
+                            await devHosting.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
+                        }
                     }
                 }
-            }
 
-        }
-        else if (buildKind == BuildKind.Build && devHosting is not null && !_config.Changelog.DisableDraftForBuild)
-        {
-            await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
+            }
+            else if (buildKind == BuildKind.Build && devHosting is not null && !_config.Changelog.DisableDraftForBuild)
+            {
+                await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
+            }
         }
 
         return !HasErrors;
