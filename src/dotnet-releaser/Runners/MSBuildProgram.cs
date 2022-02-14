@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CliWrap;
 using DotNetReleaser.Logging;
 using Microsoft.Build.Framework;
+using MsBuildPipeLogger;
 
 namespace DotNetReleaser.Runners;
 
@@ -13,15 +13,14 @@ public record MSBuildResult(CommandResult CommandResult, string CommandLine, str
 
 public class MSBuildRunner : DotNetRunnerBase
 {
-    private readonly string _binlogPath;
+    private string? _pipeHandle;
 
     public MSBuildRunner() : base("msbuild")
     {
-        _binlogPath = $"{Path.GetTempFileName()}.binlog";
         Arguments.AddRange(new List<string>()
         {
             "-nologo",
-            $"-bl:{_binlogPath}"
+            "-noconlog"
         });
         Targets = new List<string>();
         Project = string.Empty;
@@ -45,6 +44,11 @@ public class MSBuildRunner : DotNetRunnerBase
     protected override IEnumerable<string> ComputeArguments()
     {
         var arguments = new List<string>(base.ComputeArguments());
+
+        if (_pipeHandle is not null)
+        {
+            arguments.Add($"-logger:MsBuildPipeLogger.PipeLogger,{typeof(AnonymousPipeWriter).Assembly.Location};{_pipeHandle}");
+        }
 
         foreach (var target in Targets)
         {
@@ -75,39 +79,46 @@ public class MSBuildRunner : DotNetRunnerBase
     {
         if (string.IsNullOrEmpty(Project)) throw new InvalidOperationException("MSBuildRunner.Project cannot be empty");
 
-        var result = await base.RunImpl();
-        if (result.CommandResult.ExitCode != 0)
-        {
-            logger.Error($"Failing to run {result.CommandLine}. Reason: {result.Output}");
-            return new MSBuildResult(result.CommandResult, result.CommandLine, result.Output, new Dictionary<string, List<ITaskItem>>());
-        }
+        // Create the server
+        using var reader = new AnonymousPipeLoggerServer();
 
-        var targets = new HashSet<string>(Targets, StringComparer.OrdinalIgnoreCase);
-        var targetOutputs = new Dictionary<string, List<ITaskItem>>(StringComparer.OrdinalIgnoreCase);
-        var reader = new Microsoft.Build.Logging.StructuredLogger.BinLogReader();
-        reader.WarningRaised += (sender, args) => { logger.Warn($"{args.File}({args.LineNumber},{args.ColumnNumber}): warning {args.Code}: {args.Message} [{args.ProjectFile}]"); };
-        reader.ErrorRaised += (sender, args) => { logger.Error($"{args.File}({args.LineNumber},{args.ColumnNumber}): error {args.Code}: {args.Message} [{args.ProjectFile}]"); };
-        reader.TargetFinished += (sender, args) =>
+        // Get the pipe handle
+        _pipeHandle = reader.GetClientHandle();
+
+        var taskReader = Task.Run(() =>
         {
-            var outputs = args.TargetOutputs?.OfType<ITaskItem>().ToList();
-            if (!targets.Contains(args.TargetName)) return;
-            if (outputs is not null)
+            reader.ReadAll();
+        });
+
+        try
+        {
+            var targets = new HashSet<string>(Targets, StringComparer.OrdinalIgnoreCase);
+            var targetOutputs = new Dictionary<string, List<ITaskItem>>(StringComparer.OrdinalIgnoreCase);
+            reader.WarningRaised += (sender, args) => { logger.Warn($"{args.File}({args.LineNumber},{args.ColumnNumber}): warning {args.Code}: {args.Message} [{args.ProjectFile}]"); };
+            reader.ErrorRaised += (sender, args) => { logger.Error($"{args.File}({args.LineNumber},{args.ColumnNumber}): error {args.Code}: {args.Message} [{args.ProjectFile}]"); };
+            reader.TargetFinished += (sender, args) =>
             {
-                targetOutputs[args.TargetName] = outputs;
+                var outputs = args.TargetOutputs?.OfType<ITaskItem>().ToList();
+                if (!targets.Contains(args.TargetName)) return;
+                if (outputs is not null)
+                {
+                    targetOutputs[args.TargetName] = outputs;
+                }
+            };
+            var result = await base.RunImpl();
+            if (result.CommandResult.ExitCode != 0)
+            {
+                logger.Error($"Failing to run {result.CommandLine}. Reason: {result.Output}");
+                return new MSBuildResult(result.CommandResult, result.CommandLine, result.Output, new Dictionary<string, List<ITaskItem>>());
             }
-        };
-        reader.Replay(_binlogPath);
 
-        return new MSBuildResult(result.CommandResult, result.CommandLine, result.Output, targetOutputs);
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (!disposing) return;
-
-        if (File.Exists(_binlogPath))
-        {
-            File.Delete(_binlogPath);
+            return new MSBuildResult(result.CommandResult, result.CommandLine, result.Output, targetOutputs);
         }
+        finally
+        {
+            taskReader.Wait();
+            _pipeHandle = null;
+        }
+
     }
 }
