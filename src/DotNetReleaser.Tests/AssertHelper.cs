@@ -12,10 +12,10 @@ public static class AssertHelper
         if (result != expected)
         {
             Console.WriteLine("Result");
-            Console.WriteLine("-------------------------------------------------");
+            Console.WriteLine("**************************************************");
             Console.WriteLine(result);
             Console.WriteLine("Expected");
-            Console.WriteLine("-------------------------------------------------");
+            Console.WriteLine("**************************************************");
             Console.WriteLine(expected);
             Assert.AreEqual(expected, result);
         }

@@ -53,7 +53,11 @@ public partial class ReleaserApp : ISimpleLogger
 
             // Similar to builder.AddSimpleConsole();
             // But we are using our own console that stays on the same line if the message doesn't have new lines
-            builder.AddConsoleFormatter<SimpleConsoleFormatter, SimpleConsoleFormatterOptions>(configure => { configure.SingleLine = true; });
+            builder.AddConsoleFormatter<SimpleConsoleFormatter, SimpleConsoleFormatterOptions>(configure =>
+            {
+                configure.TimestampFormat = "yyyy/MM/dd HH:mm:ss.fff ";
+                configure.SingleLine = true;
+            });
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ConsoleLoggerProvider>());
             LoggerProviderOptions.RegisterProviderOptions<ConsoleLoggerOptions, ConsoleLoggerProvider>(builder.Services);
         });

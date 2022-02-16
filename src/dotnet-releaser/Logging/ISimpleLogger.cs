@@ -36,18 +36,27 @@ public static class SimpleLogger
 
         void ISimpleLogger.Info(string message)
         {
-            _log.LogInformation(new EventId(_logId++), message);
+            lock (_log)
+            {
+                _log.LogInformation(new EventId(_logId++), message);
+            }
         }
 
         void ISimpleLogger.Warn(string message)
         {
-            _log.LogWarning(new EventId(_logId++), message);
+            lock (_log)
+            {
+                _log.LogWarning(new EventId(_logId++), message);
+            }
         }
 
         void ISimpleLogger.Error(string message)
         {
-            HasErrors = true;
-            _log.LogError(new EventId(_logId++), message);
+            lock (_log)
+            {
+                HasErrors = true;
+                _log.LogError(new EventId(_logId++), message);
+            }
         }
     }
 }

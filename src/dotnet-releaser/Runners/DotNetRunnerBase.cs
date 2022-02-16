@@ -33,6 +33,8 @@ public abstract class DotNetRunnerBase : IDisposable
 
     public string WorkingDirectory { get; set; }
 
+    protected Action? RunAfterStart { get; set; }
+
     protected virtual IEnumerable<string> ComputeArguments() => Arguments;
 
     protected virtual IReadOnlyDictionary<string, object> ComputeProperties() => Properties;
@@ -77,7 +79,7 @@ public abstract class DotNetRunnerBase : IDisposable
         return value.ToString() ?? string.Empty;
     }
 
-    private static async Task<DotNetResult> Run(string command, IEnumerable<string> args, IReadOnlyDictionary<string, object>? properties = null, string? workingDirectory = null)
+    private async Task<DotNetResult> Run(string command, IEnumerable<string> args, IReadOnlyDictionary<string, object>? properties = null, string? workingDirectory = null)
     {
         var stdOutAndErrorBuffer = new StringBuilder();
 
@@ -90,8 +92,9 @@ public abstract class DotNetRunnerBase : IDisposable
             .WithValidation(CommandResultValidation.None)
             .ExecuteAsync();
 
-        var result = await wrap;
+        RunAfterStart?.Invoke();
 
+        var result = await wrap.ConfigureAwait(false);
         return new DotNetResult(result, $"dotnet {arguments}",stdOutAndErrorBuffer.ToString());
     }
 

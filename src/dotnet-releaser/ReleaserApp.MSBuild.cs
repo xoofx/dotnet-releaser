@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
+using System.Threading;
 using System.Threading.Tasks;
+using DotNetReleaser.Helpers;
 using DotNetReleaser.Runners;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
@@ -93,24 +97,44 @@ public partial class ReleaserApp
             allProjectPackageInfoCollections.Add(new ProjectPackageInfoCollection(tempList.ToArray(), null));
         }
 
+        Info("Loading projects");
+
+        Environment.SetEnvironmentVariable("DOTNET_CLI_TELEMETRY_OPTOUT", "1");
+
+        var results = new ConcurrentQueue<(string, ProjectPackageInfo?)>();
+        var tasks = new List<Task>();
         // Load projects from solutions
         foreach (var (solution, projects) in solutionToProjects)
         {
-            tempList.Clear();
             foreach (var project in projects)
             {
-                var packageInfo = await LoadPackageInfo(project);
-                if (packageInfo is not null)
+                var task = Task.Factory.StartNew(async () =>
                 {
-                    tempList.Add(packageInfo);
-                }
-            }
-
-            if (tempList.Count > 0)
-            {
-                allProjectPackageInfoCollections.Add(new ProjectPackageInfoCollection(tempList.ToArray(), solution));
+                    var result = (solution, await LoadPackageInfo(project));
+                    results.Enqueue(result);
+                });
+                tasks.Add(task);
             }
         }
+
+        Task.WaitAll(tasks.ToArray());
+
+        // Collect results
+        var solutionToProjectPackageInfoCollections = new Dictionary<string, List<ProjectPackageInfo>>();
+        foreach (var result in results)
+        {
+            var (solution, packageInfo) = result;
+            if (packageInfo is not null)
+            {
+                if (!solutionToProjectPackageInfoCollections.TryGetValue(solution, out var list))
+                {
+                    list = new List<ProjectPackageInfo>();
+                    solutionToProjectPackageInfoCollections.Add(solution, list);
+                }
+                list.Add(packageInfo);
+            }
+        }
+        allProjectPackageInfoCollections.AddRange(solutionToProjectPackageInfoCollections.Select(x => new ProjectPackageInfoCollection(x.Value.ToArray(), x.Key)));
 
         // Verify versions of projects and display all projects
         var version = VerifyVersionsAndDisplayAllProjects(allProjectPackageInfoCollections);
@@ -118,41 +142,58 @@ public partial class ReleaserApp
         return new BuildInformation(version, allProjectPackageInfoCollections.ToArray());
     }
 
+    private (string, ProjectPackageInfo?) Function()
+    {
+        throw new NotImplementedException();
+    }
 
     private string VerifyVersionsAndDisplayAllProjects(List<ProjectPackageInfoCollection> projectPackageInfoCollections)
     {
+        var tableRenderer = new TableTextRenderer();
+        tableRenderer.AddColumnHeader("Project");
+        tableRenderer.AddColumnHeader("Kind");
+        tableRenderer.AddColumnHeader("Version");
+        tableRenderer.AddColumnHeader("License");
+        tableRenderer.AddColumnHeader("IsPackable", TextAlignKind.Center);
+        tableRenderer.AddColumnHeader("IsTest", TextAlignKind.Center);
+        tableRenderer.AddColumnHeader("Solution");
+
+        var row = new List<string>();
+        row.AddRange(Enumerable.Repeat(string.Empty, tableRenderer.ColumnHeaders.Count));
+
         string? version = null;
+        var invalidPackageVersions = new List<ProjectPackageInfo>();
         foreach (var projectPackageInfoCollection in projectPackageInfoCollections)
         {
-            string indent = string.Empty;
-            if (projectPackageInfoCollection.SolutionFile is not null)
-            {
-                Info($"Projects from Solution {projectPackageInfoCollection.SolutionFile}");
-                indent = "-> ";
-            }
             foreach (var project in projectPackageInfoCollection.Packages)
             {
                 if (project.IsPackable)
                 {
                     version ??= project.Version;
+                }
+                bool invalidVersion = project.IsPackable && version != project.Version;
+                row[0] = project.AssemblyName;
+                row[1] = project.OutputType.ToString().ToLowerInvariant();
+                row[2] = invalidVersion ? $"{project.Version} (invalid)" : project.Version;
+                row[3] = project.License;
+                row[4] = project.IsPackable ? "x" : string.Empty;
+                row[5] = project.IsTestProject ? "x" : string.Empty;
+                row[6] = projectPackageInfoCollection.SolutionFile ?? string.Empty;
+                if (invalidVersion)
+                {
+                    invalidPackageVersions.Add(project);
+                }
 
-                    if (version != project.Version)
-                    {
-                        Error($"{indent}Project Package: {project.AssemblyName} with the Version {project.Version} is not matching the version of other previous projects {version}. All versions must match in order to publish under the same version!");
-                    }
-                    else
-                    {
-                        Info($"{indent}Project Package: {project.AssemblyName}, Version: {project.Version}, Kind: {project.OutputType}");
-                    }
-                }
-                else if (project.IsTestProject)
-                {
-                    Info($"{indent}Test Project {project.AssemblyName} (build & test only,no packaging or publish)");
-                }
-                else
-                {
-                    Info($"{indent}Project: {project.AssemblyName}, Version: {project.Version}, Kind: {project.OutputType} (build only, no packaging or publish)");
-                }
+                tableRenderer.AddRow(row);
+            }
+        }
+
+        Info($"Packages and Projects\n{tableRenderer.Render()}");
+        if (invalidPackageVersions.Count > 0)
+        {
+            foreach (var invalidPackageVersion in invalidPackageVersions)
+            {
+                Error($"Invalid version {invalidPackageVersion.Version} for package {invalidPackageVersion.AssemblyName}");
             }
         }
 
