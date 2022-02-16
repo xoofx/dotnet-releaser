@@ -4,15 +4,24 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Runners;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
+using Spectre.Console;
 
 namespace DotNetReleaser;
 
+public enum PackageOutputType
+{
+    Exe,
+    WinExe,
+    AppContainerExe,
+    Library,
+}
 
 public record BuildInformation(string Version, ProjectPackageInfoCollection[] ProjectPackageInfoCollections)
 {
@@ -24,6 +33,52 @@ public record BuildInformation(string Version, ProjectPackageInfoCollection[] Pr
 
 public partial class ReleaserApp 
 {
+    private async Task<ProjectPackageInfo?> LoadPackageInfo(string projectFullFilePath)
+    {
+        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetPackageInfo);
+        if (outputs is null) return null;
+
+        if (outputs.Count == 0)
+        {
+            Error($"Unexpected error. Unable to read build results for target `{ReleaserConstants.DotNetReleaserGetPackageInfo}`");
+            return null;
+        }
+
+        try
+        {
+            var packageId = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageId).ItemSpec!;
+            var assemblyName = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.AssemblyName).ItemSpec!;
+            var packageVersion = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageVersion).ItemSpec;
+            var packageDescription = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageDescription)?.ItemSpec;
+            var packageLicenseExpression = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageLicenseExpression)?.ItemSpec;
+            var packageOutputType = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.ItemSpec?.Trim() ?? string.Empty;
+            var packageProjectUrl = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageProjectUrl)?.ItemSpec ?? $"{_config.GitHub.GetUrl()}";
+            var isNuGetPackable = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsNuGetPackable)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+            var isTestProject = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestProject)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+
+            //var builder = new StringBuilder();
+            //var currentProjectDirectory = Path.GetDirectoryName(projectFullFilePath)!;
+            //foreach (var projectReference in outputs.Where(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.ProjectReference))
+            //{
+            //    var projectReferenceFullPath =
+            //        Path.GetFullPath(Path.Combine(currentProjectDirectory, projectReference.ItemSpec));
+            //}
+
+            if (!Enum.TryParse<PackageOutputType>(packageOutputType, true, out var result))
+            {
+                Error($"Unsupported project type `{packageOutputType}` found for project `{projectFullFilePath}`");
+                return null;
+            }
+
+            return new ProjectPackageInfo(projectFullFilePath, packageId, assemblyName, result, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject);
+        }
+        catch (Exception ex)
+        {
+            Error($"Unexpected error while trying to read build results for target `{ReleaserConstants.DotNetReleaserGetPackageInfo}`. Outputs: {string.Join(", ", outputs.Select(x => x.ItemSpec))}. Reason: {ex}");
+            return null;
+        }
+    }
+
     private async Task<BuildInformation> LoadProjects()
     {
         var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
@@ -97,9 +152,7 @@ public partial class ReleaserApp
             allProjectPackageInfoCollections.Add(new ProjectPackageInfoCollection(tempList.ToArray(), null));
         }
 
-        Info("Loading projects");
-
-        Environment.SetEnvironmentVariable("DOTNET_CLI_TELEMETRY_OPTOUT", "1");
+        Info($"Loading {solutionToProjects.Select(x => x.Value.Count).Sum()} projects");
 
         var results = new ConcurrentQueue<(string, ProjectPackageInfo?)>();
         var tasks = new List<Task>();
@@ -149,18 +202,18 @@ public partial class ReleaserApp
 
     private string VerifyVersionsAndDisplayAllProjects(List<ProjectPackageInfoCollection> projectPackageInfoCollections)
     {
-        var tableRenderer = new TableTextRenderer();
-        tableRenderer.AddColumnHeader("Project");
-        tableRenderer.AddColumnHeader("Kind");
-        tableRenderer.AddColumnHeader("Version");
-        tableRenderer.AddColumnHeader("License");
-        tableRenderer.AddColumnHeader("IsPackable", TextAlignKind.Center);
-        tableRenderer.AddColumnHeader("IsTest", TextAlignKind.Center);
-        tableRenderer.AddColumnHeader("Solution");
+        var table = new Table();
+        table.AddColumn("Project");
+        table.AddColumn("Kind");
+        table.AddColumn("Version");
+        table.AddColumn("License");
+        table.AddColumn(new TableColumn("IsPackable").Centered());
+        table.AddColumn(new TableColumn("IsTest").Centered());
+        table.AddColumn("Solution");
 
         var row = new List<string>();
-        row.AddRange(Enumerable.Repeat(string.Empty, tableRenderer.ColumnHeaders.Count));
-
+        row.AddRange(Enumerable.Repeat(string.Empty, table.Columns.Count));
+        
         string? version = null;
         var invalidPackageVersions = new List<ProjectPackageInfo>();
         foreach (var projectPackageInfoCollection in projectPackageInfoCollections)
@@ -184,11 +237,13 @@ public partial class ReleaserApp
                     invalidPackageVersions.Add(project);
                 }
 
-                tableRenderer.AddRow(row);
+                table.AddRow(row.Select(Markup.Escape).ToArray());
             }
         }
 
-        Info($"Packages and Projects\n{tableRenderer.Render()}");
+        Info($"Packages and Projects");
+        AnsiConsole.Write(table);
+
         if (invalidPackageVersions.Count > 0)
         {
             foreach (var invalidPackageVersion in invalidPackageVersions)
@@ -227,7 +282,7 @@ public partial class ReleaserApp
             }
         }
         
-        var result = await program.Run(this);
+        var result = await program.Run(_logger);
 
         if (result.TargetOutputs.TryGetValue(target, out var outputs))
         {

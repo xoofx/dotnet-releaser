@@ -42,6 +42,7 @@
       <_DotNetReleaserGetPackageInfo Include="$(PackageProjectUrl)" Kind="PackageProjectUrl"/>
       <_DotNetReleaserGetPackageInfo Include="$(IsPackable)" Kind="IsNuGetPackable"/>
       <_DotNetReleaserGetPackageInfo Include="$(IsTestProject)" Kind="IsTestProject"/>
+      <_DotNetReleaserGetPackageInfo Include="@(ProjectReference)" Kind="ProjectReference"/>
     </ItemGroup>
   </Target>
 

@@ -9,11 +9,7 @@ using DotNetReleaser.Configuration;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using McMaster.Extensions.CommandLineUtils;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Configuration;
-using Microsoft.Extensions.Logging.Console;
 
 namespace DotNetReleaser;
 
@@ -27,7 +23,7 @@ namespace DotNetReleaser;
 /// - Push the NuGet package
 /// - Push all platform packages
 /// </summary>
-public partial class ReleaserApp : ISimpleLogger
+public partial class ReleaserApp
 {
     private static readonly string DotNetReleaserConfigFile = Path.Combine(AppContext.BaseDirectory, ReleaserConstants.DotNetReleaserFileName);
     
@@ -48,20 +44,10 @@ public partial class ReleaserApp : ISimpleLogger
     public static async Task<int> Run(string[] args)
     {
         // Create our log
-        using var factory = LoggerFactory.Create(builder =>
+        using var factory = LoggerFactory.Create(configure =>
         {
-
-            // Similar to builder.AddSimpleConsole();
-            // But we are using our own console that stays on the same line if the message doesn't have new lines
-            builder.AddConsoleFormatter<SimpleConsoleFormatter, SimpleConsoleFormatterOptions>(configure =>
-            {
-                configure.TimestampFormat = "yyyy/MM/dd HH:mm:ss.fff ";
-                configure.SingleLine = true;
-            });
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ConsoleLoggerProvider>());
-            LoggerProviderOptions.RegisterProviderOptions<ConsoleLoggerOptions, ConsoleLoggerProvider>(builder.Services);
+            configure.AddProvider(new SpectreConsoleLoggerProvider(new SpectreConsoleLoggerOptions() { IncludeCategory = false }));
         });
-
         var exeName = "dotnet-releaser";
         var logger = SimpleLogger.CreateConsoleLogger(factory, exeName);
         var appReleaser = new ReleaserApp(logger);
@@ -190,10 +176,10 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Load Configuration
         // ------------------------------------------------------------------
-        var configuration = await ReleaserConfiguration.From(configurationFile, this);
+        var configuration = await ReleaserConfiguration.From(configurationFile, _logger);
         if (configuration is null) return false;
         _config = configuration;
-        
+
         // Don't continue if we had errors when deserializing the config file
         return !HasErrors;
     }

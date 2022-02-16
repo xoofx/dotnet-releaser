@@ -31,4 +31,5 @@ static class ReleaserConstants
     public const string PackageProjectUrl = nameof(PackageProjectUrl);
     public const string IsNuGetPackable = nameof(IsNuGetPackable);
     public const string IsTestProject = nameof(IsTestProject);
+    public const string ProjectReference = nameof(ProjectReference);
 }

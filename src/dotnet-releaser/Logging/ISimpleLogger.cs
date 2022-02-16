@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace DotNetReleaser.Logging;
@@ -8,12 +10,30 @@ public interface ISimpleLogger
 {
     bool HasErrors { get; }
 
-    void Info(string message);
-    
-    void Warn(string message);
-
-    void Error(string message);
+    void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args);
 }
+
+public static class SimpleLoggerExtensions
+{
+    public static void Info(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Information, null, message, false);
+
+    public static void Warn(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Warning, null, message, false);
+
+    public static void Error(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Error, null, message, false);
+
+    public static void InfoMarkup(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Information, null, message, true);
+
+    public static void WarnMarkup(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Warning, null, message, true);
+
+    public static void ErrorMarkup(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Error, null, message, true);
+}
+
 
 public static class SimpleLogger
 {
@@ -34,28 +54,17 @@ public static class SimpleLogger
 
         public bool HasErrors { get; private set; }
 
-        void ISimpleLogger.Info(string message)
+        public void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args)
         {
-            lock (_log)
+            if (level == LogLevel.Error) HasErrors = true;
+            var id = Interlocked.Increment(ref _logId);
+            if (markup)
             {
-                _log.LogInformation(new EventId(_logId++), message);
+                _log.LogMarkup(level, new EventId(id), exception, message, args);
             }
-        }
-
-        void ISimpleLogger.Warn(string message)
-        {
-            lock (_log)
+            else
             {
-                _log.LogWarning(new EventId(_logId++), message);
-            }
-        }
-
-        void ISimpleLogger.Error(string message)
-        {
-            lock (_log)
-            {
-                HasErrors = true;
-                _log.LogError(new EventId(_logId++), message);
+                _log.Log(level, new EventId(id), exception, message, args);
             }
         }
     }
