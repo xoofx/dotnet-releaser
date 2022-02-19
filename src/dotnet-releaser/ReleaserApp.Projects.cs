@@ -12,6 +12,7 @@ using DotNetReleaser.Runners;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace DotNetReleaser;
 
@@ -35,6 +36,7 @@ public partial class ReleaserApp
 {
     private async Task<ProjectPackageInfo?> LoadPackageInfo(string projectFullFilePath)
     {
+        //Info($"Try load {projectFullFilePath}");
         var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetPackageInfo);
         if (outputs is null) return null;
 
@@ -56,13 +58,15 @@ public partial class ReleaserApp
             var isNuGetPackable = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsNuGetPackable)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
             var isTestProject = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestProject)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
 
-            //var builder = new StringBuilder();
-            //var currentProjectDirectory = Path.GetDirectoryName(projectFullFilePath)!;
-            //foreach (var projectReference in outputs.Where(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.ProjectReference))
-            //{
-            //    var projectReferenceFullPath =
-            //        Path.GetFullPath(Path.Combine(currentProjectDirectory, projectReference.ItemSpec));
-            //}
+            var builder = new StringBuilder();
+            var currentProjectDirectory = Path.GetDirectoryName(projectFullFilePath)!;
+            var projectReferences = new List<string>();
+            foreach (var projectReference in outputs.Where(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.ProjectReference))
+            {
+                var projectReferenceFullPath =
+                    Path.GetFullPath(Path.Combine(currentProjectDirectory, projectReference.ItemSpec));
+                projectReferences.Add(projectReferenceFullPath);
+            }
 
             if (!Enum.TryParse<PackageOutputType>(packageOutputType, true, out var result))
             {
@@ -70,7 +74,7 @@ public partial class ReleaserApp
                 return null;
             }
 
-            return new ProjectPackageInfo(projectFullFilePath, packageId, assemblyName, result, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject);
+            return new ProjectPackageInfo(projectFullFilePath, packageId, assemblyName, result, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject, projectReferences.ToArray());
         }
         catch (Exception ex)
         {
@@ -79,7 +83,7 @@ public partial class ReleaserApp
         }
     }
 
-    private async Task<BuildInformation> LoadProjects()
+    private async Task<BuildInformation?> LoadProjects()
     {
         var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var allProjectPaths = new HashSet<string>(pathComparer);
@@ -135,7 +139,7 @@ public partial class ReleaserApp
         }
 
         var allProjectPackageInfoCollections = new List<ProjectPackageInfoCollection>();
-        
+
         // Load direct projects
         var tempList = new List<ProjectPackageInfo>();
         foreach (var project in directProjects)
@@ -155,13 +159,24 @@ public partial class ReleaserApp
         Info($"Loading {solutionToProjects.Select(x => x.Value.Count).Sum()} projects");
 
         var results = new ConcurrentQueue<(string, ProjectPackageInfo?)>();
+//#if DEBUG
+//        // Load projects from solutions
+//        foreach (var (solution, projects) in solutionToProjects)
+//        {
+//            foreach (var project in projects)
+//            {
+//                var result = (solution, await LoadPackageInfo(project));
+//                results.Enqueue(result);
+//            }
+//        }
+//#else
         var tasks = new List<Task>();
         // Load projects from solutions
         foreach (var (solution, projects) in solutionToProjects)
         {
             foreach (var project in projects)
             {
-                var task = Task.Factory.StartNew(async () =>
+                var task = Task.Run(async () =>
                 {
                     var result = (solution, await LoadPackageInfo(project));
                     results.Enqueue(result);
@@ -170,7 +185,8 @@ public partial class ReleaserApp
             }
         }
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
+//#endif
 
         // Collect results
         var solutionToProjectPackageInfoCollections = new Dictionary<string, List<ProjectPackageInfo>>();
@@ -187,17 +203,44 @@ public partial class ReleaserApp
                 list.Add(packageInfo);
             }
         }
-        allProjectPackageInfoCollections.AddRange(solutionToProjectPackageInfoCollections.Select(x => new ProjectPackageInfoCollection(x.Value.ToArray(), x.Key)));
 
+        // --------------------------------------------------------------------------
+        // Sort by dependencies (topological order) - only for projects in a solution
+        // --------------------------------------------------------------------------
+        allProjectPackageInfoCollections.AddRange(solutionToProjectPackageInfoCollections.Select(x => new ProjectPackageInfoCollection(x.Value.OrderBy(x => x.ProjectFullPath).ToArray(), x.Key)));
+        for (var index = 0; index < allProjectPackageInfoCollections.Count; index++)
+        {
+            var projectPackageInfoCollection = allProjectPackageInfoCollections[index];
+            var packages = projectPackageInfoCollection.Packages.ToList();
+            var processed = new HashSet<string>(pathComparer);
+
+            var orderedList = new List<ProjectPackageInfo>();
+
+            while (packages.Count > 0)
+            {
+                var packageReady = packages.FirstOrDefault(x => x.ProjectReferences.Where(refPath1 => allProjectPaths.Contains(refPath1)).All(referencePath => processed.Contains(referencePath)));
+
+                if (packageReady is null)
+                {
+                    Error($"Cannot resolve dependencies of remaining projects [{string.Join(", ", packages.Select(x => x.AssemblyName))}]. Aborting.");
+                    return null;
+                }
+
+                // Add the package has being processed
+                processed.Add(packageReady.ProjectFullPath);
+                orderedList.Add(packageReady);
+                packages.Remove(packageReady);
+            }
+
+            allProjectPackageInfoCollections[index] = new ProjectPackageInfoCollection(orderedList.ToArray(), projectPackageInfoCollection.SolutionFile);
+        }
+        
+        // --------------------------------------------------------------------------
         // Verify versions of projects and display all projects
+        // --------------------------------------------------------------------------
         var version = VerifyVersionsAndDisplayAllProjects(allProjectPackageInfoCollections);
 
         return new BuildInformation(version, allProjectPackageInfoCollections.ToArray());
-    }
-
-    private (string, ProjectPackageInfo?) Function()
-    {
-        throw new NotImplementedException();
     }
 
     private string VerifyVersionsAndDisplayAllProjects(List<ProjectPackageInfoCollection> projectPackageInfoCollections)
@@ -207,17 +250,36 @@ public partial class ReleaserApp
         table.AddColumn("Kind");
         table.AddColumn("Version");
         table.AddColumn("License");
-        table.AddColumn(new TableColumn("IsPackable").Centered());
-        table.AddColumn(new TableColumn("IsTest").Centered());
-        table.AddColumn("Solution");
+        table.AddColumn(new TableColumn("Packable?").Centered());
+        table.AddColumn(new TableColumn("Test?").Centered());
 
-        var row = new List<string>();
+        var row = new List<object>();
         row.AddRange(Enumerable.Repeat(string.Empty, table.Columns.Count));
         
         string? version = null;
         var invalidPackageVersions = new List<ProjectPackageInfo>();
+        string? previousSolution = null;
         foreach (var projectPackageInfoCollection in projectPackageInfoCollections)
         {
+            if (!string.IsNullOrEmpty(projectPackageInfoCollection.SolutionFile) || previousSolution != projectPackageInfoCollection.SolutionFile)
+            {
+                if (projectPackageInfoCollection.SolutionFile is null)
+                {
+                    // We don't need to add a separator if we only have projects without solutions
+                    if (projectPackageInfoCollections.Any(x => x.SolutionFile is not null))
+                    {
+                        table.AddRow(new Text("Direct Projects"));
+                    }
+                }
+                else
+                {
+                    var subTable = new Table();
+                    subTable.AddColumn(projectPackageInfoCollection.SolutionFile);
+                    table.AddRow(subTable);
+                }
+            }
+            previousSolution = projectPackageInfoCollection.SolutionFile;
+
             foreach (var project in projectPackageInfoCollection.Packages)
             {
                 if (project.IsPackable)
@@ -228,21 +290,30 @@ public partial class ReleaserApp
                 row[0] = project.AssemblyName;
                 row[1] = project.OutputType.ToString().ToLowerInvariant();
                 row[2] = invalidVersion ? $"{project.Version} (invalid)" : project.Version;
-                row[3] = project.License;
+                if (project.IsPackable)
+                {
+                    row[3] = LicenseHelper.IsKnownLicense(project.License) ? new Text(project.License, new Style(Color.Green, Color.Black)) :
+                        LicenseHelper.IsLicenseDefined(project.License) ? new Text(project.License, new Style(Color.Black, Color.Red)) :
+                        new Text(project.License, new Style(Color.Yellow, Color.Black));
+                }
+                else
+                {
+                    row[3] = project.License;
+                }
+
                 row[4] = project.IsPackable ? "x" : string.Empty;
                 row[5] = project.IsTestProject ? "x" : string.Empty;
-                row[6] = projectPackageInfoCollection.SolutionFile ?? string.Empty;
                 if (invalidVersion)
                 {
                     invalidPackageVersions.Add(project);
                 }
 
-                table.AddRow(row.Select(Markup.Escape).ToArray());
+                //table.AddRow(row.Select(Markup.Escape).ToArray());
+                table.AddRow(row.Select(x => x is IRenderable renderable ? renderable : new Text(x.ToString() ?? string.Empty)).ToArray());
             }
         }
 
-        Info($"Packages and Projects");
-        AnsiConsole.Write(table);
+        Info($"Packages and Projects", table);
 
         if (invalidPackageVersions.Count > 0)
         {
@@ -260,12 +331,12 @@ public partial class ReleaserApp
         return version ?? string.Empty;
     }
 
-    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null)
+    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false)
     {
         using var program = new MSBuildRunner()
         {
             Project = project,
-            Configuration = _config.MSBuild.Configuration,
+            Configuration = buildDebug ? _config.MSBuild.Configuration : _config.MSBuild.ConfigurationDebug,
             CustomAfterMicrosoftCommonTargets = DotNetReleaserConfigFile,
             Targets =
             {
@@ -281,7 +352,7 @@ public partial class ReleaserApp
                 program.Properties[property.Key] = property.Value;
             }
         }
-        
+
         var result = await program.Run(_logger);
 
         if (result.TargetOutputs.TryGetValue(target, out var outputs))

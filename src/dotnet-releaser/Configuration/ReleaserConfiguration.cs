@@ -17,6 +17,8 @@ public class ReleaserConfiguration
     {
         ArtifactsFolder = "artifacts-dotnet-releaser";
         Packs = new List<PackagingConfiguration>();
+        Coverage = new CoverageConfiguration();
+        Test = new TestConfiguration();
         MSBuild = new MSBuildConfiguration();
         Changelog = new ChangelogConfiguration();
         GitHub = new GitHubDevHostingConfiguration();
@@ -31,6 +33,10 @@ public class ReleaserConfiguration
     public string ArtifactsFolder { get; set; }
 
     public bool EnablePublishPackagesInDraft { get; set; }
+
+    public CoverageConfiguration Coverage { get; }
+
+    public TestConfiguration Test { get; }
 
     public MSBuildConfiguration MSBuild { get; }
 
@@ -147,6 +153,12 @@ public class ReleaserConfiguration
             }
         }
 
+        // Defaults for coverage
+        if (Coverage.Enable)
+        {
+            Coverage.AddDefaults();
+        }
+        
         if (Profile == PackagingProfileKind.Default)
         {
             AddPackages(new List<PackagingConfiguration>()

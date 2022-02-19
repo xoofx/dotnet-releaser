@@ -40,7 +40,14 @@ public partial class ReleaserApp
             return null;
         }
 
-        var outputs = await RunMSBuild(projectPackageInfo.ProjectFullPath, ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput);
+        // Pack executables as global tools
+        var properties = new Dictionary<string, object>();
+        if (projectPackageInfo.OutputType != PackageOutputType.Library)
+        {
+            properties["PackAsTool"] = "true";
+        }
+
+        var outputs = await RunMSBuild(projectPackageInfo.ProjectFullPath, ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput, properties);
         if (outputs is null) return null;
 
         // Copy to artifacts

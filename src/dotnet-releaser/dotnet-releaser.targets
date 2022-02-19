@@ -1,8 +1,4 @@
 ﻿<Project>
-  <PropertyGroup>
-    <PackAsTool Condition="'$(PackAsTool)' == ''">true</PackAsTool>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Packaging.Targets" Version="0.1.220">
       <PrivateAssets>all</PrivateAssets>
@@ -14,6 +10,13 @@
   <ItemGroup>
     <DebDependency Condition="'$(DotNetReleaserDebDependencies)' != ''" Include="$(DotNetReleaserDebDependencies.Split(';'))"></DebDependency>
     <RpmDependency Condition="'$(DotNetReleaserRpmDependencies)' != ''" Include="$(DotNetReleaserRpmDependencies.Split(';'))"></RpmDependency>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DotNetReleaserCoverage)' == 'true' AND '$(IsTestProject)' == 'true'">
+    <PackageReference Include="$(DotNetReleaserCoveragePackage)" Version="$(DotNetReleaserCoverageVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <!--<Target Name="CreateSetup" AfterTargets="Publish">

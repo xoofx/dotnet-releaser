@@ -12,6 +12,8 @@ public class MSBuildConfiguration : ConfigurationBase
     {
         Projects = new List<string>();
         Configuration = "Release";
+        ConfigurationDebug = "Debug";
+        BuildDebug = true;
 
         // Default properties for publishing a native app
         Properties = new Dictionary<string, object>()
@@ -20,7 +22,6 @@ public class MSBuildConfiguration : ConfigurationBase
             { "PublishSingleFile", true },
             { "SelfContained", true },
             { "PublishReadyToRun", true },
-            //{ "PublishReadyToRunComposite", true }, // not by default
             { "CopyOutputSymbolsToPublishDirectory", false },
             { "SkipCopyingSymbolsToOutputDirectory", true }
         };
@@ -36,6 +37,16 @@ public class MSBuildConfiguration : ConfigurationBase
     /// The configuration to compile
     /// </summary>
     public string Configuration { get; set; }
+
+    /// <summary>
+    /// The debug configuration to compile
+    /// </summary>
+    public string ConfigurationDebug { get; set; }
+
+    /// <summary>
+    /// Build the debug configuration. <c>true</c> by default.
+    /// </summary>
+    public bool BuildDebug { get; set; }
 
     /// <summary>
     /// Gets the extra properties that will be passed to MSBuild.

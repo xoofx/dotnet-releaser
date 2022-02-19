@@ -41,11 +41,7 @@ public static class SpectreConsoleLoggerFormatter
     private static void LogLevelFormatterImpl(SpectreConsoleLoggerOptions options, StringBuilder builder, LogLevel logLevel)
     {
         builder.Append(GetLogLevelMarkup(logLevel));
-
-        if (options.IncludeCategory || !options.IncludeEventId)
-        {
-            builder.Append(": ");
-        }
+        builder.Append(": ");
     }
 
     private static int DefaultImpl(SpectreConsoleLoggerOptions options, StringBuilder builder, string category, LogLevel logLevel, EventId eventId)

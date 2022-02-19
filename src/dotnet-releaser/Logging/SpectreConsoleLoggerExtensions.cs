@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace DotNetReleaser.Logging;
 
@@ -21,8 +24,24 @@ public static class SpectreConsoleLoggerExtensions
     /// <example>logger.LogDebug(0, exception, "Error while processing request from {Address}", address)</example>
     public static void LogDebugMarkup(this ILogger logger, EventId eventId, Exception? exception, string? message, params object?[] args)
     {
-        logger.Log(LogLevel.Debug, eventId, exception, message, args);
+        logger.LogMarkup(LogLevel.Debug, eventId, exception, message, args);
     }
+
+
+    /// <summary>
+    /// Formats and writes a debug log message.
+    /// </summary>
+    /// <param name="logger">The <see cref="ILogger"/> to write to.</param>
+    /// <param name="eventId">The event id associated with the log.</param>
+    /// <param name="exception">The exception to log.</param>
+    /// <param name="message">Format string of the log message in message template format. Example: <c>"User {User} logged in from {Address}"</c></param>
+    /// <param name="renderable">A renderable object to log after the message.</param>
+    /// <example>logger.LogDebug(0, exception, "Error while processing request from {Address}", address)</example>
+    public static void LogDebugMarkup(this ILogger logger, EventId eventId, Exception? exception, string? message, IRenderable renderable)
+    {
+        logger.LogMarkup(LogLevel.Debug, eventId, exception, message, renderable);
+    }
+
 
     /// <summary>
     /// Formats and writes a debug log message.
@@ -390,7 +409,20 @@ public static class SpectreConsoleLoggerExtensions
         try
         {
             SpectreConsoleLogger.EnableMarkup = true;
-            logger.Log(logLevel, eventId, exception, message, args, exception, args);
+            if (args.Any(x => x is IRenderable))
+            {
+                var renderArgs = args.Select(x => x is IRenderable renderable ? renderable : new Text(x?.ToString() ?? string.Empty)).ToArray();
+                logger.Log<SpectreConsoleLogger.MarkupTextAndRenderable>(logLevel, eventId, new SpectreConsoleLogger.MarkupTextAndRenderable(message, renderArgs), exception, (andRenderable, exception1) =>
+                {
+                    // TODO
+                    return string.Empty;
+                });
+            }
+            else
+            {
+                logger.Log(logLevel, eventId, exception, message, args, exception, args);
+            }
+
         }
         finally
         {

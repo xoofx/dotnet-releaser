@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Spectre.Console.Rendering;
 
 namespace DotNetReleaser.Logging;
 
@@ -17,7 +18,7 @@ public static class SimpleLoggerExtensions
 {
     public static void Info(this ISimpleLogger log, string message) =>
         log.LogSimple(LogLevel.Information, null, message, false);
-
+    
     public static void Warn(this ISimpleLogger log, string message) =>
         log.LogSimple(LogLevel.Warning, null, message, false);
 
@@ -27,6 +28,9 @@ public static class SimpleLoggerExtensions
     public static void InfoMarkup(this ISimpleLogger log, string message) =>
         log.LogSimple(LogLevel.Information, null, message, true);
 
+    public static void InfoMarkup(this ISimpleLogger log, string message, params IRenderable[] renderable) =>
+        log.LogSimple(LogLevel.Information, null, message, true, renderable);
+    
     public static void WarnMarkup(this ISimpleLogger log, string message) =>
         log.LogSimple(LogLevel.Warning, null, message, true);
 

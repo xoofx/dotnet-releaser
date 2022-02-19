@@ -10,6 +10,7 @@ using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Logging;
+using Spectre.Console.Rendering;
 
 namespace DotNetReleaser;
 
@@ -46,7 +47,13 @@ public partial class ReleaserApp
         // Create our log
         using var factory = LoggerFactory.Create(configure =>
         {
-            configure.AddProvider(new SpectreConsoleLoggerProvider(new SpectreConsoleLoggerOptions() { IncludeCategory = false }));
+            configure.AddProvider(new SpectreConsoleLoggerProvider(new SpectreConsoleLoggerOptions()
+            {
+                IndentAfterNewLine = false,
+                IncludeTimestamp = true,
+                IncludeNewLine = false,
+                IncludeCategory = false
+            }));
         });
         var exeName = "dotnet-releaser";
         var logger = SimpleLogger.CreateConsoleLogger(factory, exeName);
@@ -264,6 +271,11 @@ public partial class ReleaserApp
         }
 
         // ------------------------------------------------------------------
+        // Build Projects (debug/release)
+        // ------------------------------------------------------------------
+        if (!await BuildAndTest(buildInformation)) return false;
+
+        // ------------------------------------------------------------------
         // Build NuGet package
         // ------------------------------------------------------------------
         if (!await BuildNuGetPackage(buildInformation)) return false;
@@ -282,7 +294,7 @@ public partial class ReleaserApp
                 foreach (var rid in pack.RuntimeIdentifiers)
                 {
                     if (pack.Publish) hasPackagesToBuild = true;
-                    builder.AppendLine($"Build configured for {PackagingConfiguration.ToStringRidAndKinds(new() { rid }, pack.Kinds)}");
+                    builder.AppendLine($"Build configured for `{packageInfo.Name}` and {PackagingConfiguration.ToStringRidAndKinds(new() { rid }, pack.Kinds)}");
                 }
             }
 
@@ -294,7 +306,7 @@ public partial class ReleaserApp
 
             if (hasPackagesToBuild)
             {
-                Info("Begin building platform packages...");
+                Info($"Begin building platform packages for `{packageInfo.Name}`...");
                 foreach (var pack in _config.Packs)
                 {
                     foreach (var rid in pack.RuntimeIdentifiers)
@@ -312,16 +324,16 @@ public partial class ReleaserApp
                 exitPackOnError:
                 if (HasErrors)
                 {
-                    Error("Error while building platform packages.");
+                    Error($"Error while building platform packages for `{packageInfo.Name}`.");
                 }
                 else
                 {
-                    Info("End building platform packages successful.");
+                    Info($"End building platform packages successful for `{packageInfo.Name}`.");
                 }
             }
             else
             {
-                Info("No packages to build");
+                Info($"No platform packages to build for `{packageInfo.Name}`.");
             }
 
             // Exit if we have any errors.
@@ -376,6 +388,11 @@ public partial class ReleaserApp
     public void Info(string message)
     {
         _logger.Info(message);
+    }
+
+    public void Info(string message, IRenderable renderable)
+    {
+        _logger.InfoMarkup(message, renderable);
     }
 
     public void Warn(string message)

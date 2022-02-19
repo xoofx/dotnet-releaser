@@ -12,20 +12,22 @@ public class SpectreConsoleLoggerOptions
     {
         LogLevel = LogLevel.Information;
         ConsoleSettings = new AnsiConsoleSettings();
-        IncludeTimestamp = true;
+        IncludeTimestamp = false;
         IncludeLogLevel = true;
         IncludeCategory = true;
         CultureInfo = CultureInfo.InvariantCulture;
         EventIdFormat = "####";
         TimestampFormat = "yyyy/MM/dd HH:mm:ss.fff";
         IncludeEventId = true;
-        IncludeNewLine = false;
+        IncludeNewLine = true;
+        IndentAfterNewLine = true;
         SingleLine = false;
         Formatter = SpectreConsoleLoggerFormatter.Default;
         TimestampFormatter = SpectreConsoleLoggerFormatter.DefaultTimestampFormatter;
         EventIdFormatter = SpectreConsoleLoggerFormatter.DefaultEventIdFormatter;
         LogLevelFormatter = SpectreConsoleLoggerFormatter.DefaultLogLevelFormatter;
         CategoryFormatter = SpectreConsoleLoggerFormatter.DefaultCategoryFormatter;
+        FixedIndent = 4;
     }
 
     public LogLevel LogLevel { get; set; }
@@ -49,6 +51,12 @@ public class SpectreConsoleLoggerOptions
     public bool IncludeEventId { get; set; }
 
     public bool IncludeNewLine { get; set; }
+
+    public bool IndentAfterNewLine { get; set; }
+
+    public bool UseFixedIndent { get; set; }
+
+    public int FixedIndent { get; set; }
 
     public bool SingleLine { get; set; }
 
