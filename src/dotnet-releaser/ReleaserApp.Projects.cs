@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
@@ -11,6 +12,7 @@ using DotNetReleaser.Helpers;
 using DotNetReleaser.Runners;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
+using NuGet.Frameworks;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
@@ -32,12 +34,66 @@ public record BuildInformation(string Version, ProjectPackageInfoCollection[] Pr
     }
 }
 
-public partial class ReleaserApp 
+public record TargetFrameworkInfo(bool IsMultiTargeting, List<string> TargetFrameworks);
+
+
+public partial class ReleaserApp
 {
-    private async Task<ProjectPackageInfo?> LoadPackageInfo(string projectFullFilePath)
+ 
+    private async Task<TargetFrameworkInfo?> GetTargetFrameworks(string projectFullFilePath)
+    {
+        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetTargetFramework);
+        if (outputs is null) return null;
+
+        if (outputs.Count != 1)
+        {
+            Error($"Unexpected error. Unable to read build results for target `{ReleaserConstants.DotNetReleaserGetTargetFramework}`");
+            return null;
+        }
+
+        bool isCrossBuilding = true;
+        var targetFrameworksAsString = outputs[0].GetMetadata("TargetFrameworks")?.Trim();
+        if (string.IsNullOrEmpty(targetFrameworksAsString))
+        {
+            targetFrameworksAsString = outputs[0].GetMetadata("TargetFramework") ?? string.Empty;
+            isCrossBuilding = false;
+        }
+
+        var targetFrameworksAsArray = targetFrameworksAsString.Split(";", StringSplitOptions.RemoveEmptyEntries);
+        if (targetFrameworksAsArray.Length == 0)
+        {
+            Error($"The project `{projectFullFilePath}` doesn't not have a <TargetFramework> or <TargetFrameworks> defined");
+            return null;
+        }
+
+        var targetFrameworks = new List<string>();
+        foreach (var targetFrameworkAsString in targetFrameworksAsArray)
+        {
+            try
+            {
+                var targetFramework = NuGetFramework.Parse(targetFrameworkAsString);
+                targetFrameworks.Add(targetFrameworkAsString);
+            }
+            catch (Exception ex)
+            {
+                Error($"Error while parsing TargetFramework `{targetFrameworksAsString}`. Reason: {ex.Message}");
+                return null;
+            }
+        }
+        return new TargetFrameworkInfo(isCrossBuilding, targetFrameworks);
+    }
+
+    private async Task<ProjectPackageInfo?> LoadPackageInfo(string projectFullFilePath, TargetFrameworkInfo targetFrameworkInfo)
     {
         //Info($"Try load {projectFullFilePath}");
-        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetPackageInfo);
+        var properties = new Dictionary<string, object>();
+        if (targetFrameworkInfo.IsMultiTargeting)
+        {
+            // Take the last TargetFramework declared
+            properties["TargetFramework"] = targetFrameworkInfo.TargetFrameworks[^1];
+        }
+
+        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetPackageInfo, properties);
         if (outputs is null) return null;
 
         if (outputs.Count == 0)
@@ -74,7 +130,7 @@ public partial class ReleaserApp
                 return null;
             }
 
-            return new ProjectPackageInfo(projectFullFilePath, packageId, assemblyName, result, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject, projectReferences.ToArray());
+            return new ProjectPackageInfo(projectFullFilePath, packageId, assemblyName, result, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject, projectReferences.ToArray(), targetFrameworkInfo);
         }
         catch (Exception ex)
         {
@@ -88,7 +144,6 @@ public partial class ReleaserApp
         var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var allProjectPaths = new HashSet<string>(pathComparer);
         var solutionToProjects = new Dictionary<string, List<string>>(pathComparer);
-        var directProjects = new List<string>();
         
         foreach (var msBuildProject in _config.MSBuild.Projects)
         {
@@ -129,7 +184,12 @@ public partial class ReleaserApp
             {
                 if (allProjectPaths.Add(msBuildProject))
                 {
-                    directProjects.Add(msBuildProject);
+                    if (!solutionToProjects.TryGetValue(string.Empty, out var listOfProjectsPerSolution))
+                    {
+                        listOfProjectsPerSolution = new List<string>();
+                        solutionToProjects[string.Empty] = listOfProjectsPerSolution;
+                    }
+                    listOfProjectsPerSolution.Add(msBuildProject);
                 }
                 else
                 {
@@ -138,47 +198,49 @@ public partial class ReleaserApp
             }
         }
 
+        if (HasErrors) return null;
+
         var allProjectPackageInfoCollections = new List<ProjectPackageInfoCollection>();
-
-        // Load direct projects
-        var tempList = new List<ProjectPackageInfo>();
-        foreach (var project in directProjects)
-        {
-            var packageInfo = await LoadPackageInfo(project);
-            if (packageInfo is not null)
-            {
-                tempList.Add(packageInfo);
-            }
-        }
-
-        if (tempList.Count > 0)
-        {
-            allProjectPackageInfoCollections.Add(new ProjectPackageInfoCollection(tempList.ToArray(), null));
-        }
 
         Info($"Loading {solutionToProjects.Select(x => x.Value.Count).Sum()} projects");
 
-        var results = new ConcurrentQueue<(string, ProjectPackageInfo?)>();
-//#if DEBUG
-//        // Load projects from solutions
-//        foreach (var (solution, projects) in solutionToProjects)
-//        {
-//            foreach (var project in projects)
-//            {
-//                var result = (solution, await LoadPackageInfo(project));
-//                results.Enqueue(result);
-//            }
-//        }
-//#else
+        // Load TargetFrameworks
+        var projectToTargetFrameworkInfo = new Dictionary<string, TargetFrameworkInfo>(pathComparer);
         var tasks = new List<Task>();
-        // Load projects from solutions
         foreach (var (solution, projects) in solutionToProjects)
         {
             foreach (var project in projects)
             {
                 var task = Task.Run(async () =>
                 {
-                    var result = (solution, await LoadPackageInfo(project));
+                    var targetFrameworkInfo = await GetTargetFrameworks(project);
+                    if (targetFrameworkInfo is not null)
+                    {
+                        lock (projectToTargetFrameworkInfo)
+                        {
+                            projectToTargetFrameworkInfo.Add(project, targetFrameworkInfo);
+                        }
+                    }
+                }); 
+                tasks.Add(task);
+            }
+        }
+        await Task.WhenAll(tasks);
+
+        if (HasErrors) return null;
+
+
+        var results = new ConcurrentQueue<(string, ProjectPackageInfo?)>();
+        // Load projects from solutions
+        tasks.Clear();
+        foreach (var (solution, projects) in solutionToProjects)
+        {
+            foreach (var project in projects)
+            {
+                Debug.Assert(projectToTargetFrameworkInfo.ContainsKey(project));
+                var task = Task.Run(async () =>
+                {
+                    var result = (solution, await LoadPackageInfo(project, projectToTargetFrameworkInfo[project]));
                     results.Enqueue(result);
                 });
                 tasks.Add(task);
@@ -186,7 +248,6 @@ public partial class ReleaserApp
         }
 
         await Task.WhenAll(tasks);
-//#endif
 
         // Collect results
         var solutionToProjectPackageInfoCollections = new Dictionary<string, List<ProjectPackageInfo>>();
@@ -337,7 +398,7 @@ public partial class ReleaserApp
         {
             Project = project,
             Configuration = buildDebug ? _config.MSBuild.Configuration : _config.MSBuild.ConfigurationDebug,
-            CustomAfterMicrosoftCommonTargets = DotNetReleaserConfigFile,
+            CustomBeforeMicrosoftCommonProps = DotNetReleaserConfigFile,
             Targets =
             {
                 target

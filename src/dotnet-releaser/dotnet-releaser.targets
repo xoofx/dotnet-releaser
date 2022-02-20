@@ -34,6 +34,15 @@
     </Content>
   </ItemGroup>
 
+  <Target Name="DotNetReleaserGetTargetFramework" Outputs="@(_DotNetReleaserGetTargetFramework)">
+    <ItemGroup>
+      <_DotNetReleaserGetTargetFramework Include="$(MSBuildProjectFile)">
+        <TargetFramework>$(TargetFramework)</TargetFramework>
+        <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
+      </_DotNetReleaserGetTargetFramework>
+    </ItemGroup>
+  </Target>
+
   <Target Name="DotNetReleaserGetPackageInfo"  DependsOnTargets="GetAssemblyVersion" Outputs="@(_DotNetReleaserGetPackageInfo)">
     <ItemGroup>
       <_DotNetReleaserGetPackageInfo Include="$(PackageId)" Kind="PackageId"/>

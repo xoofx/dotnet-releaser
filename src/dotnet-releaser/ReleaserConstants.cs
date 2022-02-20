@@ -9,6 +9,7 @@ static class ReleaserConstants
 
     public const string DotNetReleaserPackAndGetNuGetPackOutput = nameof(DotNetReleaserPackAndGetNuGetPackOutput);
     public const string DotNetReleaserGetPackageInfo = nameof(DotNetReleaserGetPackageInfo);
+    public const string DotNetReleaserGetTargetFramework = nameof(DotNetReleaserGetTargetFramework);
     public const string DotNetReleaserPublishAndCreateDeb = nameof(DotNetReleaserPublishAndCreateDeb);
     public const string DotNetReleaserPublishAndCreateRpm = nameof(DotNetReleaserPublishAndCreateRpm);
     public const string DotNetReleaserPublishAndCreateTar = nameof(DotNetReleaserPublishAndCreateTar);

@@ -64,6 +64,7 @@
     </PackageReference>
     <PackageReference Include="MsBuildPipeLogger.Logger" Version="1.1.4" />
     <PackageReference Include="MsBuildPipeLogger.Server" Version="1.1.4" />
+    <PackageReference Include="NuGet.Frameworks" Version="6.1.0" />
     <PackageReference Include="NuGet.Versioning" Version="6.0.0" />
     <PackageReference Include="Octokit" Version="0.50.0" />
     <PackageReference Include="Scriban" Version="5.4.0" />
