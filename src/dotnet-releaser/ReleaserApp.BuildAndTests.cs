@@ -12,7 +12,7 @@ public partial class ReleaserApp
         // Build
         foreach (var projectPackageInfoCollection in buildInfo.ProjectPackageInfoCollections)
         {
-            if (projectPackageInfoCollection.SolutionFile is not null)
+            if (!string.IsNullOrEmpty(projectPackageInfoCollection.SolutionFile))
             {
                 if (!await Build(projectPackageInfoCollection.SolutionFile))
                 {
@@ -37,7 +37,7 @@ public partial class ReleaserApp
         {
             foreach (var projectPackageInfoCollection in buildInfo.ProjectPackageInfoCollections)
             {
-                if (projectPackageInfoCollection.SolutionFile is not null)
+                if (!string.IsNullOrEmpty(projectPackageInfoCollection.SolutionFile))
                 {
                     if (projectPackageInfoCollection.Packages.Any(x => x.IsTestProject))
                     {
@@ -81,7 +81,7 @@ public partial class ReleaserApp
         if (_config.MSBuild.BuildDebug)
         {
             Info($"Building `{projectFile}` - Configuration = {_config.MSBuild.ConfigurationDebug}");
-            results = await RunMSBuild(projectFile, "Build", properties);
+            results = await RunMSBuild(projectFile, "Build", properties, buildDebug: true);
             if (results is null) return false;
         }
 

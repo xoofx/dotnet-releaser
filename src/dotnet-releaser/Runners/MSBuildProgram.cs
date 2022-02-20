@@ -98,6 +98,13 @@ public class MSBuildRunner : DotNetRunnerBase
         {
             var targets = new HashSet<string>(Targets, StringComparer.OrdinalIgnoreCase);
             var targetOutputs = new Dictionary<string, List<ITaskItem>>(StringComparer.OrdinalIgnoreCase);
+            //reader.MessageRaised += (sender, args) =>
+            //{
+            //    if (args.Importance == MessageImportance.High)
+            //    {
+            //        logger.Info($"{args.Message} [{args.ProjectFile}]");
+            //    }
+            //};
             reader.WarningRaised += (sender, args) => { logger.Warn($"{args.File}({args.LineNumber},{args.ColumnNumber}): warning {args.Code}: {args.Message} [{args.ProjectFile}]"); };
             reader.ErrorRaised += (sender, args) => { logger.Error($"{args.File}({args.LineNumber},{args.ColumnNumber}): error {args.Code}: {args.Message} [{args.ProjectFile}]"); };
             reader.TargetFinished += (sender, args) =>

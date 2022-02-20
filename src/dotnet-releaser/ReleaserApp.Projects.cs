@@ -42,7 +42,7 @@ public partial class ReleaserApp
  
     private async Task<TargetFrameworkInfo?> GetTargetFrameworks(string projectFullFilePath)
     {
-        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetTargetFramework);
+        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetTargetFramework, injectViaProps: true);
         if (outputs is null) return null;
 
         if (outputs.Count != 1)
@@ -392,18 +392,25 @@ public partial class ReleaserApp
         return version ?? string.Empty;
     }
 
-    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false)
+    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false)
     {
         using var program = new MSBuildRunner()
         {
             Project = project,
-            Configuration = buildDebug ? _config.MSBuild.Configuration : _config.MSBuild.ConfigurationDebug,
-            CustomBeforeMicrosoftCommonProps = DotNetReleaserConfigFile,
+            Configuration = buildDebug ? _config.MSBuild.ConfigurationDebug : _config.MSBuild.Configuration,
             Targets =
             {
                 target
             }
         };
+        if (injectViaProps)
+        {
+            program.CustomBeforeMicrosoftCommonProps = DotNetReleaserConfigFile;
+        }
+        else
+        {
+            program.CustomAfterMicrosoftCommonTargets = DotNetReleaserConfigFile;
+        }
 
         // Copy properties
         if (properties is not null)
