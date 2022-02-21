@@ -65,6 +65,6 @@ public class CoverageConfiguration
 
     public void AddDefaults()
     {
-        if (Format.Count == 0) Format.Add("lcov");
+        if (Format.Count == 0) Format.Add("cobertura");
     }
 }
