@@ -9,21 +9,36 @@ public partial class ReleaserApp
 {
     private async Task<bool> BuildAndTest(BuildInformation buildInfo)
     {
+        var coverage = _config.Coverage.Enable && _config.Test.Enable;
+
         // Build
         foreach (var projectPackageInfoCollection in buildInfo.ProjectPackageInfoCollections)
         {
             if (!string.IsNullOrEmpty(projectPackageInfoCollection.SolutionFile))
             {
-                if (!await Build(projectPackageInfoCollection.SolutionFile))
+                if (!await Build(projectPackageInfoCollection.SolutionFile, false))
                 {
                     return false;
+                }
+
+                if (coverage)
+                {
+                    foreach (var projectPackageInfo in
+                             projectPackageInfoCollection.Packages.Where(x => x.IsTestProject))
+                    {
+                        if (!await Build(projectPackageInfo.ProjectFullPath, isTestProject: true))
+                        {
+                            return false;
+                        }
+
+                    }
                 }
             }
             else
             {
                 foreach (var projectPackageInfo in projectPackageInfoCollection.Packages)
                 {
-                    if (!await Build(projectPackageInfo.ProjectFullPath))
+                    if (!await Build(projectPackageInfo.ProjectFullPath, isTestProject: projectPackageInfo.IsTestProject))
                     {
                         return false;
                     }
@@ -63,29 +78,32 @@ public partial class ReleaserApp
         return !HasErrors;
     }
 
-    private async Task<bool> Build(string projectFile)
+    private async Task<bool> Build(string projectFile, bool isTestProject)
     {
         var properties = new Dictionary<string, object>();
 
-        if (_config.Coverage.Enable && _config.Test.Enable)
+        var context = string.Empty;
+        if (_config.Coverage.Enable && _config.Test.Enable && isTestProject)
         {
             properties["DotNetReleaserCoverage"] = "true";
             properties["DotNetReleaserCoveragePackage"] = _config.Coverage.Package;
             properties["DotNetReleaserCoverageVersion"] = _config.Coverage.Version;
+            properties["IsTestProject"] = "true";
+            context = " tests with coverage";
         }
         
-        Info($"Restoring `{projectFile}`");
+        Info($"Restoring{context} `{projectFile}`");
         var results = await RunMSBuild(projectFile, "Restore", properties);
         if (results is null) return false;
 
         if (_config.MSBuild.BuildDebug)
         {
-            Info($"Building `{projectFile}` - Configuration = {_config.MSBuild.ConfigurationDebug}");
+            Info($"Building{context} `{projectFile}` - Configuration = {_config.MSBuild.ConfigurationDebug}");
             results = await RunMSBuild(projectFile, "Build", properties, buildDebug: true);
             if (results is null) return false;
         }
 
-        Info($"Building `{projectFile}` - Configuration = {_config.MSBuild.Configuration}");
+        Info($"Building{context} `{projectFile}` - Configuration = {_config.MSBuild.Configuration}");
         results = await RunMSBuild(projectFile, "Build", properties);
         if (results is null) return false;
         

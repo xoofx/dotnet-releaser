@@ -13,7 +13,7 @@ public class MSBuildConfiguration : ConfigurationBase
         Projects = new List<string>();
         Configuration = "Release";
         ConfigurationDebug = "Debug";
-        BuildDebug = true;
+        BuildDebug = false;
 
         // Default properties for publishing a native app
         Properties = new Dictionary<string, object>()
