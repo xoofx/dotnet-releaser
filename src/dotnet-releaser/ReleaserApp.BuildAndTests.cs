@@ -1,17 +1,26 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using DotNetReleaser.Coverage;
+using DotNetReleaser.Logging;
 using DotNetReleaser.Runners;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
+    private List<AssemblyCoverage> _assemblyCoverages;
+
     private async Task<bool> BuildAndTest(BuildInformation buildInfo)
     {
         var coverage = _config.Coverage.Enable && _config.Test.Enable;
 
         // Build
+        _logger.LogStartGroup("Building");
         foreach (var projectPackageInfoCollection in buildInfo.ProjectPackageInfoCollections)
         {
             if (!string.IsNullOrEmpty(projectPackageInfoCollection.SolutionFile))
@@ -46,16 +55,23 @@ public partial class ReleaserApp
 
             }
         }
+        _logger.LogEndGroup();
 
         // Test
         if (_config.Test.Enable)
         {
+            bool groupLogged = false;
             foreach (var projectPackageInfoCollection in buildInfo.ProjectPackageInfoCollections)
             {
                 if (!string.IsNullOrEmpty(projectPackageInfoCollection.SolutionFile))
                 {
                     if (projectPackageInfoCollection.Packages.Any(x => x.IsTestProject))
                     {
+                        if (!groupLogged)
+                        {
+                            _logger.LogStartGroup("Testing");
+                            groupLogged = true;
+                        }
                         if (!await Test(projectPackageInfoCollection.SolutionFile))
                         {
                             return false;
@@ -66,6 +82,11 @@ public partial class ReleaserApp
                 {
                     foreach (var projectPackageInfo in projectPackageInfoCollection.Packages.Where(x => x.IsTestProject))
                     {
+                        if (!groupLogged)
+                        {
+                            _logger.LogStartGroup("Testing");
+                            groupLogged = true;
+                        }
                         if (!await Test(projectPackageInfo.ProjectFullPath))
                         {
                             return false;
@@ -73,9 +94,77 @@ public partial class ReleaserApp
                     }
                 }
             }
+
+            if (groupLogged)
+            {
+                LoadAndDisplayCoverageResults();
+                _logger.LogEndGroup();
+            }
         }
 
         return !HasErrors;
+    }
+
+    private void LoadCoverageResults()
+    {
+        var coverageFolder = GetCoverageFolder();
+        _assemblyCoverages = new List<AssemblyCoverage>();
+        foreach (var file in Directory.EnumerateFiles(coverageFolder, "*.xml", SearchOption.AllDirectories))
+        {
+            using var reader = new StreamReader(file);
+            
+            var list  = CoberturaParser.Parse(reader);
+            var merge = list.Count > 0;
+            _assemblyCoverages.AddRange(list);
+            if (merge)
+            {
+                _assemblyCoverages = AssemblyCoverage.Merge(_assemblyCoverages).ToList();
+            }
+        }
+    }
+
+    private static string FormatRate(HitCoverage rate)
+    {
+        return Math.Round(rate.Rate * 100, 2, MidpointRounding.AwayFromZero).ToString("##.00") + "%";
+    }
+
+    private void LoadAndDisplayCoverageResults()
+    {
+        LoadCoverageResults();
+
+        var table = new Table();
+        table.AddColumn(" ");
+        table.AddColumn("Project");
+        table.AddColumn("Line");
+        table.AddColumn("Branch");
+        table.AddColumn("Method");
+        var rows = Enumerable.Repeat((object)string.Empty, table.Columns.Count).ToList();
+        HitCoverage totalLineRate = default;
+        HitCoverage totalBranchRate = default;
+        HitCoverage totalMethodRate = default;
+        foreach (var assemblyCoverage in _assemblyCoverages)
+        {
+            totalLineRate += assemblyCoverage.LineRate;
+            totalBranchRate += assemblyCoverage.BranchRate;
+            totalMethodRate += assemblyCoverage.MethodRate;
+            var lineRate = FormatRate(assemblyCoverage.LineRate);
+            var branchRate = FormatRate(assemblyCoverage.BranchRate);
+            var methodRate = FormatRate(assemblyCoverage.MethodRate);
+            rows[1] = assemblyCoverage.Name;
+            rows[2] = lineRate;
+            rows[3] = branchRate;
+            rows[4] = methodRate;
+            table.AddRow(rows.Select(x => x is IRenderable r ? r : new Text(x.ToString() ?? string.Empty)));
+        }
+
+        table.ShowFooters = true;
+        table.Columns[0].Footer = new Text("Total");
+        table.Columns[1].Footer = new Text(" ");
+        table.Columns[2].Footer = new Text(FormatRate(totalLineRate));
+        table.Columns[3].Footer = new Text(FormatRate(totalBranchRate));
+        table.Columns[4].Footer = new Text(FormatRate(totalMethodRate));
+
+        _logger.InfoMarkup("Coverage Results:", table);
     }
 
     private async Task<bool> Build(string projectFile, bool isTestProject)
@@ -127,6 +216,22 @@ public partial class ReleaserApp
         return true;
     }
 
+    private string GetCoverageFolder()
+    {
+        return Path.Combine(_config.ArtifactsFolder, "coverage");
+    }
+
+    private string EnsureCoverageFolder()
+    {
+        var coverageFolder = GetCoverageFolder();
+        if (!Directory.Exists(coverageFolder))
+        {
+            Directory.CreateDirectory(coverageFolder);
+        }
+
+        return coverageFolder;
+    }
+
     private async Task<bool> RunTest(string projectFile, string configuration)
     {
         var runner = new DotNetRunner("test");
@@ -138,7 +243,8 @@ public partial class ReleaserApp
         if (_config.Coverage.Enable)
         {
             runner.Arguments.Add("--results-directory");
-            runner.Arguments.Add($"{_config.ArtifactsFolder}");
+            var coverageFolder = EnsureCoverageFolder();
+            runner.Arguments.Add(coverageFolder);
             runner.Arguments.Add("--collect");
             runner.Arguments.Add($"XPlat Code Coverage");
             // TBD doesn't work
