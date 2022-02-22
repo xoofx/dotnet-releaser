@@ -32,6 +32,7 @@ public class MethodCoverage : CoverageBase
 
         LineRate = new HitCoverage(linesCovered, Lines.Count);
         BranchRate = branchRate;
+        MethodRate = new HitCoverage(linesCovered > 0 ? 1 : 0, 1);
     }
 }
 
