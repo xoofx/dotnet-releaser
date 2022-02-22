@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DotNetReleaser.Changelog;
 using DotNetReleaser.Configuration;
+using DotNetReleaser.Coverage;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using McMaster.Extensions.CommandLineUtils;
@@ -35,6 +36,7 @@ public partial class ReleaserApp
     {
         _logger = logger;
         _config = new ReleaserConfiguration();
+        _assemblyCoverages = new List<AssemblyCoverage>();
     }
 
     /// <summary>
@@ -196,78 +198,88 @@ public partial class ReleaserApp
     /// </summary>
     private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? nugetApiToken, bool forceArtifactsFolder)
     {
-        // ------------------------------------------------------------------
-        // Load Configuration
-        // ------------------------------------------------------------------
-        if (!await LoadConfiguration(configurationFile)) return false;
-
-        if (!EnsureArtifactsFolders(forceArtifactsFolder)) return false;
-
-        // ------------------------------------------------------------------
-        // Load Package Information from MSBuild project
-        // ------------------------------------------------------------------
-        var buildInformation = await LoadProjects();
-        if (HasErrors) return false;
-
-        // ------------------------------------------------------------------
-        // Validate Publish parameters
-        // ------------------------------------------------------------------
-        var hostingConfiguration = _config.GitHub;
+        _logger.LogStartGroup("Initializing");
+        BuildInformation? buildInformation = null;
+        GitHubDevHostingConfiguration? hostingConfiguration = null;
         IDevHosting? devHosting = null;
+        ChangelogResult? changelog = null;
+        try
+        {
+            // ------------------------------------------------------------------
+            // Load Configuration
+            // ------------------------------------------------------------------
+            if (!await LoadConfiguration(configurationFile)) return false;
 
-        // Connect to GitHub if we have a token
-        if (!string.IsNullOrEmpty(githubApiToken))
-        {
-            devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken);
-            if (devHosting is null)
+            if (!EnsureArtifactsFolders(forceArtifactsFolder)) return false;
+
+            // ------------------------------------------------------------------
+            // Load Package Information from MSBuild project
+            // ------------------------------------------------------------------
+            buildInformation = await LoadProjects();
+            if (HasErrors) return false;
+
+            // ------------------------------------------------------------------
+            // Validate Publish parameters
+            // ------------------------------------------------------------------
+            hostingConfiguration = _config.GitHub;
+
+            // Connect to GitHub if we have a token
+            if (!string.IsNullOrEmpty(githubApiToken))
             {
-                return false;
-            }
-        }
-        
-        if (buildKind == BuildKind.Publish)
-        {
-            if (hostingConfiguration.Publish)
-            {
-                if (string.IsNullOrEmpty(githubApiToken))
+                devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken);
+                if (devHosting is null)
                 {
-                    Error($"Publishing to {hostingConfiguration.Provider} requires to pass --github-token");
                     return false;
                 }
             }
 
-            if (string.IsNullOrEmpty(nugetApiToken))
+            if (buildKind == BuildKind.Publish)
             {
-                Error("Publishing to NuGet requires to pass --nuget-token");
-                return false;
+                if (hostingConfiguration.Publish)
+                {
+                    if (string.IsNullOrEmpty(githubApiToken))
+                    {
+                        Error($"Publishing to {hostingConfiguration.Provider} requires to pass --github-token");
+                        return false;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(nugetApiToken))
+                {
+                    Error("Publishing to NuGet requires to pass --nuget-token");
+                    return false;
+                }
+            }
+
+            // Update homebrew config (and log if necessary)
+            foreach (var projectPackageInfo in buildInformation.GetAllPackableProjects())
+            {
+                UpdateHomebrewConfigurationFromPackage(projectPackageInfo);
+            }
+
+            // ------------------------------------------------------------------
+            // Parse Changelog
+            // ------------------------------------------------------------------
+            if (_config.Changelog.Publish && devHosting is not null)
+            {
+                changelog = await CreateChangeLog(devHosting, buildInformation.Version);
+                if (changelog is not null)
+                {
+                    Info($"Changelog:{Environment.NewLine}{changelog}");
+                }
+                else if (HasErrors)
+                {
+                    return false;
+                }
+                else
+                {
+                    Warn("No changelog found or configured.");
+                }
             }
         }
-
-        // Update homebrew config (and log if necessary)
-        foreach (var projectPackageInfo in buildInformation.GetAllPackableProjects())
+        finally
         {
-            UpdateHomebrewConfigurationFromPackage(projectPackageInfo);
-        }
-
-        // ------------------------------------------------------------------
-        // Parse Changelog
-        // ------------------------------------------------------------------
-        ChangelogResult? changelog = null;
-        if (_config.Changelog.Publish && devHosting is not null)
-        {
-            changelog = await CreateChangeLog(devHosting, buildInformation.Version);
-            if (changelog is not null)
-            {
-                Info($"Changelog:{Environment.NewLine}{changelog}");
-            }
-            else if (HasErrors)
-            {
-                return false;
-            }
-            else
-            {
-                Warn("No changelog found or configured.");
-            }
+            _logger.LogEndGroup();
         }
 
         // ------------------------------------------------------------------

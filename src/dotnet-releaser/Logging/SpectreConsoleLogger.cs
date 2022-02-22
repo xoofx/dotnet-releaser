@@ -116,7 +116,6 @@ internal class SpectreConsoleLogger : ILogger
                     foreach (var renderable in messageAndRenderable.Renderables)
                     {
                         _offScreenConsole.Write(renderable);
-                        _offScreenConsole.WriteLine();
                     }
 
                     formattedMessage = _offScreenOutput.ToString();

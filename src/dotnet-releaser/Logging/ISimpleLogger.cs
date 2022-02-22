@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace DotNetReleaser.Logging;
@@ -11,6 +12,8 @@ public interface ISimpleLogger
 {
     bool HasErrors { get; }
 
+    void LogStartGroup(string name);
+    void LogEndGroup();
     void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args);
 }
 
@@ -50,6 +53,7 @@ public static class SimpleLogger
     {
         private readonly ILogger _log;
         private int _logId;
+        private int _group;
 
         public SimpleLoggerRedirect(ILogger log)
         {
@@ -57,6 +61,19 @@ public static class SimpleLogger
         }
 
         public bool HasErrors { get; private set; }
+        public void LogStartGroup(string name)
+        {
+            if (_group > 0)
+            {
+                AnsiConsole.WriteLine();
+            }
+            _group++;
+            AnsiConsole.Write(new Rule(name) { Alignment = Justify.Left });
+        }
+
+        public void LogEndGroup()
+        {
+        }
 
         public void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args)
         {

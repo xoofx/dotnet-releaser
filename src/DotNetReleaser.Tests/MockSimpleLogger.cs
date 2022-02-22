@@ -15,6 +15,13 @@ public class MockSimpleLogger : ISimpleLogger
     public StringBuilder Output { get; }
 
     public bool HasErrors { get; private set; }
+    public void LogStartGroup(string name)
+    {
+    }
+
+    public void LogEndGroup()
+    {
+    }
 
     public void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args)
     {
