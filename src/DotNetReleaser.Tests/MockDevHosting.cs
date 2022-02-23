@@ -48,7 +48,7 @@ public class MockDevHosting : IDevHosting
 
 
 
-    public Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<PackageEntry> entries, bool enablePublishPackagesInDraft)
+    public Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft)
     {
         return Task.CompletedTask;
     }

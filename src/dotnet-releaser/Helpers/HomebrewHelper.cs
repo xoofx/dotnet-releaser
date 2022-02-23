@@ -11,12 +11,12 @@ namespace DotNetReleaser.Helpers;
 /// </summary>
 public static class HomebrewHelper
 {
-    public static string? CreateFormula(IDevHosting hosting, ProjectPackageInfo projectPackageInfo, List<PackageEntry> entries)
+    public static string? CreateFormula(IDevHosting hosting, ProjectPackageInfo projectPackageInfo, List<AppPackageInfo> entries)
     {
         var log = hosting.Logger;
 
         // Verify that we have generated packages for Homebrew
-        var entriesForBrew = new List<(PackageEntry, string)>();
+        var entriesForBrew = new List<(AppPackageInfo, string)>();
         foreach (var entry in entries)
         {
             var brewCheck = GetBrewCpuCheck(entry.RuntimeId);

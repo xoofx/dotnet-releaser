@@ -13,9 +13,9 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp 
 {
-    private async Task<List<(ProjectPackageInfo, List<PackageEntry>)>?> BuildAppPackages(BuildInformation buildInformation)
+    private async Task<List<(ProjectPackageInfo, List<AppPackageInfo>)>?> BuildAppPackages(BuildInformation buildInformation)
     {
-        var list = new List<(ProjectPackageInfo, List<PackageEntry>)>();
+        var list = new List<(ProjectPackageInfo, List<AppPackageInfo>)>();
         foreach (var packageInfo in buildInformation.GetAllPackableProjects())
         {
             var entriesToPublish = await BuildAppPackages(packageInfo);
@@ -32,9 +32,9 @@ public partial class ReleaserApp
         return list;
     }
 
-    private async Task<List<PackageEntry>> BuildAppPackages(ProjectPackageInfo packageInfo)
+    private async Task<List<AppPackageInfo>> BuildAppPackages(ProjectPackageInfo packageInfo)
     {
-        var entriesToPublish = new List<PackageEntry>();
+        var entriesToPublish = new List<AppPackageInfo>();
 
         // No AppPackages to build for libraries
         if (packageInfo.OutputType == PackageOutputType.Library)
@@ -97,7 +97,7 @@ public partial class ReleaserApp
     /// <summary>
     /// This is the part that handles the packaging for tar, zip, deb, rpm
     /// </summary>
-    private async Task<List<PackageEntry>?> PackPlatform(ProjectPackageInfo projectPackageInfo, bool publish, string rid, params PackageKind[] kinds)
+    private async Task<List<AppPackageInfo>?> PackPlatform(ProjectPackageInfo projectPackageInfo, bool publish, string rid, params PackageKind[] kinds)
     {
         var properties = new Dictionary<string, object>(_config.MSBuild.Properties)
         {
@@ -105,7 +105,7 @@ public partial class ReleaserApp
         };
 
         var clock = Stopwatch.StartNew();
-        var entries = new List<PackageEntry>();
+        var entries = new List<AppPackageInfo>();
         foreach (var kind in kinds)
         {
             var propertiesForTarget = new Dictionary<string, object>(properties);
@@ -218,7 +218,7 @@ public partial class ReleaserApp
 
             var sha256 = string.Join("", SHA256.HashData(await File.ReadAllBytesAsync(path)).Select(x => x.ToString("x2")));
 
-            var entry = new PackageEntry(
+            var entry = new AppPackageInfo(
                 Path.GetFileName(path),
                 kind,
                 path,

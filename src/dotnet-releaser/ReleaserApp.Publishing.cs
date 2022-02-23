@@ -8,7 +8,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task PublishPackagesAndChangelog(BuildKind buildKind, string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration, List<(ProjectPackageInfo, List<PackageEntry>)> buildPackages, IDevHosting? devHosting, ChangelogResult? changelog)
+    private async Task PublishPackagesAndChangelog(BuildKind buildKind, string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration, List<(ProjectPackageInfo, List<AppPackageInfo>)> buildPackages, IDevHosting? devHosting, ChangelogResult? changelog)
     {
         bool groupStarted = false;
         try

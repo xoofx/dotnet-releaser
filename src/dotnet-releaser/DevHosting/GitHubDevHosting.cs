@@ -305,7 +305,7 @@ internal class GitHubDevHosting : IDevHosting
         return release;
     }
 
-    public async Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<PackageEntry> entries, bool enablePublishPackagesInDraft)
+    public async Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft)
     {
         var release = await CreateOrUpdateChangelogImpl(user, repo, version, changelog);
         // Don't publish packages if draft is enabled but not packages

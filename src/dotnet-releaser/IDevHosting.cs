@@ -28,7 +28,7 @@ public interface IDevHosting
 
     Task CreateOrUpdateChangelog(string user, string repo, ReleaseVersion version, ChangelogResult? changelog);
 
-    Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<PackageEntry> entries, bool enablePublishPackagesInDraft);
+    Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft);
 
     Task UploadHomebrewFormula(string user, string repo, ProjectPackageInfo projectPackageInfo, string brewFormula);
 
