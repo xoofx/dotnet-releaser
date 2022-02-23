@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>MsBuildPipeLogger.Server</name>
+    </assembly>
+    <members>
+        <member name="T:MsBuildPipeLogger.AnonymousPipeLoggerServer">
+            <summary>
+            A server for receiving MSBuild logging events over an anonymous pipe.
+            </summary>
+        </member>
+        <member name="M:MsBuildPipeLogger.AnonymousPipeLoggerServer.#ctor">
+            <summary>
+            Creates an anonymous pipe server for receiving MSBuild logging events.
+            </summary>
+        </member>
+        <member name="M:MsBuildPipeLogger.AnonymousPipeLoggerServer.#ctor(System.Threading.CancellationToken)">
+            <summary>
+            Creates an anonymous pipe server for receiving MSBuild logging events.
+            </summary>
+            <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken"/> that will cancel read operations if triggered.</param>
+        </member>
+        <member name="M:MsBuildPipeLogger.AnonymousPipeLoggerServer.GetClientHandle">
+            <summary>
+            Gets the client handle as a string. The local copy of the handle will be automatically disposed on the first call to <c>Read</c>.
+            </summary>
+            <returns>The client handle as a string.</returns>
+        </member>
+        <member name="M:MsBuildPipeLogger.IPipeLoggerServer.Read">
+            <summary>
+            Reads a single event from the pipe. This method blocks until an event is received,
+            there are no more events, or the pipe is closed.
+            </summary>
+            <returns>The read event or <c>null</c> if there are no more events or the pipe is closed.</returns>
+        </member>
+        <member name="M:MsBuildPipeLogger.IPipeLoggerServer.ReadAll">
+            <summary>
+            Reads all events from the pipe and blocks until there are no more events or the pipe is closed.
+            </summary>
+        </member>
+        <member name="T:MsBuildPipeLogger.NamedPipeLoggerServer">
+            <summary>
+            A server for receiving MSBuild logging events over a named pipe.
+            </summary>
+        </member>
+        <member name="M:MsBuildPipeLogger.NamedPipeLoggerServer.#ctor(System.String)">
+            <summary>
+            Creates a named pipe server for receiving MSBuild logging events.
+            </summary>
+            <param name="pipeName">The name of the pipe to create.</param>
+        </member>
+        <member name="M:MsBuildPipeLogger.NamedPipeLoggerServer.#ctor(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Creates a named pipe server for receiving MSBuild logging events.
+            </summary>
+            <param name="pipeName">The name of the pipe to create.</param>
+            <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken"/> that will cancel read operations if triggered.</param>
+        </member>
+        <member name="T:MsBuildPipeLogger.PipeLoggerServer`1">
+            <summary>
+            Receives MSBuild logging events over a pipe. This is the base class for <see cref="T:MsBuildPipeLogger.AnonymousPipeLoggerServer"/>
+            and <see cref="T:MsBuildPipeLogger.NamedPipeLoggerServer"/>.
+            </summary>
+        </member>
+        <member name="M:MsBuildPipeLogger.PipeLoggerServer`1.#ctor(`0)">
+            <summary>
+            Creates a server that receives MSBuild events over a specified pipe.
+            </summary>
+            <param name="pipeStream">The pipe to receive events from.</param>
+        </member>
+        <member name="M:MsBuildPipeLogger.PipeLoggerServer`1.#ctor(`0,System.Threading.CancellationToken)">
+            <summary>
+            Creates a server that receives MSBuild events over a specified pipe.
+            </summary>
+            <param name="pipeStream">The pipe to receive events from.</param>
+            <param name="cancellationToken">A <see cref="P:MsBuildPipeLogger.PipeLoggerServer`1.CancellationToken"/> that will cancel read operations if triggered.</param>
+        </member>
+        <member name="M:MsBuildPipeLogger.PipeLoggerServer`1.Read">
+            <inheritdoc/>
+        </member>
+        <member name="M:MsBuildPipeLogger.PipeLoggerServer`1.ReadAll">
+            <inheritdoc/>
+        </member>
+        <member name="M:MsBuildPipeLogger.PipeLoggerServer`1.Dispose">
+            <inheritdoc/>
+        </member>
+    </members>
+</doc>
