@@ -204,6 +204,25 @@ public partial class ReleaserApp
 
         Info($"Loading {solutionToProjects.Select(x => x.Value.Count).Sum()} projects");
 
+        // Before loading projects, we need to restore the solution or projects 
+        // to allow MinVer and other version libraries to kick-in
+        foreach (var (solution, projects) in solutionToProjects)
+        {
+            if (string.IsNullOrEmpty(solution))
+            {
+                foreach (var project in projects)
+                {
+                    await RunMSBuild(project, "Restore");
+                    if (HasErrors) return null;
+                }
+            }
+            else
+            {
+                await RunMSBuild(solution, "Restore");
+                if (HasErrors) return null;
+            }
+        }
+
         // Load TargetFrameworks
         var projectToTargetFrameworkInfo = new Dictionary<string, TargetFrameworkInfo>(pathComparer);
         var tasks = new List<Task>();
