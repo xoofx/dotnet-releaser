@@ -63,34 +63,16 @@ public partial class ReleaserApp
             bool groupLogged = false;
             foreach (var projectPackageInfoCollection in buildInfo.ProjectPackageInfoCollections)
             {
-                if (!string.IsNullOrEmpty(projectPackageInfoCollection.SolutionFile))
+                foreach (var projectPackageInfo in projectPackageInfoCollection.Packages.Where(x => x.IsTestProject))
                 {
-                    if (projectPackageInfoCollection.Packages.Any(x => x.IsTestProject))
+                    if (!groupLogged)
                     {
-                        if (!groupLogged)
-                        {
-                            _logger.LogStartGroup("Testing");
-                            groupLogged = true;
-                        }
-                        if (!await Test(projectPackageInfoCollection.SolutionFile))
-                        {
-                            return false;
-                        }
+                        _logger.LogStartGroup("Testing");
+                        groupLogged = true;
                     }
-                }
-                else
-                {
-                    foreach (var projectPackageInfo in projectPackageInfoCollection.Packages.Where(x => x.IsTestProject))
+                    if (!await Test(projectPackageInfo.ProjectFullPath))
                     {
-                        if (!groupLogged)
-                        {
-                            _logger.LogStartGroup("Testing");
-                            groupLogged = true;
-                        }
-                        if (!await Test(projectPackageInfo.ProjectFullPath))
-                        {
-                            return false;
-                        }
+                        return false;
                     }
                 }
             }
