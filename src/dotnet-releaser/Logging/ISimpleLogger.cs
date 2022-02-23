@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
+using DotNetReleaser.Helpers;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -54,15 +55,25 @@ public static class SimpleLogger
         private readonly ILogger _log;
         private int _logId;
         private int _group;
+        private bool _runningFromGitHubAction;
 
         public SimpleLoggerRedirect(ILogger log)
         {
             _log = log;
+            _runningFromGitHubAction = GitHubActionHelper.GetInfo() != null;
         }
 
         public bool HasErrors { get; private set; }
         public void LogStartGroup(string name)
         {
+            if (_runningFromGitHubAction)
+            {
+                // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
+                //::group::{title}
+                //::endgroup::
+                AnsiConsole.WriteLine($"::group::{name}");
+            }
+
             if (_group > 0)
             {
                 AnsiConsole.WriteLine();
@@ -73,6 +84,10 @@ public static class SimpleLogger
 
         public void LogEndGroup()
         {
+            if (_runningFromGitHubAction)
+            {
+                AnsiConsole.WriteLine("::endgroup::");
+            }
         }
 
         public void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args)

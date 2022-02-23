@@ -257,8 +257,13 @@ internal class GitHubDevHosting : IDevHosting
     {
         var releases = await _client.Repository.Release.GetAll(user, repo);
 
-        const string versionTagForDraft = "draft";
-
+        string versionTagForDraft = "draft";
+        var info = GitHubActionHelper.GetInfo();
+        if (info is not null && version.IsDraft)
+        {
+            versionTagForDraft += $"-{info.BranchName}";
+        }
+        
         var tag = version.IsDraft ? versionTagForDraft : version.Tag;
 
         Release? release = null;
