@@ -12,21 +12,31 @@ public partial class ReleaserApp
     {
         if (!_config.NuGet.Publish) return true;
 
-        foreach (var projectPackageInfo in buildInfo.GetAllPackableProjects())
+
+        try
         {
-            var nugetPackages = await BuildNuGetPackageImpl(projectPackageInfo);
-            if (nugetPackages is null)
+            _logger.LogStartGroup("NuGet Packaging");
+            foreach (var projectPackageInfo in buildInfo.GetAllPackableProjects())
             {
-                Error("Failed to build nuget packages or no packages were found.");
-            }
-            else
-            {
-                foreach (var nugetPackage in nugetPackages)
+                var nugetPackages = await BuildNuGetPackageImpl(projectPackageInfo);
+                if (nugetPackages is null)
                 {
-                    Info($"NuGet Package built: {nugetPackage}");
+                    Error("Failed to build nuget packages or no packages were found.");
+                }
+                else
+                {
+                    foreach (var nugetPackage in nugetPackages)
+                    {
+                        Info($"NuGet Package built: {nugetPackage}");
+                    }
                 }
             }
         }
+        finally
+        {
+            _logger.LogEndGroup();
+        }
+
 
         return !HasErrors;
     }

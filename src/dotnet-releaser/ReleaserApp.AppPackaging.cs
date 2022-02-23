@@ -6,13 +6,94 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using DotNetReleaser.Configuration;
-using DotNetReleaser.Runners;
-using Microsoft.Build.Framework;
+using DotNetReleaser.Logging;
+using Spectre.Console;
 
 namespace DotNetReleaser;
 
 public partial class ReleaserApp 
 {
+    private async Task<List<(ProjectPackageInfo, List<PackageEntry>)>?> BuildAppPackages(BuildInformation buildInformation)
+    {
+        var list = new List<(ProjectPackageInfo, List<PackageEntry>)>();
+        foreach (var packageInfo in buildInformation.GetAllPackableProjects())
+        {
+            var entriesToPublish = await BuildAppPackages(packageInfo);
+
+            // Exit if we have any errors.
+            if (HasErrors)
+            {
+                return null;
+            }
+
+            list.Add((packageInfo, entriesToPublish));
+        }
+
+        return list;
+    }
+
+    private async Task<List<PackageEntry>> BuildAppPackages(ProjectPackageInfo packageInfo)
+    {
+        var entriesToPublish = new List<PackageEntry>();
+
+        // No AppPackages to build for libraries
+        if (packageInfo.OutputType == PackageOutputType.Library)
+        {
+            return entriesToPublish;
+        }
+        
+        var table = new Table();
+        table.AddColumn("Platform");
+        table.AddColumn("Packages");
+        
+        bool hasPackagesToBuild = false;
+        foreach (var pack in _config.Packs)
+        {
+            foreach (var rid in pack.RuntimeIdentifiers)
+            {
+                if (pack.Publish) hasPackagesToBuild = true;
+
+                var kinds = string.Join(", ", pack.Kinds.Select(x => x.ToString().ToLowerInvariant()));
+                table.AddRow(rid, kinds);
+            }
+        }
+
+        if (hasPackagesToBuild)
+        {
+            _logger.LogStartGroup($"App Packaging {packageInfo.Name}");
+            // Don't log an empty line
+            _logger.InfoMarkup("Platforms and Packages Configured:", table);
+            try
+            {
+                foreach (var pack in _config.Packs)
+                {
+                    foreach (var rid in pack.RuntimeIdentifiers)
+                    {
+                        var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
+                        if (HasErrors) goto exitPackOnError; // break on first errors
+
+                        if (list is not null && pack.Publish)
+                        {
+                            entriesToPublish.AddRange(list);
+                        }
+                    }
+                }
+
+                exitPackOnError:
+                if (HasErrors)
+                {
+                    Error($"Error while building platform packages for `{packageInfo.Name}`.");
+                }
+            }
+            finally
+            {
+                _logger.LogEndGroup();
+            }
+        }
+
+        return entriesToPublish;
+    }
+
     /// <summary>
     /// This is the part that handles the packaging for tar, zip, deb, rpm
     /// </summary>
