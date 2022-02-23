@@ -11,6 +11,7 @@ using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 using Spectre.Console.Rendering;
 
 namespace DotNetReleaser;
@@ -49,8 +50,27 @@ public partial class ReleaserApp
         // Create our log
         using var factory = LoggerFactory.Create(configure =>
         {
+            var runningOnGitHub = GitHubActionHelper.GetInfo() != null;
+            IAnsiConsoleOutput consoleOut = new AnsiConsoleOutput(Console.Out);
+            if (runningOnGitHub)
+            {
+                consoleOut = new AnsiConsoleOutputOverride(consoleOut)
+                {
+                    Width = 256,
+                    Height = 128,
+                };
+            }
+            
             configure.AddProvider(new SpectreConsoleLoggerProvider(new SpectreConsoleLoggerOptions()
             {
+                ConsoleSettings = runningOnGitHub ? new AnsiConsoleSettings()
+                {
+                    Ansi = AnsiSupport.No,
+                    Out = consoleOut
+                } : new AnsiConsoleSettings()
+                {
+                    Out = consoleOut
+                },
                 IndentAfterNewLine = false,
                 IncludeTimestamp = true,
                 IncludeNewLine = false,
@@ -202,15 +222,15 @@ public partial class ReleaserApp
 
         Info($"Running from GitHub: {info}");
         
-        if (_config.GitHub.User != info.OwnerName)
-        {
-            Error($"Invalid GitHub user|owner defined in configuration file `{_config.GitHub.User}`. Expecting {info.OwnerName}");
-        }
+        //if (_config.GitHub.User != info.OwnerName)
+        //{
+        //    Error($"Invalid GitHub user|owner defined in configuration file `{_config.GitHub.User}`. Expecting {info.OwnerName}");
+        //}
 
-        if (_config.GitHub.Repo != info.RepoName)
-        {
-            Error($"Invalid GitHub repository defined in configuration file `{_config.GitHub.Repo}`. Expecting {info.RepoName}");
-        }
+        //if (_config.GitHub.Repo != info.RepoName)
+        //{
+        //    Error($"Invalid GitHub repository defined in configuration file `{_config.GitHub.Repo}`. Expecting {info.RepoName}");
+        //}
     }
 
     /// <summary>
