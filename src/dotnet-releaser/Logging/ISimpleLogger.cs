@@ -80,6 +80,7 @@ public static class SimpleLogger
             }
             _group++;
             AnsiConsole.Write(new Rule(name) { Alignment = Justify.Left });
+            AnsiConsole.Profile.Out.Writer.Flush();
         }
 
         public void LogEndGroup()
@@ -87,6 +88,7 @@ public static class SimpleLogger
             if (_runningFromGitHubAction)
             {
                 AnsiConsole.WriteLine("::endgroup::");
+                AnsiConsole.Profile.Out.Writer.Flush();
             }
         }
 

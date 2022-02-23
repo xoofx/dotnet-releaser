@@ -206,6 +206,9 @@ internal class SpectreConsoleLogger : ILogger
             {
                 _console.MarkupLine(builder.ToString());
             }
+
+            // Flush log
+            _console.Profile.Out.Writer.Flush();
         }
         finally
         {

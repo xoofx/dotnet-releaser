@@ -89,7 +89,7 @@ public abstract class DotNetRunnerBase : IDisposable
 
         var arguments = GetFullArguments(command, args, properties);
 
-        Console.WriteLine($"dotnet {arguments}");
+        //Console.WriteLine($"dotnet {arguments}");
 
         var wrap = Cli.Wrap("dotnet")
             .WithArguments(arguments)
