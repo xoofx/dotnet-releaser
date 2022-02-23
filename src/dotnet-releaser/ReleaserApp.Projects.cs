@@ -310,6 +310,7 @@ public partial class ReleaserApp
         table.AddColumn("Project");
         table.AddColumn("Kind");
         table.AddColumn("Version");
+        table.AddColumn("TargetFramework(s)");
         table.AddColumn("License");
         table.AddColumn(new TableColumn("Packable?").Centered());
         table.AddColumn(new TableColumn("Test?").Centered());
@@ -348,22 +349,24 @@ public partial class ReleaserApp
                     version ??= project.Version;
                 }
                 bool invalidVersion = project.IsPackable && version != project.Version;
-                row[0] = project.AssemblyName;
-                row[1] = project.OutputType.ToString().ToLowerInvariant();
-                row[2] = invalidVersion ? $"{project.Version} (invalid)" : project.Version;
+                int c = 0;
+                row[c++] = project.AssemblyName;
+                row[c++] = project.OutputType.ToString().ToLowerInvariant();
+                row[c++] = invalidVersion ? $"{project.Version} (invalid)" : project.Version;
+                row[c++] = string.Join("\n", project.TargetFrameworkInfo.TargetFrameworks);
                 if (project.IsPackable)
                 {
-                    row[3] = LicenseHelper.IsKnownLicense(project.License) ? new Text(project.License, new Style(Color.Green, Color.Black)) :
+                    row[c++] = LicenseHelper.IsKnownLicense(project.License) ? new Text(project.License, new Style(Color.Green, Color.Black)) :
                         LicenseHelper.IsLicenseDefined(project.License) ? new Text(project.License, new Style(Color.Black, Color.Red)) :
                         new Text(project.License, new Style(Color.Yellow, Color.Black));
                 }
                 else
                 {
-                    row[3] = project.License;
+                    row[c++] = project.License;
                 }
 
-                row[4] = project.IsPackable ? "x" : string.Empty;
-                row[5] = project.IsTestProject ? "x" : string.Empty;
+                row[c++] = project.IsPackable ? "x" : string.Empty;
+                row[c] = project.IsTestProject ? "x" : string.Empty;
                 if (invalidVersion)
                 {
                     invalidPackageVersions.Add(project);
