@@ -221,6 +221,7 @@ public partial class ReleaserApp
         runner.Arguments.Add("--no-build"); // Because we ran it just before
         runner.Arguments.Add("--configuration");
         runner.Arguments.Add($"{configuration}");
+        runner.Arguments.Add(projectFile);
 
         if (_config.Coverage.Enable)
         {
@@ -247,7 +248,6 @@ public partial class ReleaserApp
             AddCoverageSetting(runner.Arguments, "SourceLink", _config.Coverage.SourceLink);
         }
 
-        runner.Arguments.Add(projectFile);
         runner.LogStandardOutput = Info;
         runner.LogStandardError = Error;
         
