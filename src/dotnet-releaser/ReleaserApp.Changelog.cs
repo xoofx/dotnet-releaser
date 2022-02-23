@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using DotNetReleaser.Changelog;
 using DotNetReleaser.Configuration;
 using DotNetReleaser.DevHosting;
+using DotNetReleaser.Logging;
 
 namespace DotNetReleaser;
 

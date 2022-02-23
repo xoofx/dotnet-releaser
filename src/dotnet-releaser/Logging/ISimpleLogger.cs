@@ -1,6 +1,11 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
+using DotNetReleaser.Helpers;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace DotNetReleaser.Logging;
 
@@ -8,12 +13,35 @@ public interface ISimpleLogger
 {
     bool HasErrors { get; }
 
-    void Info(string message);
-    
-    void Warn(string message);
-
-    void Error(string message);
+    void LogStartGroup(string name);
+    void LogEndGroup();
+    void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args);
 }
+
+public static class SimpleLoggerExtensions
+{
+    public static void Info(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Information, null, message, false);
+    
+    public static void Warn(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Warning, null, message, false);
+
+    public static void Error(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Error, null, message, false);
+
+    public static void InfoMarkup(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Information, null, message, true);
+
+    public static void InfoMarkup(this ISimpleLogger log, string message, params IRenderable[] renderable) =>
+        log.LogSimple(LogLevel.Information, null, message, true, renderable);
+    
+    public static void WarnMarkup(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Warning, null, message, true);
+
+    public static void ErrorMarkup(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Error, null, message, true);
+}
+
 
 public static class SimpleLogger
 {
@@ -26,28 +54,54 @@ public static class SimpleLogger
     {
         private readonly ILogger _log;
         private int _logId;
+        private int _group;
+        private bool _runningFromGitHubAction;
 
         public SimpleLoggerRedirect(ILogger log)
         {
             _log = log;
+            _runningFromGitHubAction = GitHubActionHelper.GetInfo() != null;
         }
 
         public bool HasErrors { get; private set; }
-
-        void ISimpleLogger.Info(string message)
+        public void LogStartGroup(string name)
         {
-            _log.LogInformation(new EventId(_logId++), message);
+            if (_runningFromGitHubAction)
+            {
+                // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
+                //::group::{title}
+                //::endgroup::
+                AnsiConsole.WriteLine($"::group::{name}");
+            }
+
+            if (_group > 0)
+            {
+                AnsiConsole.WriteLine();
+            }
+            _group++;
+            AnsiConsole.Write(new Rule(name) { Alignment = Justify.Left });
         }
 
-        void ISimpleLogger.Warn(string message)
+        public void LogEndGroup()
         {
-            _log.LogWarning(new EventId(_logId++), message);
+            if (_runningFromGitHubAction)
+            {
+                AnsiConsole.WriteLine("::endgroup::");
+            }
         }
 
-        void ISimpleLogger.Error(string message)
+        public void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args)
         {
-            HasErrors = true;
-            _log.LogError(new EventId(_logId++), message);
+            if (level == LogLevel.Error) HasErrors = true;
+            var id = Interlocked.Increment(ref _logId);
+            if (markup)
+            {
+                _log.LogMarkup(level, new EventId(id), exception, message, args);
+            }
+            else
+            {
+                _log.Log(level, new EventId(id), exception, message, args);
+            }
         }
     }
 }

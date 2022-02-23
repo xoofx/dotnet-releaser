@@ -33,11 +33,13 @@ jobs:
       run: |
           dotnet pack src -c Release
 
-    - name: Publish
+    - name: Self Build - Publish (main only)
       if: github.event_name == 'push'
       run: |
-          if [[ ${{ github.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ '${{ github.ref }}' =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          then
               ./src/dotnet-releaser/bin/Debug/net6.0/dotnet-releaser publish --nuget-token ${{secrets.NUGET_TOKEN}} --github-token  ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
-          else
-              echo publish is only enabled by tagging with a release tag
+          elif [[ '${{ github.ref }}' == 'refs/heads/main' ]]
+          then
+              ./src/dotnet-releaser/bin/Debug/net6.0/dotnet-releaser build --github-token ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
           fi

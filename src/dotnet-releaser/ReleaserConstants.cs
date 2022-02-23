@@ -9,6 +9,7 @@ static class ReleaserConstants
 
     public const string DotNetReleaserPackAndGetNuGetPackOutput = nameof(DotNetReleaserPackAndGetNuGetPackOutput);
     public const string DotNetReleaserGetPackageInfo = nameof(DotNetReleaserGetPackageInfo);
+    public const string DotNetReleaserGetTargetFramework = nameof(DotNetReleaserGetTargetFramework);
     public const string DotNetReleaserPublishAndCreateDeb = nameof(DotNetReleaserPublishAndCreateDeb);
     public const string DotNetReleaserPublishAndCreateRpm = nameof(DotNetReleaserPublishAndCreateRpm);
     public const string DotNetReleaserPublishAndCreateTar = nameof(DotNetReleaserPublishAndCreateTar);
@@ -23,11 +24,13 @@ static class ReleaserConstants
 
     public const string ItemSpecKind = "Kind";
     public const string PackageId = nameof(PackageId);
-    public const string ExeName = nameof(ExeName);
+    public const string AssemblyName = nameof(AssemblyName);
     public const string PackageVersion = nameof(PackageVersion);
     public const string PackageDescription = nameof(PackageDescription);
     public const string PackageLicenseExpression = nameof(PackageLicenseExpression);
     public const string PackageOutputType = nameof(PackageOutputType);
     public const string PackageProjectUrl = nameof(PackageProjectUrl);
     public const string IsNuGetPackable = nameof(IsNuGetPackable);
+    public const string IsTestProject = nameof(IsTestProject);
+    public const string ProjectReference = nameof(ProjectReference);
 }

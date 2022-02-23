@@ -6,14 +6,13 @@ using System.Text;
 using System.Threading.Tasks;
 using DotNetReleaser.Changelog;
 using DotNetReleaser.Configuration;
+using DotNetReleaser.Coverage;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using McMaster.Extensions.CommandLineUtils;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Configuration;
-using Microsoft.Extensions.Logging.Console;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace DotNetReleaser;
 
@@ -27,7 +26,7 @@ namespace DotNetReleaser;
 /// - Push the NuGet package
 /// - Push all platform packages
 /// </summary>
-public partial class ReleaserApp : ISimpleLogger
+public partial class ReleaserApp
 {
     private static readonly string DotNetReleaserConfigFile = Path.Combine(AppContext.BaseDirectory, ReleaserConstants.DotNetReleaserFileName);
     
@@ -38,6 +37,7 @@ public partial class ReleaserApp : ISimpleLogger
     {
         _logger = logger;
         _config = new ReleaserConfiguration();
+        _assemblyCoverages = new List<AssemblyCoverage>();
     }
 
     /// <summary>
@@ -48,16 +48,35 @@ public partial class ReleaserApp : ISimpleLogger
     public static async Task<int> Run(string[] args)
     {
         // Create our log
-        using var factory = LoggerFactory.Create(builder =>
+        using var factory = LoggerFactory.Create(configure =>
         {
-
-            // Similar to builder.AddSimpleConsole();
-            // But we are using our own console that stays on the same line if the message doesn't have new lines
-            builder.AddConsoleFormatter<SimpleConsoleFormatter, SimpleConsoleFormatterOptions>(configure => { configure.SingleLine = true; });
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ConsoleLoggerProvider>());
-            LoggerProviderOptions.RegisterProviderOptions<ConsoleLoggerOptions, ConsoleLoggerProvider>(builder.Services);
+            var runningOnGitHub = GitHubActionHelper.GetInfo() != null;
+            IAnsiConsoleOutput consoleOut = new AnsiConsoleOutput(Console.Out);
+            if (runningOnGitHub)
+            {
+                consoleOut = new AnsiConsoleOutputOverride(consoleOut)
+                {
+                    Width = 256,
+                    Height = 128,
+                };
+            }
+            
+            configure.AddProvider(new SpectreConsoleLoggerProvider(new SpectreConsoleLoggerOptions()
+            {
+                ConsoleSettings = runningOnGitHub ? new AnsiConsoleSettings()
+                {
+                    Ansi = AnsiSupport.No,
+                    Out = consoleOut
+                } : new AnsiConsoleSettings()
+                {
+                    Out = consoleOut
+                },
+                IndentAfterNewLine = false,
+                IncludeTimestamp = true,
+                IncludeNewLine = false,
+                IncludeCategory = false
+            }));
         });
-
         var exeName = "dotnet-releaser";
         var logger = SimpleLogger.CreateConsoleLogger(factory, exeName);
         var appReleaser = new ReleaserApp(logger);
@@ -186,12 +205,32 @@ public partial class ReleaserApp : ISimpleLogger
         // ------------------------------------------------------------------
         // Load Configuration
         // ------------------------------------------------------------------
-        var configuration = await ReleaserConfiguration.From(configurationFile, this);
+        var configuration = await ReleaserConfiguration.From(configurationFile, _logger);
         if (configuration is null) return false;
         _config = configuration;
-        
+
+        VerifyWhenRunningFromGitHubAction();
+
         // Don't continue if we had errors when deserializing the config file
         return !HasErrors;
+    }
+
+    private void VerifyWhenRunningFromGitHubAction()
+    {
+        var info = GitHubActionHelper.GetInfo();
+        if (info is null) return;
+
+        Info($"Running from GitHub: {info}");
+        
+        //if (_config.GitHub.User != info.OwnerName)
+        //{
+        //    Error($"Invalid GitHub user|owner defined in configuration file `{_config.GitHub.User}`. Expecting {info.OwnerName}");
+        //}
+
+        //if (_config.GitHub.Repo != info.RepoName)
+        //{
+        //    Error($"Invalid GitHub repository defined in configuration file `{_config.GitHub.Repo}`. Expecting {info.RepoName}");
+        //}
     }
 
     /// <summary>
@@ -199,33 +238,97 @@ public partial class ReleaserApp : ISimpleLogger
     /// </summary>
     private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? nugetApiToken, bool forceArtifactsFolder)
     {
+        BuildInformation? buildInformation = null;
+        GitHubDevHostingConfiguration? hostingConfiguration = null;
+        IDevHosting? devHosting = null;
+        ChangelogResult? changelog = null;
+        try
+        {
+            _logger.LogStartGroup("Initializing");
+            var result = await Initializing(configurationFile, buildKind, githubApiToken, nugetApiToken, forceArtifactsFolder);
+            if (result is null) return false;
+            buildInformation = result.Value.buildInformation!;
+            devHosting = result.Value.devHosting;
+            hostingConfiguration = _config.GitHub;
+        }
+        finally
+        {
+            _logger.LogEndGroup();
+        }
+
+        // ------------------------------------------------------------------
+        // Parse Changelog
+        // ------------------------------------------------------------------
+        if (_config.Changelog.Publish && devHosting is not null)
+        {
+            try
+            {
+                _logger.LogStartGroup("Preparing Changelog");
+                changelog = await CreateChangeLog(devHosting, buildInformation.Version);
+                if (changelog is not null)
+                {
+                    Info($"Changelog:{Environment.NewLine}{changelog}");
+                }
+                else if (HasErrors)
+                {
+                    return false;
+                }
+                else
+                {
+                    Warn("No changelog found or configured.");
+                }
+            }
+            finally
+            {
+                _logger.LogEndGroup();
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Build Projects (debug/release)
+        // ------------------------------------------------------------------
+        if (!await BuildAndTest(buildInformation)) return false;
+
+        // ------------------------------------------------------------------
+        // Build NuGet package
+        // ------------------------------------------------------------------
+        if (!await BuildNuGetPackage(buildInformation)) return false;
+
+        // ------------------------------------------------------------------
+        // Build executable packages (deb, zip, rpm, tar...)
+        // ------------------------------------------------------------------
+        var buildPackages = await BuildAppPackages(buildInformation);
+        if (buildPackages is null) return false;
+
+        // ------------------------------------------------------------------
+        // Publish all packages NuGet + (deb, zip, rpm, tar...)
+        // ------------------------------------------------------------------
+        // Draft if we are just building and not publishing (to allow to update the changelog)
+        await PublishPackagesAndChangelog(buildKind, nugetApiToken, buildInformation, hostingConfiguration, buildPackages, devHosting, changelog);
+
+        return !HasErrors;
+    }
+
+    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting)?> Initializing(string configurationFile, BuildKind buildKind, string githubApiToken, string? nugetApiToken, bool forceArtifactsFolder)
+    {
         // ------------------------------------------------------------------
         // Load Configuration
         // ------------------------------------------------------------------
-        if (!await LoadConfiguration(configurationFile)) return false;
+        if (!await LoadConfiguration(configurationFile)) return null; // return false;
 
-        if (!EnsureArtifactsFolders(forceArtifactsFolder)) return false;
+        if (!EnsureArtifactsFolders(forceArtifactsFolder)) return null; // return false;
 
         // ------------------------------------------------------------------
         // Load Package Information from MSBuild project
         // ------------------------------------------------------------------
-        var packageInfo = await LoadPackageInfo();
-        if (packageInfo is null) return false;
-
-        Info($"Package to build: {packageInfo}");
-
-        // If the project is not packable as a NuGet package but we still (by default)
-        // ask for a NuGet package, produce a warning
-        var willDoNuGetPack = packageInfo.IsNuGetPackable && _config.NuGet.Publish;
-        if (!packageInfo.IsNuGetPackable && _config.NuGet.Publish)
-        {
-            Warn("The project is not packable as a NuGet package (IsPackable = false). Skipping NuGet building/publishing.");
-        }
+        var buildInformation = await LoadProjects();
+        if (HasErrors) return null; // return false;
 
         // ------------------------------------------------------------------
         // Validate Publish parameters
         // ------------------------------------------------------------------
         var hostingConfiguration = _config.GitHub;
+
         IDevHosting? devHosting = null;
 
         // Connect to GitHub if we have a token
@@ -234,10 +337,10 @@ public partial class ReleaserApp : ISimpleLogger
             devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken);
             if (devHosting is null)
             {
-                return false;
+                return null; // return false;
             }
         }
-        
+
         if (buildKind == BuildKind.Publish)
         {
             if (hostingConfiguration.Publish)
@@ -245,150 +348,31 @@ public partial class ReleaserApp : ISimpleLogger
                 if (string.IsNullOrEmpty(githubApiToken))
                 {
                     Error($"Publishing to {hostingConfiguration.Provider} requires to pass --github-token");
-                    return false;
+                    return null; // return false;
                 }
             }
 
-            if (willDoNuGetPack && string.IsNullOrEmpty(nugetApiToken))
+            if (string.IsNullOrEmpty(nugetApiToken))
             {
                 Error("Publishing to NuGet requires to pass --nuget-token");
-                return false;
+                return null; // return false;
             }
         }
 
-        // Update homebrew config (and log if necessary)
-        UpdateHomebrewConfigurationFromPackage(packageInfo);
-        
-        // ------------------------------------------------------------------
-        // Parse Changelog
-        // ------------------------------------------------------------------
-        ChangelogResult? changelog = null;
-        if (_config.Changelog.Publish && devHosting is not null)
-        {
-            changelog = await CreateChangeLog(devHosting, packageInfo.Version);
-            if (changelog is not null)
-            {
-                Info($"Changelog:{Environment.NewLine}{changelog}");
-            }
-            else if (HasErrors)
-            {
-                return false;
-            }
-            else
-            {
-                Warn("No changelog found or configured.");
-            }
-        }
-
-        // ------------------------------------------------------------------
-        // Build NuGet package
-        // ------------------------------------------------------------------
-        if (!await BuildNuGetPackage()) return false;
-
-        // ------------------------------------------------------------------
-        // Build executable packages (deb, zip, rpm, tar...)
-        // ------------------------------------------------------------------
-        var entriesToPublish = new List<PackageEntry>();
-
-        var builder = new StringBuilder();
-        bool hasPackagesToBuild = false;
-        foreach (var pack in _config.Packs)
-        {
-            foreach (var rid in pack.RuntimeIdentifiers)
-            {
-                if (pack.Publish) hasPackagesToBuild = true;
-                builder.AppendLine($"Build configured for {PackagingConfiguration.ToStringRidAndKinds(new () { rid }, pack.Kinds)}");
-            }
-        }
-        // Don't log an empty line
-        if (builder.Length > 0)
-        {
-            Info(builder.ToString());
-        }
-
-        if (hasPackagesToBuild)
-        {
-            Info("Begin building platform packages...");
-            foreach (var pack in _config.Packs)
-            {
-                foreach (var rid in pack.RuntimeIdentifiers)
-                {
-                    var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
-                    if (HasErrors) goto exitPackOnError; // break on first errors
-
-                    if (list is not null && pack.Publish)
-                    {
-                        entriesToPublish.AddRange(list);
-                    }
-                }
-            }
-
-            exitPackOnError:
-            if (HasErrors)
-            {
-                Error("Error while building platform packages.");
-            }
-            else
-            {
-                Info("End building platform packages successful.");
-            }
-        }
-        else
-        {
-            Info("No packages to build");
-        }
-
-        // Exit if we have any errors.
-        if (HasErrors)
-        {
-            return false;
-        }
-
-        // ------------------------------------------------------------------
-        // Publish all packages NuGet + (deb, zip, rpm, tar...)
-        // ------------------------------------------------------------------
-        // Draft if we are just building and not publishing (to allow to update the changelog)
-        var releaseVersion = new ReleaseVersion(packageInfo.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{packageInfo.Version}");
-
-        if (buildKind == BuildKind.Publish)
-        {
-            if (willDoNuGetPack && nugetApiToken is not null)
-            {
-                await PublishNuGet(packageInfo, nugetApiToken);
-            }
-
-            // Don't try to continue publishing if we had errors with NuGet publishing
-            // Otherwise publish any packages that we have generated before
-            if (!HasErrors && devHosting is not null)
-            {
-                // In the case of a build, we still want to upload a draft release notes
-                await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
-
-                if (!HasErrors && _config.Brew.Publish)
-                {
-                    var brewFormula = HomebrewHelper.CreateFormula(devHosting, packageInfo, entriesToPublish);
-
-                    if (brewFormula is not null)
-                    {
-                        await devHosting.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
-                    }
-                }
-            }
-
-        }
-        else if (buildKind == BuildKind.Build && devHosting is not null && !_config.Changelog.DisableDraftForBuild)
-        {
-            await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, entriesToPublish, _config.EnablePublishPackagesInDraft);
-        }
-
-        return !HasErrors;
+        return (buildInformation, devHosting);
     }
+
 
     public bool HasErrors => _logger.HasErrors;
 
     public void Info(string message)
     {
         _logger.Info(message);
+    }
+
+    public void Info(string message, IRenderable renderable)
+    {
+        _logger.InfoMarkup(message, renderable);
     }
 
     public void Warn(string message)

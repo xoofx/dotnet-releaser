@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using DotNetReleaser.Logging;
 
 namespace DotNetReleaser.Helpers;
 
@@ -10,12 +11,12 @@ namespace DotNetReleaser.Helpers;
 /// </summary>
 public static class HomebrewHelper
 {
-    public static string? CreateFormula(IDevHosting hosting, PackageInfo packageInfo, List<PackageEntry> entries)
+    public static string? CreateFormula(IDevHosting hosting, ProjectPackageInfo projectPackageInfo, List<AppPackageInfo> entries)
     {
         var log = hosting.Logger;
 
         // Verify that we have generated packages for Homebrew
-        var entriesForBrew = new List<(PackageEntry, string)>();
+        var entriesForBrew = new List<(AppPackageInfo, string)>();
         foreach (var entry in entries)
         {
             var brewCheck = GetBrewCpuCheck(entry.RuntimeId);
@@ -32,7 +33,7 @@ public static class HomebrewHelper
             return null;
         }
 
-        var appName = packageInfo.ExeName;
+        var appName = projectPackageInfo.AssemblyName;
         var formulaBuilder = new StringBuilder();
 
         // Make sure that the ruby class name is valid
@@ -41,10 +42,10 @@ public static class HomebrewHelper
         // Heading
         formulaBuilder.Append($@"# This file was generated automatically by dotnet-releaser - DO NOT EDIT
 class {className} < Formula
-  desc ""{EscapeRuby(packageInfo.Description)}""
-  homepage ""{packageInfo.ProjectUrl}""
-  version ""{packageInfo.Version}""
-  license ""{packageInfo.License}""
+  desc ""{EscapeRuby(projectPackageInfo.Description)}""
+  homepage ""{projectPackageInfo.ProjectUrl}""
+  version ""{projectPackageInfo.Version}""
+  license ""{projectPackageInfo.License}""
 ");
 
 
@@ -69,7 +70,7 @@ class {className} < Formula
                 }
 
                 formulaBuilder.Append($@"    if {brewCpuCheck}
-      url ""{hosting.GetDownloadReleaseUrl(packageInfo.Version, Path.GetFileName(packageEntry.Path))}""
+      url ""{hosting.GetDownloadReleaseUrl(projectPackageInfo.Version, Path.GetFileName(packageEntry.Path))}""
       sha256 ""{packageEntry.Sha256}""
 
       def install

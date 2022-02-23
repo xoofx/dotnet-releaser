@@ -48,12 +48,12 @@ public class MockDevHosting : IDevHosting
 
 
 
-    public Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<PackageEntry> entries, bool enablePublishPackagesInDraft)
+    public Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft)
     {
         return Task.CompletedTask;
     }
 
-    public Task UploadHomebrewFormula(string user, string repo, PackageInfo packageInfo, string brewFormula)
+    public Task UploadHomebrewFormula(string user, string repo, ProjectPackageInfo projectPackageInfo, string brewFormula)
     {
         return Task.CompletedTask;
     }

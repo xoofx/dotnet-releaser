@@ -80,20 +80,31 @@ public class MSBuildRunner : DotNetRunnerBase
         if (string.IsNullOrEmpty(Project)) throw new InvalidOperationException("MSBuildRunner.Project cannot be empty");
 
         // Create the server
-        using var reader = new AnonymousPipeLoggerServer();
+        var reader = new AnonymousPipeLoggerServer();
 
         // Get the pipe handle
         _pipeHandle = reader.GetClientHandle();
 
-        var taskReader = Task.Run(() =>
-        {
-            reader.ReadAll();
-        });
+        //logger.Info($"MSBuild handle {_pipeHandle}");
+
+        //var taskReader = Task.Factory.StartNew(() =>
+        //{
+        //    Console.WriteLine($"ReadingAll {Thread.CurrentThread.ManagedThreadId}");
+        //    reader.ReadAll();
+        //    Console.WriteLine($"Finished ReadingAll {Thread.CurrentThread.ManagedThreadId}");
+        //});
 
         try
         {
             var targets = new HashSet<string>(Targets, StringComparer.OrdinalIgnoreCase);
             var targetOutputs = new Dictionary<string, List<ITaskItem>>(StringComparer.OrdinalIgnoreCase);
+            //reader.MessageRaised += (sender, args) =>
+            //{
+            //    if (args.Importance == MessageImportance.High)
+            //    {
+            //        logger.Info($"{args.Message} [{args.ProjectFile}]");
+            //    }
+            //};
             reader.WarningRaised += (sender, args) => { logger.Warn($"{args.File}({args.LineNumber},{args.ColumnNumber}): warning {args.Code}: {args.Message} [{args.ProjectFile}]"); };
             reader.ErrorRaised += (sender, args) => { logger.Error($"{args.File}({args.LineNumber},{args.ColumnNumber}): error {args.Code}: {args.Message} [{args.ProjectFile}]"); };
             reader.TargetFinished += (sender, args) =>
@@ -105,7 +116,15 @@ public class MSBuildRunner : DotNetRunnerBase
                     targetOutputs[args.TargetName] = outputs;
                 }
             };
+
+            RunAfterStart = () =>
+            {
+                //Console.WriteLine($"Start ReadAll {Thread.CurrentThread.ManagedThreadId}");
+                reader.ReadAll();
+                //Console.WriteLine($"End ReadAll {Thread.CurrentThread.ManagedThreadId}");
+            };
             var result = await base.RunImpl();
+
             if (result.CommandResult.ExitCode != 0)
             {
                 logger.Error($"Failing to run {result.CommandLine}. Reason: {result.Output}");
@@ -116,8 +135,9 @@ public class MSBuildRunner : DotNetRunnerBase
         }
         finally
         {
-            taskReader.Wait();
+            reader.Dispose();
             _pipeHandle = null;
+            RunAfterStart = null;
         }
 
     }

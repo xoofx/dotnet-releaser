@@ -33,6 +33,12 @@ public abstract class DotNetRunnerBase : IDisposable
 
     public string WorkingDirectory { get; set; }
 
+    public Action<string>? LogStandardOutput { get; set; }
+
+    public Action<string>? LogStandardError { get; set; }
+
+    protected Action? RunAfterStart { get; set; }
+
     protected virtual IEnumerable<string> ComputeArguments() => Arguments;
 
     protected virtual IReadOnlyDictionary<string, object> ComputeProperties() => Properties;
@@ -77,21 +83,23 @@ public abstract class DotNetRunnerBase : IDisposable
         return value.ToString() ?? string.Empty;
     }
 
-    private static async Task<DotNetResult> Run(string command, IEnumerable<string> args, IReadOnlyDictionary<string, object>? properties = null, string? workingDirectory = null)
+    private async Task<DotNetResult> Run(string command, IEnumerable<string> args, IReadOnlyDictionary<string, object>? properties = null, string? workingDirectory = null)
     {
         var stdOutAndErrorBuffer = new StringBuilder();
 
         var arguments = GetFullArguments(command, args, properties);
+        //Console.WriteLine($"dotnet {arguments}");
         var wrap = Cli.Wrap("dotnet")
             .WithArguments(arguments)
             .WithWorkingDirectory(workingDirectory ?? Environment.CurrentDirectory)
-            .WithStandardOutputPipe(PipeTarget.ToStringBuilder(stdOutAndErrorBuffer))
-            .WithStandardErrorPipe(PipeTarget.ToStringBuilder(stdOutAndErrorBuffer))
+            .WithStandardOutputPipe(LogStandardOutput is not null ? PipeTarget.ToDelegate(LogStandardOutput): PipeTarget.ToStringBuilder(stdOutAndErrorBuffer))
+            .WithStandardErrorPipe(LogStandardError is not null ? PipeTarget.ToDelegate(LogStandardError) : PipeTarget.ToStringBuilder(stdOutAndErrorBuffer))
             .WithValidation(CommandResultValidation.None)
             .ExecuteAsync();
+        
+        RunAfterStart?.Invoke();
 
-        var result = await wrap;
-
+        var result = await wrap.ConfigureAwait(false);
         return new DotNetResult(result, $"dotnet {arguments}",stdOutAndErrorBuffer.ToString());
     }
 

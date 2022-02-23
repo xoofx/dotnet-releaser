@@ -1,8 +1,4 @@
 ﻿<Project>
-  <PropertyGroup>
-    <PackAsTool Condition="'$(PackAsTool)' == ''">true</PackAsTool>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Packaging.Targets" Version="0.1.220">
       <PrivateAssets>all</PrivateAssets>
@@ -14,6 +10,13 @@
   <ItemGroup>
     <DebDependency Condition="'$(DotNetReleaserDebDependencies)' != ''" Include="$(DotNetReleaserDebDependencies.Split(';'))"></DebDependency>
     <RpmDependency Condition="'$(DotNetReleaserRpmDependencies)' != ''" Include="$(DotNetReleaserRpmDependencies.Split(';'))"></RpmDependency>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DotNetReleaserCoverage)' == 'true' AND '$(IsTestProject)' == 'true'">
+    <PackageReference Include="$(DotNetReleaserCoveragePackage)" Version="$(DotNetReleaserCoverageVersion)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <!--<Target Name="CreateSetup" AfterTargets="Publish">
@@ -31,16 +34,27 @@
     </Content>
   </ItemGroup>
 
+  <Target Name="DotNetReleaserGetTargetFramework" Outputs="@(_DotNetReleaserGetTargetFramework)">
+    <ItemGroup>
+      <_DotNetReleaserGetTargetFramework Include="$(MSBuildProjectFile)">
+        <TargetFramework>$(TargetFramework)</TargetFramework>
+        <TargetFrameworks>$(TargetFrameworks)</TargetFrameworks>
+      </_DotNetReleaserGetTargetFramework>
+    </ItemGroup>
+  </Target>
+
   <Target Name="DotNetReleaserGetPackageInfo"  DependsOnTargets="GetAssemblyVersion" Outputs="@(_DotNetReleaserGetPackageInfo)">
     <ItemGroup>
       <_DotNetReleaserGetPackageInfo Include="$(PackageId)" Kind="PackageId"/>
-      <_DotNetReleaserGetPackageInfo Include="$(AssemblyName)" Kind="ExeName"/>
+      <_DotNetReleaserGetPackageInfo Include="$(AssemblyName)" Kind="AssemblyName"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageDescription)" Kind="PackageDescription"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageVersion)" Kind="PackageVersion"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageLicenseExpression)" Kind="PackageLicenseExpression"/>
       <_DotNetReleaserGetPackageInfo Include="$(OutputType)" Kind="PackageOutputType"/>
       <_DotNetReleaserGetPackageInfo Include="$(PackageProjectUrl)" Kind="PackageProjectUrl"/>
       <_DotNetReleaserGetPackageInfo Include="$(IsPackable)" Kind="IsNuGetPackable"/>
+      <_DotNetReleaserGetPackageInfo Include="$(IsTestProject)" Kind="IsTestProject"/>
+      <_DotNetReleaserGetPackageInfo Include="@(ProjectReference)" Kind="ProjectReference"/>
     </ItemGroup>
   </Target>
 

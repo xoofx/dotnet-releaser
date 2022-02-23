@@ -17,6 +17,8 @@ public class ReleaserConfiguration
     {
         ArtifactsFolder = "artifacts-dotnet-releaser";
         Packs = new List<PackagingConfiguration>();
+        Coverage = new CoverageConfiguration();
+        Test = new TestConfiguration();
         MSBuild = new MSBuildConfiguration();
         Changelog = new ChangelogConfiguration();
         GitHub = new GitHubDevHostingConfiguration();
@@ -31,6 +33,10 @@ public class ReleaserConfiguration
     public string ArtifactsFolder { get; set; }
 
     public bool EnablePublishPackagesInDraft { get; set; }
+
+    public CoverageConfiguration Coverage { get; }
+
+    public TestConfiguration Test { get; }
 
     public MSBuildConfiguration MSBuild { get; }
 
@@ -116,14 +122,24 @@ public class ReleaserConfiguration
         ArtifactsFolder = Path.GetFullPath(Path.Combine(configurationDirectory, ArtifactsFolder));
 
         // Make sure that the path is absolute
-        if (MSBuild.Publish && !string.IsNullOrEmpty(MSBuild.Project))
+        if (MSBuild.Publish && MSBuild.Projects.Count > 0)
         {
-            MSBuild.Project = Path.GetFullPath(Path.Combine(configurationDirectory, MSBuild.Project));
-            if (!File.Exists(MSBuild.Project))
+            for (var i = 0; i < MSBuild.Projects.Count; i++)
             {
-                logger.Error($"The MSBuild project file `{MSBuild.Project}` was not found.");
-                return false;
+                var project = MSBuild.Projects[i];
+                project = Path.GetFullPath(Path.Combine(configurationDirectory, project));
+                if (!File.Exists(project))
+                {
+                    logger.Error($"The MSBuild project file `{project}` was not found.");
+                }
+                else
+                {
+                    // Replace with a full path
+                    MSBuild.Projects[i] = project;
+                }
             }
+
+            if (logger.HasErrors) return false;
         }
 
         // Check changelog
@@ -137,6 +153,12 @@ public class ReleaserConfiguration
             }
         }
 
+        // Defaults for coverage
+        if (Coverage.Enable)
+        {
+            Coverage.AddDefaults();
+        }
+        
         if (Profile == PackagingProfileKind.Default)
         {
             AddPackages(new List<PackagingConfiguration>()

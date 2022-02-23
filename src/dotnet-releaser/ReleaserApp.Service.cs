@@ -9,7 +9,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp 
 {
-    private async Task<string?> CreateSystemdServiceFile(PackageInfo packageInfo)
+    private async Task<string?> CreateSystemdServiceFile(ProjectPackageInfo projectPackageInfo)
     {
         var writer = new StringWriter() { NewLine = "\n" };
         var systemd = _config.Service.Systemd;
@@ -20,7 +20,7 @@ public partial class ReleaserApp
         sections.Remove("Unit");
         if (!unitSection.ContainsKey("Description"))
         {
-            unitSection["Description"] = packageInfo.Description;
+            unitSection["Description"] = projectPackageInfo.Description;
         }
         AddSection(writer, "Unit", unitSection);
 
@@ -34,7 +34,7 @@ public partial class ReleaserApp
             if (sectionName == "Service")
             {
                 var arguments = string.IsNullOrWhiteSpace(systemd.Arguments) ? string.Empty : $" {systemd.Arguments}";
-                sectionValues["ExecStart"] = $"/usr/local/bin/{packageInfo.ExeName}{arguments}";
+                sectionValues["ExecStart"] = $"/usr/local/bin/{projectPackageInfo.AssemblyName}{arguments}";
                 if (!sectionValues.ContainsKey("Type"))
                 {
                     sectionValues["Type"] = "simple";
@@ -52,7 +52,7 @@ public partial class ReleaserApp
         // If we didn't have any errors, write the final service file to the disk
         if (!HasErrors)
         {
-            var systemdServiceFile = Path.GetTempFileName() + $".{packageInfo.ExeName}.service";
+            var systemdServiceFile = Path.GetTempFileName() + $".{projectPackageInfo.AssemblyName}.service";
             await File.WriteAllTextAsync(systemdServiceFile, writer.ToString());
             return systemdServiceFile;
         }
