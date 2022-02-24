@@ -12,7 +12,6 @@ public partial class ReleaserApp
     {
         if (!_config.NuGet.Publish) return true;
 
-
         try
         {
             _logger.LogStartGroup("NuGet Packaging");
@@ -57,15 +56,19 @@ public partial class ReleaserApp
             properties["PackAsTool"] = "true";
         }
 
-        var outputs = await RunMSBuild(projectPackageInfo.ProjectFullPath, ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput, properties);
+        // We need to inject via props to support multi-targeting projects
+        var outputs = await RunMSBuild(projectPackageInfo.ProjectFullPath, ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput, properties, injectViaProps: true);
         if (outputs is null) return null;
 
         // Copy to artifacts
         var list = new List<string>();
-        foreach (var output in outputs.Where(x => x.ItemSpec.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase)).Select(x => x.ItemSpec))
+        foreach (var output in outputs.Select(x => x.ItemSpec))
         {
-            var dest = CopyToArtifacts(output);
-            list.Add(dest);
+            if (output.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase) || output.EndsWith(".snupkg", StringComparison.OrdinalIgnoreCase))
+            {
+                var dest = CopyToArtifacts(output);
+                list.Add(dest);
+            }
         }
         
         return list.Count == 0 ? null : list;

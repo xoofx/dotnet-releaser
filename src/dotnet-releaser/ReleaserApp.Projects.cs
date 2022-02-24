@@ -414,7 +414,7 @@ public partial class ReleaserApp
         return version ?? string.Empty;
     }
 
-    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false)
+    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, params string[] arguments)
     {
         using var program = new MSBuildRunner()
         {
@@ -441,6 +441,11 @@ public partial class ReleaserApp
             {
                 program.Properties[property.Key] = property.Value;
             }
+        }
+
+        foreach (var argument in arguments)
+        {
+            program.Arguments.Add(argument);
         }
 
         var result = await program.Run(_logger);
