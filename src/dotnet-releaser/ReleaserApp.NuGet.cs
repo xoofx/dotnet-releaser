@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNetReleaser.Runners;
@@ -62,15 +63,34 @@ public partial class ReleaserApp
 
         // Copy to artifacts
         var list = new List<string>();
-        foreach (var output in outputs.Select(x => x.ItemSpec))
+        var files = outputs.Select(x => x.ItemSpec).ToArray();
+        for (var i = 0; i < files.Length; i++)
         {
-            if (output.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase) || output.EndsWith(".snupkg", StringComparison.OrdinalIgnoreCase))
+            var output = files[i];
+            foreach (var nugetPackageExtension in new[] { ".nupkg", ".snupkg" })
             {
-                var dest = CopyToArtifacts(output);
-                list.Add(dest);
+                if (output.EndsWith(nugetPackageExtension, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Workaround for https://github.com/adamralph/minver/issues/675
+                    if (!File.Exists(output))
+                    {
+                        var trailingVersion = $".1.0.0{nugetPackageExtension}";
+                        if (output.EndsWith(trailingVersion, StringComparison.OrdinalIgnoreCase))
+                        {
+                            var expectedOutput = $"{output.Substring(0, output.Length - trailingVersion.Length)}.{projectPackageInfo.Version}{nugetPackageExtension}";
+                            if (File.Exists(expectedOutput))
+                            {
+                                output = expectedOutput;
+                            }
+                        }
+                    }
+
+                    var dest = CopyToArtifacts(output);
+                    list.Add(dest);
+                }
             }
         }
-        
+
         return list.Count == 0 ? null : list;
     }
 
