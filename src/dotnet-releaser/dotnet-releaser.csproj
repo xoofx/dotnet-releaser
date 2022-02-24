@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
-    <Description>dotnet-releaser is a command line tool to easily cross-compile, package and publish your .NET application to NuGet and GitHub.</Description>
+    <Description>dotnet-releaser is a all-in-one command line tool that fully automates the release cycle of your .NET libraries and applications to NuGet and GitHub</Description>
     <!-- This is to allow to compile dotnet-releaser on itself in the CI otherwise it cannot overwrite its self executable -->
     <BaseOutputPath Condition="'$(DotNetReleaserBinCi)' == 'true'">bin-ci</BaseOutputPath>
   </PropertyGroup>

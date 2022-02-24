@@ -2,20 +2,23 @@
 
 <img align="right" width="160px" height="160px" src="https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/img/dotnet-releaser.png">
 
-`dotnet-releaser` is a command line tool to easily cross-compile, package and publish your .NET application to NuGet and GitHub.
+`dotnet-releaser` is a all-in-one command line tool that fully automates the release cycle of your .NET libraries and applications to NuGet and GitHub by **building**, **testing**, **running coverage**, **cross-compiling**, **packaging**, **creating release notes from PR/commits** and **publishing**.
 
 ## Features
 
+- **Very simple to use, configure and [integrate into your GitHub Action CI](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md#3-adding-dotnet-releaser-to-your-ci-on-github)**
+- **Build** and **tests** your .NET libraries and applications from **multiple solutions**.
+- Add automatic **coverage** support via [coverlet](https://github.com/coverlet-coverage/coverlet) with your tests.
 - **Cross-compile** your .NET 6.0+ application to **9+ OS/CPU targets**.
 - Create **zip archives**, **Linux packages** (debian, rpm) and **Homebrew taps**
 - Allow to publish your **application as a service** (only `Systemd` for now for `deb` and `rpm` packages).
-- Extract **your changelog** from your `changelog.md`
+- **Create and publish beautiful release notes** by extracting the information directly from pull-requests and commits, while offering [customizable templates](https://github.com/xoofx/dotnet-releaser/blob/main/doc/changelog_user_guide.md).
 - **Publish all artifacts** to **NuGet** and **GitHub**
 - Integrate `dotnet-releaser` easily in [your GitHub Action workflow](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md#3-adding-dotnet-releaser-to-your-ci-on-github).
 
 ## Defaults
 
-By default, `dotnet-releaser` will cross-compile and package automatically the following targets:
+By default, `dotnet-releaser` will package your .NET libraries and applications:
 
 - NuGet package (packed as a .NET global tool)
 - `[win-x64]` with `[zip]` package            
