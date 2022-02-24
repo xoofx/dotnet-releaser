@@ -91,6 +91,7 @@ public partial class ReleaserApp
         app.HelpOption(inherited: true);
         app.Command("publish", AddPublishOrBuildArgs);
         app.Command("build", AddPublishOrBuildArgs);
+        app.Command("run", AddPublishOrBuildArgs);
 
         app.Command("new", newCommand =>
             {
@@ -145,9 +146,9 @@ public partial class ReleaserApp
 
             githubToken = AddGitHubToken(cmd);
 
-            if (cmd.Name == "publish")
+            if (cmd.Name == "publish" || cmd.Name == "run")
             {
-                cmd.Description = "Build and publish the project.";
+                cmd.Description = cmd.Name == "run" ? "Automatically build and publish a project when running from a GitHub Action based on which branch is active, if there is a tag (for publish), and if the change is a `push`." : "Build and publish the project.";
                 nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
             }
             else
@@ -162,7 +163,12 @@ public partial class ReleaserApp
             {
                 // Check configuration file
                 var configurationFilePath = configurationFileArg.ParsedValue;
-                var buildKind = cmd.Name == "publish" ? BuildKind.Publish : BuildKind.Build;
+                var buildKind = cmd.Name switch
+                {
+                    "run" => BuildKind.Run,
+                    "publish" => BuildKind.Publish,
+                    _ => BuildKind.Build
+                };
                 var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue ?? string.Empty, nugetToken?.ParsedValue, forceOption.ParsedValue);
                 return result ? 0 : 1;
             });
@@ -244,8 +250,8 @@ public partial class ReleaserApp
         ChangelogResult? changelog = null;
         try
         {
-            _logger.LogStartGroup("Initializing");
-            var result = await Initializing(configurationFile, buildKind, githubApiToken, nugetApiToken, forceArtifactsFolder);
+            _logger.LogStartGroup("Configuring");
+            var result = await Configuring(configurationFile, buildKind, githubApiToken, nugetApiToken, forceArtifactsFolder);
             if (result is null) return false;
             buildInformation = result.Value.buildInformation!;
             devHosting = result.Value.devHosting;
@@ -304,64 +310,10 @@ public partial class ReleaserApp
         // Publish all packages NuGet + (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
         // Draft if we are just building and not publishing (to allow to update the changelog)
-        await PublishPackagesAndChangelog(buildKind, nugetApiToken, buildInformation, hostingConfiguration, buildPackages, devHosting, changelog);
+        await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, buildPackages, devHosting, changelog);
 
         return !HasErrors;
     }
-
-    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting)?> Initializing(string configurationFile, BuildKind buildKind, string githubApiToken, string? nugetApiToken, bool forceArtifactsFolder)
-    {
-        // ------------------------------------------------------------------
-        // Load Configuration
-        // ------------------------------------------------------------------
-        if (!await LoadConfiguration(configurationFile)) return null; // return false;
-
-        if (!EnsureArtifactsFolders(forceArtifactsFolder)) return null; // return false;
-
-        // ------------------------------------------------------------------
-        // Load Package Information from MSBuild project
-        // ------------------------------------------------------------------
-        var buildInformation = await LoadProjects();
-        if (HasErrors) return null; // return false;
-
-        // ------------------------------------------------------------------
-        // Validate Publish parameters
-        // ------------------------------------------------------------------
-        var hostingConfiguration = _config.GitHub;
-
-        IDevHosting? devHosting = null;
-
-        // Connect to GitHub if we have a token
-        if (!string.IsNullOrEmpty(githubApiToken))
-        {
-            devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken);
-            if (devHosting is null)
-            {
-                return null; // return false;
-            }
-        }
-
-        if (buildKind == BuildKind.Publish)
-        {
-            if (hostingConfiguration.Publish)
-            {
-                if (string.IsNullOrEmpty(githubApiToken))
-                {
-                    Error($"Publishing to {hostingConfiguration.Provider} requires to pass --github-token");
-                    return null; // return false;
-                }
-            }
-
-            if (string.IsNullOrEmpty(nugetApiToken))
-            {
-                Error("Publishing to NuGet requires to pass --nuget-token");
-                return null; // return false;
-            }
-        }
-
-        return (buildInformation, devHosting);
-    }
-
 
     public bool HasErrors => _logger.HasErrors;
 
@@ -383,13 +335,6 @@ public partial class ReleaserApp
     public void Error(string message)
     {
         _logger.Error(message);
-    }
-
-    enum BuildKind
-    {
-        None,
-        Publish,
-        Build,
     }
 
     private class AppException : Exception

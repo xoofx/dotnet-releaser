@@ -8,12 +8,13 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task PublishPackagesAndChangelog(BuildKind buildKind, string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration, List<(ProjectPackageInfo, List<AppPackageInfo>)> buildPackages, IDevHosting? devHosting, ChangelogResult? changelog)
+    private async Task PublishPackagesAndChangelog(string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration, List<(ProjectPackageInfo, List<AppPackageInfo>)> buildPackages, IDevHosting? devHosting, ChangelogResult? changelog)
     {
         bool groupStarted = false;
         try
         {
-            var releaseVersion = new ReleaseVersion(buildInformation.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{buildInformation.Version}");
+            var buildKind = buildInformation.BuildKind;
+            var releaseVersion = new ReleaseVersion(buildInformation.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{buildInformation.Version}", buildInformation.CurrentBranchName is not null ? $"draft-{buildInformation.CurrentBranchName}" : "draft");
             if (buildKind == BuildKind.Publish)
             {
                 _logger.LogStartGroup($"Publishing Packages - {releaseVersion}");
@@ -48,7 +49,7 @@ public partial class ReleaserApp
             }
             else if (buildKind == BuildKind.Build)
             {
-                if (devHosting is not null && !_config.Changelog.DisableDraftForBuild)
+                if (devHosting is not null && !_config.Changelog.DisableDraftForBuild && buildInformation.AllowPublishDraft)
                 {
                     _logger.LogStartGroup(_config.EnablePublishPackagesInDraft ? $"Publishing Draft Changelog and App Packages- {releaseVersion}" : $"Publishing Draft Changelog - {releaseVersion}");
                     groupStarted = true;

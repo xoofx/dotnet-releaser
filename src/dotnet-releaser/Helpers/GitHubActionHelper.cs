@@ -14,9 +14,6 @@ public static class GitHubActionHelper
 
         var owner = ownerAndRepoName[0];
         var repo = ownerAndRepoName[1];
-        
-        var branchNameGitHub = Environment.GetEnvironmentVariable("GITHUB_REF_NAME");
-        if (branchNameGitHub is null) return null;
 
         var eventName = Environment.GetEnvironmentVariable("GITHUB_EVENT_NAME");
         if (eventName is null) return null;
@@ -32,12 +29,12 @@ public static class GitHubActionHelper
             return null;
         }
 
-        return new GitHubActionInfo(owner, repo, branchNameGitHub, eventName, refName, refType);
+        return new GitHubActionInfo(owner, repo, eventName, refName, refType);
     }
 }
 
 
-public record GitHubActionInfo(string OwnerName, string RepoName, string BranchName, string EventName, string RefName, GitHubActionRefType RefType);
+public record GitHubActionInfo(string OwnerName, string RepoName, string EventName, string RefName, GitHubActionRefType RefType);
 
 
 public enum GitHubActionRefType

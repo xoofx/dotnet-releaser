@@ -72,7 +72,7 @@ public partial class ReleaserApp
                 if (update)
                 {
                     Info($"Updating changelog for repository `{user}/{repo}` for version {releaseVersion.Version}");
-                    await devHosting.CreateOrUpdateChangelog(user, repo, releaseVersion, changelogResult);
+                    await devHosting.CreateOrUpdateRelease(user, repo, releaseVersion, changelogResult);
                 }
             }
             else

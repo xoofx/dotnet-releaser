@@ -1,3 +1,3 @@
 ﻿namespace DotNetReleaser;
 
-public record ReleaseVersion(string Version, bool IsDraft, string Tag);
+public record ReleaseVersion(string Version, bool IsDraft, string Tag, string DraftBranchName);

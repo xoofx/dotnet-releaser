@@ -28,10 +28,24 @@ public enum PackageOutputType
 
 public record BuildInformation(string Version, ProjectPackageInfoCollection[] ProjectPackageInfoCollections)
 {
+    public string? CurrentBranchName { get; set; }
+
+    public bool AllowPublishDraft { get; set; }
+
+    public BuildKind BuildKind { get; set; }
+
     public List<ProjectPackageInfo> GetAllPackableProjects()
     {
         return ProjectPackageInfoCollections.SelectMany(x => x.Packages).Where(x => x.IsPackable).ToList();
     }
+}
+
+public enum BuildKind
+{
+    None,
+    Publish,
+    Build,
+    Run,
 }
 
 public record TargetFrameworkInfo(bool IsMultiTargeting, List<string> TargetFrameworks);
