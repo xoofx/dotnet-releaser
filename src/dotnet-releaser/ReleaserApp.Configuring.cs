@@ -78,17 +78,20 @@ public partial class ReleaserApp
                 var regexVersion = new Regex(@$"^{hostingConfiguration.VersionPrefix}\d+(\.\d+)*");
                 if (regexVersion.IsMatch(gitHubInfo.RefName))
                 {
-                    Info($"The tag `{gitHubInfo.RefName}` is identified as a release tag. We are going to publish.");
+                    Info($"The tag `{gitHubInfo.RefName}` is identified as a release tag. Publish mode selected.");
                     buildKind = BuildKind.Publish;
                 }
                 else
                 {
-                    Warn($"The tag {gitHubInfo.RefName} is not identified as a release tag. We are going to build only.");
+                    Warn($"The tag {gitHubInfo.RefName} is not identified as a release tag. Build only mode selected.");
                     buildKind = BuildKind.Build;
                 }
             }
             else
             {
+                Info(gitHubInfo.EventName == "push"
+                    ? $"The trigger event is `{gitHubInfo.EventName}` and the branch `{gitHubInfo.RefName}`. Build only mode selected."
+                    : $"The trigger event is `{gitHubInfo.EventName}`. Build only mode selected.");
                 buildKind = BuildKind.Build;
             }
         }
