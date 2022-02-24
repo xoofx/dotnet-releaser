@@ -60,7 +60,7 @@ public static class SimpleLogger
         public SimpleLoggerRedirect(ILogger log)
         {
             _log = log;
-            _runningFromGitHubAction = GitHubActionHelper.GetInfo() != null;
+            _runningFromGitHubAction = GitHubActionHelper.IsRunningOnGitHubAction;
         }
 
         public bool HasErrors { get; private set; }
@@ -80,7 +80,7 @@ public static class SimpleLogger
             }
             _group++;
             AnsiConsole.Write(new Rule(name) { Alignment = Justify.Left });
-            AnsiConsole.Profile.Out.Writer.Flush();
+            Console.Out.Flush();
         }
 
         public void LogEndGroup()
@@ -88,8 +88,8 @@ public static class SimpleLogger
             if (_runningFromGitHubAction)
             {
                 AnsiConsole.WriteLine("::endgroup::");
-                AnsiConsole.Profile.Out.Writer.Flush();
             }
+            Console.Out.Flush();
         }
 
         public void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args)

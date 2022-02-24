@@ -4,10 +4,12 @@ namespace DotNetReleaser.Helpers;
 
 public static class GitHubActionHelper
 {
+    public static readonly bool IsRunningOnGitHubAction = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
+    
     public static GitHubActionInfo? GetInfo()
     {
         // https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"))) return null;
+        if (!IsRunningOnGitHubAction) return null;
 
         var ownerAndRepoName = Environment.GetEnvironmentVariable("GITHUB_REPOSITORY")?.Split('/');
         if (ownerAndRepoName is null || ownerAndRepoName.Length != 2) return null;

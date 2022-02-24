@@ -48,11 +48,11 @@ public partial class ReleaserApp
     public static async Task<int> Run(string[] args)
     {
         // Create our log
+        var runningOnGitHubAction = GitHubActionHelper.IsRunningOnGitHubAction;
         using var factory = LoggerFactory.Create(configure =>
         {
-            var runningOnGitHub = GitHubActionHelper.GetInfo() != null;
             IAnsiConsoleOutput consoleOut = new AnsiConsoleOutput(Console.Out);
-            if (runningOnGitHub)
+            if (runningOnGitHubAction)
             {
                 consoleOut = new AnsiConsoleOutputOverride(consoleOut)
                 {
@@ -63,7 +63,7 @@ public partial class ReleaserApp
             
             configure.AddProvider(new SpectreConsoleLoggerProvider(new SpectreConsoleLoggerOptions()
             {
-                ConsoleSettings = runningOnGitHub ? new AnsiConsoleSettings()
+                ConsoleSettings = runningOnGitHubAction ? new AnsiConsoleSettings()
                 {
                     Ansi = AnsiSupport.No,
                     Out = consoleOut
@@ -203,6 +203,14 @@ public partial class ReleaserApp
             result = 1;
         }
 
+        // Try to mitigate issue with structured logs
+        if (runningOnGitHubAction)
+        {
+            // Wait for a small amount of time to make sure that output is completely flushed
+            await Task.Delay(16);
+            await Console.Out.FlushAsync();
+        }
+
         return result;
     }
 
@@ -215,29 +223,10 @@ public partial class ReleaserApp
         if (configuration is null) return false;
         _config = configuration;
 
-        VerifyWhenRunningFromGitHubAction();
-
         // Don't continue if we had errors when deserializing the config file
         return !HasErrors;
     }
 
-    private void VerifyWhenRunningFromGitHubAction()
-    {
-        var info = GitHubActionHelper.GetInfo();
-        if (info is null) return;
-
-        Info($"Running from GitHub: {info}");
-        
-        //if (_config.GitHub.User != info.OwnerName)
-        //{
-        //    Error($"Invalid GitHub user|owner defined in configuration file `{_config.GitHub.User}`. Expecting {info.OwnerName}");
-        //}
-
-        //if (_config.GitHub.Repo != info.RepoName)
-        //{
-        //    Error($"Invalid GitHub repository defined in configuration file `{_config.GitHub.Repo}`. Expecting {info.RepoName}");
-        //}
-    }
 
     /// <summary>
     /// Runs the releaser app

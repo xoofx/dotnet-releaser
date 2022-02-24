@@ -16,6 +16,12 @@ public partial class ReleaserApp
         // ------------------------------------------------------------------
         // Load Configuration
         // ------------------------------------------------------------------
+        var gitHubInfo = GitHubActionHelper.GetInfo();
+        if (gitHubInfo is not null)
+        {
+            Info($"Running from GitHub: {gitHubInfo}");
+        }
+        
         if (!await LoadConfiguration(configurationFile)) return null; // return false;
 
         if (!EnsureArtifactsFolders(forceArtifactsFolder)) return null; // return false;
@@ -67,7 +73,6 @@ public partial class ReleaserApp
                 return null;
             }
 
-            var gitHubInfo = GitHubActionHelper.GetInfo();
             if (gitHubInfo is null)
             {
                 Error("Invalid usage of command `run`. This command is only supported to run from a GitHub Action");
