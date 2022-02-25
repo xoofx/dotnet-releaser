@@ -53,7 +53,7 @@ public partial class ReleaserApp
 
         // We require a branch name if we need to publish a changelog (for the draft version)
         // or we need to do an automatic run on GitHub Action.
-        var requiresDraftForBuild = buildKind == BuildKind.Build && !string.IsNullOrEmpty(githubApiToken) && !_config.Changelog.DisableDraftForBuild;
+        var requiresDraftForBuild = (buildKind == BuildKind.Run || buildKind == BuildKind.Build) && !string.IsNullOrEmpty(githubApiToken) && !_config.Changelog.DisableDraftForBuild;
         var requiringBranchName = buildKind == BuildKind.Publish && hostingConfiguration.Publish
                                   || requiresDraftForBuild
                                   || buildKind == BuildKind.Run;
