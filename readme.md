@@ -13,7 +13,7 @@ In practice, `dotnet-releaser` easily automates the build of your .NET libraries
 - `dotnet publish` that can automatically cross-compile to 9+ CPU/OS platforms.
   - And create additionally, by default, multiple packages (zip, debian, rpm...) to distribute your app
 - `dotnet nuget push` to publish your package to a NuGet registry
-- Pretty changelog creation from pull-requests and commits.
+- [Pretty changelog](https://github.com/xoofx/dotnet-releaser/blob/main/doc/changelog_user_guide.md#11-overview) creation from pull-requests and commits.
 - Create and upload the changelog and all the packages packed to your GitHub repository associated with the release tag.
 
 ![overview](https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/doc/overview.drawio.svg)
