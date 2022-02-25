@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CliWrap;
 using DotNetReleaser.Logging;
@@ -135,7 +136,24 @@ public class MSBuildRunner : DotNetRunnerBase
         }
         finally
         {
-            reader.Dispose();
+            // Make the disposing non blocking
+            // we still have a case where the Dispose is stuck while trying to dispose the underlying socket
+            // I haven't found a discussion about this problem, so I don't know if it is a bug in the code in MsBuildPipeLogger
+            // or an a problem in .NET socket/pipe implementation on Linux for this particular case.
+            // We don't use thread pooling to avoid filling it with zombie threads that would block it later.
+            var disposeReader = new Thread(() =>
+            {
+                try
+                {
+                    reader.Dispose();
+                }
+                catch
+                {
+                    // ignore exceptions;
+                }
+            }) { IsBackground = true };
+            disposeReader.Start();
+
             _pipeHandle = null;
             RunAfterStart = null;
         }
