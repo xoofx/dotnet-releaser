@@ -209,7 +209,7 @@ public class ReleaserConfiguration
 
         if (builder.Length > 0)
         {
-            logger.Info(builder.ToString());
+            logger.Debug(builder.ToString());
         }
     }
 }

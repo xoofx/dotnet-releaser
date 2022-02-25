@@ -29,6 +29,9 @@ public static class SimpleLoggerExtensions
     public static void Error(this ISimpleLogger log, string message) =>
         log.LogSimple(LogLevel.Error, null, message, false);
 
+    public static void Debug(this ISimpleLogger log, string message) =>
+        log.LogSimple(LogLevel.Debug, null, message, false);
+
     public static void InfoMarkup(this ISimpleLogger log, string message) =>
         log.LogSimple(LogLevel.Information, null, message, true);
 
