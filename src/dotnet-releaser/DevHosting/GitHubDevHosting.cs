@@ -45,7 +45,7 @@ public class GitHubDevHosting : IDevHosting
         _log.Info("Connecting to GitHub");
         try
         {
-            _ = await _client.User.Current();
+            _ = await _client.Repository.Get(Configuration.User, Configuration.Repo);
         }
         catch (Exception ex)
         {
