@@ -57,8 +57,7 @@ public static class SimpleLogger
     {
         private readonly ILogger _log;
         private int _logId;
-        private int _group;
-        private bool _runningFromGitHubAction;
+        private readonly bool _runningFromGitHubAction;
 
         public SimpleLoggerRedirect(ILogger log)
         {
@@ -77,11 +76,6 @@ public static class SimpleLogger
                 AnsiConsole.WriteLine($"::group::{name}");
             }
 
-            if (_group > 0)
-            {
-                AnsiConsole.WriteLine();
-            }
-            _group++;
             AnsiConsole.Write(new Rule(name) { Alignment = Justify.Left });
             Console.Out.Flush();
         }
@@ -91,6 +85,7 @@ public static class SimpleLogger
             if (_runningFromGitHubAction)
             {
                 AnsiConsole.WriteLine("::endgroup::");
+                AnsiConsole.WriteLine();
             }
             Console.Out.Flush();
         }
