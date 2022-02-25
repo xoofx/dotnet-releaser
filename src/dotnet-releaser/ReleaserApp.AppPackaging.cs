@@ -45,6 +45,7 @@ public partial class ReleaserApp
         var table = new Table();
         table.AddColumn("Platform");
         table.AddColumn("Packages");
+        table.Border = _tableBorder;
         
         bool hasPackagesToBuild = false;
         foreach (var pack in _config.Packs)

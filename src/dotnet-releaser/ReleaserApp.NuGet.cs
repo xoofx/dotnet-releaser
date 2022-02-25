@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNetReleaser.Runners;
@@ -11,7 +12,6 @@ public partial class ReleaserApp
     private async Task<bool> BuildNuGetPackage(BuildInformation buildInfo)
     {
         if (!_config.NuGet.Publish) return true;
-
 
         try
         {
@@ -57,17 +57,40 @@ public partial class ReleaserApp
             properties["PackAsTool"] = "true";
         }
 
-        var outputs = await RunMSBuild(projectPackageInfo.ProjectFullPath, ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput, properties);
+        // We need to inject via props to support multi-targeting projects
+        var outputs = await RunMSBuild(projectPackageInfo.ProjectFullPath, ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput, properties, injectViaProps: true);
         if (outputs is null) return null;
 
         // Copy to artifacts
         var list = new List<string>();
-        foreach (var output in outputs.Where(x => x.ItemSpec.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase)).Select(x => x.ItemSpec))
+        var files = outputs.Select(x => x.ItemSpec).ToArray();
+        for (var i = 0; i < files.Length; i++)
         {
-            var dest = CopyToArtifacts(output);
-            list.Add(dest);
+            var output = files[i];
+            foreach (var nugetPackageExtension in new[] { ".nupkg", ".snupkg" })
+            {
+                if (output.EndsWith(nugetPackageExtension, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Workaround for https://github.com/adamralph/minver/issues/675
+                    if (!File.Exists(output))
+                    {
+                        var trailingVersion = $".1.0.0{nugetPackageExtension}";
+                        if (output.EndsWith(trailingVersion, StringComparison.OrdinalIgnoreCase))
+                        {
+                            var expectedOutput = $"{output.Substring(0, output.Length - trailingVersion.Length)}.{projectPackageInfo.Version}{nugetPackageExtension}";
+                            if (File.Exists(expectedOutput))
+                            {
+                                output = expectedOutput;
+                            }
+                        }
+                    }
+
+                    var dest = CopyToArtifacts(output);
+                    list.Add(dest);
+                }
+            }
         }
-        
+
         return list.Count == 0 ? null : list;
     }
 

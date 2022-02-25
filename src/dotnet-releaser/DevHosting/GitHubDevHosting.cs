@@ -63,7 +63,7 @@ internal class GitHubDevHosting : IDevHosting
         foreach (var (repoTag, nuGetVersion) in versions)
         {
             var release = allReleases.FirstOrDefault(x => x.TagName == repoTag.Name);
-            result.Add(new ReleaseVersion(nuGetVersion.OriginalVersion, release?.Draft ?? false, repoTag.Name));
+            result.Add(new ReleaseVersion(nuGetVersion.OriginalVersion, release?.Draft ?? false, repoTag.Name, "draft"));
         }
 
         return result;
@@ -248,22 +248,16 @@ internal class GitHubDevHosting : IDevHosting
     private static string GetTitle(string message) => new StringReader(message).ReadLine() ?? string.Empty;
 
 
-    public async Task CreateOrUpdateChangelog(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
+    public async Task CreateOrUpdateRelease(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
     {
-        await CreateOrUpdateChangelogImpl(user, repo, version, changelog);
+        await CreateOrUpdateReleaseImpl(user, repo, version, changelog);
     }
 
-    private async Task<Release> CreateOrUpdateChangelogImpl(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
+    private async Task<Release> CreateOrUpdateReleaseImpl(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
     {
         var releases = await _client.Repository.Release.GetAll(user, repo);
 
-        string versionTagForDraft = "draft";
-        var info = GitHubActionHelper.GetInfo();
-        if (info is not null && version.IsDraft)
-        {
-            versionTagForDraft += $"-{info.BranchName}";
-        }
-        
+        string versionTagForDraft = version.DraftBranchName;
         var tag = version.IsDraft ? versionTagForDraft : version.Tag;
 
         Release? release = null;
@@ -307,7 +301,7 @@ internal class GitHubDevHosting : IDevHosting
 
     public async Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft)
     {
-        var release = await CreateOrUpdateChangelogImpl(user, repo, version, changelog);
+        var release = await CreateOrUpdateReleaseImpl(user, repo, version, changelog);
         // Don't publish packages if draft is enabled but not packages
         if (version.IsDraft && !enablePublishPackagesInDraft)
         {

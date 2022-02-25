@@ -31,7 +31,7 @@ public class MockDevHosting : IDevHosting
         throw new System.NotImplementedException();
     }
 
-    public Task CreateOrUpdateChangelog(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
+    public Task CreateOrUpdateRelease(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
     {
         return Task.CompletedTask;
     }

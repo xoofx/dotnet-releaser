@@ -4,19 +4,18 @@ namespace DotNetReleaser.Helpers;
 
 public static class GitHubActionHelper
 {
+    public static readonly bool IsRunningOnGitHubAction = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
+    
     public static GitHubActionInfo? GetInfo()
     {
         // https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"))) return null;
+        if (!IsRunningOnGitHubAction) return null;
 
         var ownerAndRepoName = Environment.GetEnvironmentVariable("GITHUB_REPOSITORY")?.Split('/');
         if (ownerAndRepoName is null || ownerAndRepoName.Length != 2) return null;
 
         var owner = ownerAndRepoName[0];
         var repo = ownerAndRepoName[1];
-        
-        var branchNameGitHub = Environment.GetEnvironmentVariable("GITHUB_REF_NAME");
-        if (branchNameGitHub is null) return null;
 
         var eventName = Environment.GetEnvironmentVariable("GITHUB_EVENT_NAME");
         if (eventName is null) return null;
@@ -32,12 +31,12 @@ public static class GitHubActionHelper
             return null;
         }
 
-        return new GitHubActionInfo(owner, repo, branchNameGitHub, eventName, refName, refType);
+        return new GitHubActionInfo(owner, repo, eventName, refName, refType);
     }
 }
 
 
-public record GitHubActionInfo(string OwnerName, string RepoName, string BranchName, string EventName, string RefName, GitHubActionRefType RefType);
+public record GitHubActionInfo(string OwnerName, string RepoName, string EventName, string RefName, GitHubActionRefType RefType);
 
 
 public enum GitHubActionRefType

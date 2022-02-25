@@ -28,10 +28,24 @@ public enum PackageOutputType
 
 public record BuildInformation(string Version, ProjectPackageInfoCollection[] ProjectPackageInfoCollections)
 {
+    public string? CurrentBranchName { get; set; }
+
+    public bool AllowPublishDraft { get; set; }
+
+    public BuildKind BuildKind { get; set; }
+
     public List<ProjectPackageInfo> GetAllPackableProjects()
     {
         return ProjectPackageInfoCollections.SelectMany(x => x.Packages).Where(x => x.IsPackable).ToList();
     }
+}
+
+public enum BuildKind
+{
+    None,
+    Publish,
+    Build,
+    Run,
 }
 
 public record TargetFrameworkInfo(bool IsMultiTargeting, List<string> TargetFrameworks);
@@ -333,6 +347,7 @@ public partial class ReleaserApp
         table.AddColumn("License");
         table.AddColumn(new TableColumn("Packable?").Centered());
         table.AddColumn(new TableColumn("Test?").Centered());
+        table.Border = _tableBorder;
 
         var row = new List<object>();
         row.AddRange(Enumerable.Repeat(string.Empty, table.Columns.Count));
@@ -414,7 +429,7 @@ public partial class ReleaserApp
         return version ?? string.Empty;
     }
 
-    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false)
+    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, params string[] arguments)
     {
         using var program = new MSBuildRunner()
         {
@@ -441,6 +456,11 @@ public partial class ReleaserApp
             {
                 program.Properties[property.Key] = property.Value;
             }
+        }
+
+        foreach (var argument in arguments)
+        {
+            program.Arguments.Add(argument);
         }
 
         var result = await program.Run(_logger);

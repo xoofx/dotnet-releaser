@@ -177,6 +177,9 @@ public class ReleaserConfiguration
         }
         Changelog.AddDefaults();
 
+        // Add defaults to GitHub
+        GitHub.AddDefaults();
+
         return true;
     }
 

@@ -32,12 +32,14 @@ public partial class ReleaserApp
     
     private readonly ISimpleLogger _logger;
     private ReleaserConfiguration _config;
+    private TableBorder _tableBorder;
 
     private ReleaserApp(ISimpleLogger logger)
     {
         _logger = logger;
         _config = new ReleaserConfiguration();
         _assemblyCoverages = new List<AssemblyCoverage>();
+        _tableBorder = TableBorder.Square;
     }
 
     /// <summary>
@@ -47,12 +49,13 @@ public partial class ReleaserApp
     /// <returns>0 if successful; 1 otherwise.</returns>
     public static async Task<int> Run(string[] args)
     {
+        Console.OutputEncoding = Encoding.UTF8;
         // Create our log
+        var runningOnGitHubAction = GitHubActionHelper.IsRunningOnGitHubAction;
         using var factory = LoggerFactory.Create(configure =>
         {
-            var runningOnGitHub = GitHubActionHelper.GetInfo() != null;
             IAnsiConsoleOutput consoleOut = new AnsiConsoleOutput(Console.Out);
-            if (runningOnGitHub)
+            if (runningOnGitHubAction)
             {
                 consoleOut = new AnsiConsoleOutputOverride(consoleOut)
                 {
@@ -63,7 +66,7 @@ public partial class ReleaserApp
             
             configure.AddProvider(new SpectreConsoleLoggerProvider(new SpectreConsoleLoggerOptions()
             {
-                ConsoleSettings = runningOnGitHub ? new AnsiConsoleSettings()
+                ConsoleSettings = runningOnGitHubAction ? new AnsiConsoleSettings()
                 {
                     Ansi = AnsiSupport.No,
                     Out = consoleOut
@@ -91,6 +94,7 @@ public partial class ReleaserApp
         app.HelpOption(inherited: true);
         app.Command("publish", AddPublishOrBuildArgs);
         app.Command("build", AddPublishOrBuildArgs);
+        app.Command("run", AddPublishOrBuildArgs);
 
         app.Command("new", newCommand =>
             {
@@ -145,15 +149,18 @@ public partial class ReleaserApp
 
             githubToken = AddGitHubToken(cmd);
 
-            if (cmd.Name == "publish")
+            if (cmd.Name == "publish" || cmd.Name == "run")
             {
-                cmd.Description = "Build and publish the project.";
+                cmd.Description = cmd.Name == "run" ? "Automatically build and publish a project when running from a GitHub Action based on which branch is active, if there is a tag (for publish), and if the change is a `push`." : "Build and publish the project.";
                 nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
             }
             else
             {
                 cmd.Description = "Build only the project.";
             }
+
+            var tableKindOption = cmd.Option<TableBorderKind>("--table", "Specifies the rendering of the tables. Default is square.", CommandOptionType.SingleValue);
+            tableKindOption.DefaultValue = TableBorderKind.Square;
 
             var forceOption = cmd.Option<bool>("--force", "Force deleting and recreating the artifacts folder.", CommandOptionType.NoValue);
             var configurationFileArg = AddTomlConfigurationArgument(cmd, false);
@@ -162,7 +169,16 @@ public partial class ReleaserApp
             {
                 // Check configuration file
                 var configurationFilePath = configurationFileArg.ParsedValue;
-                var buildKind = cmd.Name == "publish" ? BuildKind.Publish : BuildKind.Build;
+                var buildKind = cmd.Name switch
+                {
+                    "run" => BuildKind.Run,
+                    "publish" => BuildKind.Publish,
+                    _ => BuildKind.Build
+                };
+                if (tableKindOption.HasValue())
+                {
+                    appReleaser._tableBorder = GetTableBorderFromKind(tableKindOption.ParsedValue);
+                }
                 var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue ?? string.Empty, nugetToken?.ParsedValue, forceOption.ParsedValue);
                 return result ? 0 : 1;
             });
@@ -197,6 +213,14 @@ public partial class ReleaserApp
             result = 1;
         }
 
+        // Try to mitigate issue with structured logs
+        if (runningOnGitHubAction)
+        {
+            // Wait for a small amount of time to make sure that output is completely flushed
+            await Task.Delay(16);
+            await Console.Out.FlushAsync();
+        }
+
         return result;
     }
 
@@ -209,29 +233,10 @@ public partial class ReleaserApp
         if (configuration is null) return false;
         _config = configuration;
 
-        VerifyWhenRunningFromGitHubAction();
-
         // Don't continue if we had errors when deserializing the config file
         return !HasErrors;
     }
 
-    private void VerifyWhenRunningFromGitHubAction()
-    {
-        var info = GitHubActionHelper.GetInfo();
-        if (info is null) return;
-
-        Info($"Running from GitHub: {info}");
-        
-        //if (_config.GitHub.User != info.OwnerName)
-        //{
-        //    Error($"Invalid GitHub user|owner defined in configuration file `{_config.GitHub.User}`. Expecting {info.OwnerName}");
-        //}
-
-        //if (_config.GitHub.Repo != info.RepoName)
-        //{
-        //    Error($"Invalid GitHub repository defined in configuration file `{_config.GitHub.Repo}`. Expecting {info.RepoName}");
-        //}
-    }
 
     /// <summary>
     /// Runs the releaser app
@@ -244,8 +249,8 @@ public partial class ReleaserApp
         ChangelogResult? changelog = null;
         try
         {
-            _logger.LogStartGroup("Initializing");
-            var result = await Initializing(configurationFile, buildKind, githubApiToken, nugetApiToken, forceArtifactsFolder);
+            _logger.LogStartGroup("Configuring");
+            var result = await Configuring(configurationFile, buildKind, githubApiToken, nugetApiToken, forceArtifactsFolder);
             if (result is null) return false;
             buildInformation = result.Value.buildInformation!;
             devHosting = result.Value.devHosting;
@@ -304,64 +309,10 @@ public partial class ReleaserApp
         // Publish all packages NuGet + (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
         // Draft if we are just building and not publishing (to allow to update the changelog)
-        await PublishPackagesAndChangelog(buildKind, nugetApiToken, buildInformation, hostingConfiguration, buildPackages, devHosting, changelog);
+        await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, buildPackages, devHosting, changelog);
 
         return !HasErrors;
     }
-
-    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting)?> Initializing(string configurationFile, BuildKind buildKind, string githubApiToken, string? nugetApiToken, bool forceArtifactsFolder)
-    {
-        // ------------------------------------------------------------------
-        // Load Configuration
-        // ------------------------------------------------------------------
-        if (!await LoadConfiguration(configurationFile)) return null; // return false;
-
-        if (!EnsureArtifactsFolders(forceArtifactsFolder)) return null; // return false;
-
-        // ------------------------------------------------------------------
-        // Load Package Information from MSBuild project
-        // ------------------------------------------------------------------
-        var buildInformation = await LoadProjects();
-        if (HasErrors) return null; // return false;
-
-        // ------------------------------------------------------------------
-        // Validate Publish parameters
-        // ------------------------------------------------------------------
-        var hostingConfiguration = _config.GitHub;
-
-        IDevHosting? devHosting = null;
-
-        // Connect to GitHub if we have a token
-        if (!string.IsNullOrEmpty(githubApiToken))
-        {
-            devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken);
-            if (devHosting is null)
-            {
-                return null; // return false;
-            }
-        }
-
-        if (buildKind == BuildKind.Publish)
-        {
-            if (hostingConfiguration.Publish)
-            {
-                if (string.IsNullOrEmpty(githubApiToken))
-                {
-                    Error($"Publishing to {hostingConfiguration.Provider} requires to pass --github-token");
-                    return null; // return false;
-                }
-            }
-
-            if (string.IsNullOrEmpty(nugetApiToken))
-            {
-                Error("Publishing to NuGet requires to pass --nuget-token");
-                return null; // return false;
-            }
-        }
-
-        return (buildInformation, devHosting);
-    }
-
 
     public bool HasErrors => _logger.HasErrors;
 
@@ -385,17 +336,36 @@ public partial class ReleaserApp
         _logger.Error(message);
     }
 
-    enum BuildKind
-    {
-        None,
-        Publish,
-        Build,
-    }
-
     private class AppException : Exception
     {
         public AppException(string message) : base(message)
         {
         }
+    }
+
+    private static TableBorder GetTableBorderFromKind(TableBorderKind tableBorderKind)
+    {
+        return tableBorderKind switch
+        {
+            TableBorderKind.None => TableBorder.None,
+            TableBorderKind.Ascii => TableBorder.Ascii,
+            TableBorderKind.Ascii2 => TableBorder.Ascii2,
+            TableBorderKind.AsciiDoubleHead => TableBorder.AsciiDoubleHead,
+            TableBorderKind.Square => TableBorder.Square,
+            TableBorderKind.Rounded => TableBorder.Rounded,
+            TableBorderKind.Minimal => TableBorder.Minimal,
+            TableBorderKind.MinimalHeavyHead => TableBorder.MinimalHeavyHead,
+            TableBorderKind.MinimalDoubleHead => TableBorder.MinimalDoubleHead,
+            TableBorderKind.Simple => TableBorder.Simple,
+            TableBorderKind.SimpleHeavy => TableBorder.SimpleHeavy,
+            TableBorderKind.Horizontal => TableBorder.Horizontal,
+            TableBorderKind.Heavy => TableBorder.Heavy,
+            TableBorderKind.HeavyEdge => TableBorder.HeavyEdge,
+            TableBorderKind.HeavyHead => TableBorder.HeavyHead,
+            TableBorderKind.Double => TableBorder.Double,
+            TableBorderKind.DoubleEdge => TableBorder.DoubleEdge,
+            TableBorderKind.Markdown => TableBorder.Markdown,
+            _ => throw new ArgumentOutOfRangeException(nameof(tableBorderKind), tableBorderKind, null)
+        };
     }
 }
