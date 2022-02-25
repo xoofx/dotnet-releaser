@@ -152,7 +152,7 @@ In order to use `dotnet-releaser` on your GitHub CI, you need:
   ```
 3. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
   ```sh
-  dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
+  dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.GITHUB_TOKEN}} src/dotnet-releaser.toml
   ```
 
 Depending on the kind of GitHub event, the run command will automatically:
@@ -175,7 +175,7 @@ An example of a setup with GitHub Actions:
     - name: Build, Tests, Cover, Pack and Publish (on push tag)
       run: |
         dotnet tool install --global dotnet-releaser --version "0.2.*" 
-        dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.TOKEN_GITHUB}} src/dotnet-releaser.toml
+        dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.GITHUB_TOKEN}} src/dotnet-releaser.toml
 ```
 
 > `dotnet-releaser` is currently not available as a GitHub Action, as it requires anyway `dotnet` to be installed (in order to compile the projects). As you can see, the integration is very straightforward with .NET global tools.
