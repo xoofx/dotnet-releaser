@@ -6,7 +6,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using CliWrap;
+using DotNetReleaser.Configuration;
+using DotNetReleaser.DevHosting;
 using DotNetReleaser.Helpers;
+using NuGet.Versioning;
 using NUnit.Framework;
 
 namespace DotNetReleaser.Tests
@@ -22,6 +25,23 @@ namespace DotNetReleaser.Tests
         {
             _configurationFile = Path.Combine(_helloWorldFolder, "dotnet-releaser.toml");
             _artifactsFolder = Path.Combine(_helloWorldFolder, "artifacts-dotnet-releaser");
+        }
+        
+        [Test]
+        [Ignore("Only used locally")]
+        public async Task CheckGitHub()
+        {
+            var devHosting = new GitHubDevHostingConfiguration()
+            {
+                User = "xoofx",
+                Repo = "dotnet-releaser",
+                Branches = { "main" }
+            };
+
+            var logger = new MockSimpleLogger();
+
+            var githubHosting = new GitHubDevHosting(logger, devHosting, "TBD");
+            var branches = await githubHosting.GetBranchNamesForCommit("xoofx", "dotnet-releaser", "afe9d28493c05d24f16b5ffdac011b73f66e3c5c");
         }
 
 

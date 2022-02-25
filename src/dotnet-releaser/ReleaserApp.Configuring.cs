@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -59,7 +60,7 @@ public partial class ReleaserApp
 
         if (requiringBranchName)
         {
-            var branchName = await GetCurrentBranchName();
+            var branchName = await GetCurrentBranchName(devHosting);
             if (branchName is null) return null;
             buildInformation.CurrentBranchName = branchName;
         }
@@ -152,7 +153,7 @@ public partial class ReleaserApp
     }
 
 
-    private async Task<string?> GetCurrentBranchName()
+    private async Task<string?> GetCurrentBranchName(IDevHosting devHosting)
     {
         var stdOutAndErrorBuffer = new StringBuilder();
         var result = await Cli.Wrap("git")
@@ -172,8 +173,22 @@ public partial class ReleaserApp
         var branchName = stdOutAndErrorBuffer.ToString().Trim();
         if (string.IsNullOrEmpty(branchName))
         {
-            Error(@"Unable retrieve the current branch with `git branch --show-current`. The current action requires it. Please make sure that:
-1) The current commit is a checkout of a branch.
+            var sha = Environment.GetEnvironmentVariable("GITHUB_SHA");
+            if (string.IsNullOrEmpty(sha))
+            {
+                Error("Unable to fetch environment variable GITHUB_SHA");
+                return null;
+            }
+
+            var branches = await devHosting.GetBranchNamesForCommit(_config.GitHub.User, _config.GitHub.Repo, sha);
+            branchName = branches.FirstOrDefault(x => _config.GitHub.Branches.Contains(x));
+            if (branchName is not null)
+            {
+                return branchName;
+            }
+            
+            Error($@"Unable retrieve the current branch with `git branch --show-current` or from the current branches for this commit [{string.Join(", ", branches)}. The current action requires it. Please make sure that:
+1) The current commit is a checkout on a valid branch.
 2) If running on GitHub Action, you are using `actions/checkout@v2` and not v1.");
             return null;
         }

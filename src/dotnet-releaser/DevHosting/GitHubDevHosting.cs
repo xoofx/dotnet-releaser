@@ -16,7 +16,7 @@ using Octokit;
 
 namespace DotNetReleaser.DevHosting;
 
-internal class GitHubDevHosting : IDevHosting
+public class GitHubDevHosting : IDevHosting
 {
     private readonly ISimpleLogger _log;
     private readonly string _url;
@@ -447,5 +447,39 @@ internal class GitHubDevHosting : IDevHosting
     public string GetDownloadReleaseUrl(string version, string fileEntry)
     {
         return $"{Configuration.Base}/releases/download/{Configuration.VersionPrefix}{version}/{Path.GetFileName(fileEntry)}";
+    }
+
+    public async Task<List<string>> GetBranchNamesForCommit(string user, string repo, string sha)
+    {
+        // Query if the sha commit is a coming from a PR
+        var addr = new Uri($"{_client.BaseAddress}repos/{user}/{repo}/commits/{sha}/branches-where-head");
+        var result = await _client.Connection.Get<object>(addr, TimeSpan.FromSeconds(10));
+
+        var branchNames = new List<String>();
+
+        if (result.HttpResponse.StatusCode == HttpStatusCode.OK)
+        {
+            // The commit is a merge commit/PR
+            if (result.HttpResponse.ContentType.Contains("json") && result.HttpResponse.Body is string text)
+            {
+                var array = JsonNode.Parse(text) as JsonArray;
+                if (array is not null)
+                {
+                    foreach (var item in array.OfType<JsonObject>())
+                    {
+                        if (item.TryGetPropertyValue("name", out var branchNameObject) && branchNameObject is not null)
+                        {
+                            var branchName = branchNameObject.GetValue<string>();
+                            if (!string.IsNullOrEmpty(branchName))
+                            {
+                                branchNames.Add(branchName);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return branchNames;
     }
 }

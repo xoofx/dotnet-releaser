@@ -35,4 +35,6 @@ public interface IDevHosting
     string GetCompareUrl(string user, string repo, string fromRef, string toRef);
 
     string GetDownloadReleaseUrl(string version, string fileEntry);
+
+    Task<List<string>> GetBranchNamesForCommit(string user, string repo, string sha);
 }
