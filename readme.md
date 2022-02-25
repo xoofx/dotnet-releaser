@@ -4,6 +4,8 @@
 
 `dotnet-releaser` is a all-in-one command line tool that fully automates the release cycle of your .NET libraries and applications to NuGet and GitHub by **building**, **testing**, **running coverage**, **cross-compiling**, **packaging**, **creating release notes from PR/commits** and **publishing**.
 
+![overview](https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/doc/overview.drawio.svg)
+
 ## Features
 
 - **Very simple to use, configure and [integrate into your GitHub Action CI](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md#3-adding-dotnet-releaser-to-your-ci-on-github)**
@@ -14,30 +16,52 @@
 - Allow to publish your **application as a service** (only `Systemd` for now for `deb` and `rpm` packages).
 - **Create and publish beautiful release notes** by extracting the information directly from pull-requests and commits, while offering [customizable templates](https://github.com/xoofx/dotnet-releaser/blob/main/doc/changelog_user_guide.md).
 - **Publish all artifacts** to **NuGet** and **GitHub**
-- Integrate `dotnet-releaser` easily in [your GitHub Action workflow](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md#3-adding-dotnet-releaser-to-your-ci-on-github).
+- Can be used to build/tests/package/publish locally or from GitHub Action using the same command.
 
 ## Defaults
 
-By default, `dotnet-releaser` will package your .NET libraries and applications:
+By default, `dotnet-releaser` will:
 
-- NuGet package (packed as a .NET global tool)
-- `[win-x64]` with `[zip]` package            
-- `[win-arm]` with `[zip]` package            
-- `[win-arm64]` with `[zip]` package          
-- `[linux-x64]` with `[deb, tar]` packages    
-- `[linux-arm]` with `[deb, tar]` packages    
-- `[linux-arm64]` with `[deb, tar]` packages  
-- `[rhel-x64]` with `[rpm, tar]` packages     
-- `[osx-x64]` with `[tar]` package            
-- `[osx-arm64]` with `[tar]` package          
-
-When publishing, `dotnet-releaser` will automatically:
-
+- **Build your project/solution** in Release 
+- **Run tests** in Release
+- **Create NuGet packages** for libraries and your application (packed as a .NET global tool)
+- **Create application packages** for any packable application in your project:
+  - `[win-x64]` with `[zip]` package            
+  - `[win-arm]` with `[zip]` package            
+  - `[win-arm64]` with `[zip]` package          
+  - `[linux-x64]` with `[deb, tar]` packages    
+  - `[linux-arm]` with `[deb, tar]` packages    
+  - `[linux-arm64]` with `[deb, tar]` packages  
+  - `[rhel-x64]` with `[rpm, tar]` packages     
+  - `[osx-x64]` with `[tar]` package            
+  - `[osx-arm64]` with `[tar]` package          
 - **Publish your application as a global tool to NuGet**
 - **Upload all the package artifacts and your changelog to GitHub** on the tag associated with your package version (e.g your package is `1.0.0`, it will try to find a git tag `v1.0.0` or `1.0.0`).
 - **Create a Homebrew repository and formula**  (e.g `user_or_org/homebrew-your-app-name`) for all the tar files associated with the targets for Linux and MacOS.
 
-See the [user guide](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md) on how to setup this differently for your application.
+> Any of these steps can be configured or even entirely disabled easily from a config file.
+> See the [user guide](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md) on how to setup this differently for your application.
+## Getting Started
+
+- Create a `dotnet-releaser.toml` at the same level you have your .NET solution. Most projects won't need more than this kind of configuration:
+  ```toml
+  [msbuild]
+  project = "Tonlyn.sln"
+  [github]
+  user = "xoofx"
+  repo = "Tomlyn"
+  ```
+- Install `dotnet-releaser` as a global .NET tool. Verify or update to version accordingly.
+  ```
+  dotnet tool install --global dotnet-releaser --version "0.2.*"
+  ```
+- If you want to try a full build locally:
+  ```
+  dotnet-releaser build --force dotnet-releaser.toml
+  ```
+
+See the user guide below for further details on how to use `dotnet-releaser`.
+
 ## User Guide
 
 For more details on how to use `dotnet-releaser`, please visit the [user guide](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md).
