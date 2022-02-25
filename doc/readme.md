@@ -60,7 +60,7 @@
 Then you just need to install it as a global tool. Update to the latest version if you have installed it already!
 
 ```shell
-dotnet tool install --global dotnet-releaser"
+dotnet tool install --global dotnet-releaser
 ```
 #### 1.1.2. Create a TOM configuration file
 
@@ -148,7 +148,7 @@ In order to use `dotnet-releaser` on your GitHub CI, you need:
 1. To install `dotnet 6.0`
 2. To install the global tool `dotnet-releaser`
   ```sh
-  dotnet tool install --global dotnet-releaser --version "0.2.*"
+  dotnet tool install --global dotnet-releaser
   ```
 3. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
   ```sh
@@ -174,7 +174,7 @@ An example of a setup with GitHub Actions:
 
     - name: Build, Tests, Cover, Pack and Publish (on push tag)
       run: |
-        dotnet tool install --global dotnet-releaser --version "0.2.*" 
+        dotnet tool install --global dotnet-releaser
         dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.GITHUB_TOKEN}} src/dotnet-releaser.toml
 ```
 
