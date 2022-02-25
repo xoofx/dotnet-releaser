@@ -89,15 +89,18 @@ You can see it's usage on the project [grpc-curl here](https://github.com/xoofx/
 
 ## Credits
 
-`dotnet-releaser` is just a modest wrapper around many amazing OSS libraries:
+`dotnet-releaser` is a wrapper around many amazing OSS libraries:
 
 - [dotnet-packaging](https://github.com/quamotion/dotnet-packaging) by using their NuGet [Packaging.Targets](https://www.nuget.org/packages/Packaging.Targets) to hook package creation into MSBuild user's project.
 - [CommandLineUtils](https://github.com/natemcmaster/CommandLineUtils) for handling parsing command line arguments
 - [Microsoft.Extensions.Logging](https://github.com/dotnet/runtime/) for logging to the console.
-- [MSBuildStructuredLog](https://github.com/KirillOsenkov/MSBuildStructuredLog) for interacting with MSBuild structured output.
+- [MsBuildPipeLogger](https://github.com/daveaglick/MsBuildPipeLogger) for interacting with MSBuild structured output.
 - [Octokit.NET](https://github.com/octokit/octokit.net) for interacting with GitHub.
 - [Tomlyn](https://github.com/xoofx/Tomlyn) for parsing the TOML configuration file.
 - [CliWrap](https://github.com/Tyrrrz/CliWrap) to easily wrap and launch executables.
+- [Spectre.Console](https://github.com/spectreconsole/spectre.console) for generating pretty logs and table reports.
+- [Scriban](https://github.com/scriban/scriban) used for text templating of the changelog/release notes.
+- [DotNet.Glob](https://github.com/dazinator/DotNet.Glob) used by changelog filtering on files.
 ## Author
 
 Alexandre Mutel aka [xoofx](http://xoofx.com).
