@@ -1,8 +1,20 @@
 # dotnet-releaser [![Build Status](https://github.com/xoofx/dotnet-releaser/workflows/ci/badge.svg?branch=main)](https://github.com/xoofx/dotnet-releaser/actions) [![NuGet](https://img.shields.io/nuget/v/dotnet-releaser.svg)](https://www.nuget.org/packages/dotnet-releaser/)
 
-<img align="right" width="120px" height="120px" src="https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/img/dotnet-releaser.png">
+<img align="right" width="160px" height="160px" src="https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/img/dotnet-releaser.png">
 
 `dotnet-releaser` is a all-in-one command line tool that fully automates the release cycle of your .NET libraries and applications to NuGet and GitHub by **building**, **testing**, **running coverage**, **cross-compiling**, **packaging**, **creating release notes from PR/commits** and **publishing**.
+
+In practice, `dotnet-releaser` easily automates the build of your .NET libraries and applications by wrapping:
+
+- `dotnet build` with potentially multiple solutions
+- `dotnet test`
+  - Plus the automatic support for coverage.
+- `dotnet pack` for creating NuGet packages
+- `dotnet publish` that can automatically cross-compile to 9+ CPU/OS platforms.
+  - And create additionally, by default, multiple packages (zip, debian, rpm...) to distribute your app
+- `dotnet nuget push` to publish your package to a NuGet registry
+- Pretty changelog creation from pull-requests and commits.
+- Create and upload the changelog and all the packages packed to your GitHub repository associated with the release tag.
 
 ![overview](https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/doc/overview.drawio.svg)
 
