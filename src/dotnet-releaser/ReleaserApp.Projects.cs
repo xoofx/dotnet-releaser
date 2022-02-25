@@ -347,6 +347,7 @@ public partial class ReleaserApp
         table.AddColumn("License");
         table.AddColumn(new TableColumn("Packable?").Centered());
         table.AddColumn(new TableColumn("Test?").Centered());
+        table.Border = _tableBorder;
 
         var row = new List<object>();
         row.AddRange(Enumerable.Repeat(string.Empty, table.Columns.Count));

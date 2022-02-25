@@ -32,12 +32,14 @@ public partial class ReleaserApp
     
     private readonly ISimpleLogger _logger;
     private ReleaserConfiguration _config;
+    private TableBorder _tableBorder;
 
     private ReleaserApp(ISimpleLogger logger)
     {
         _logger = logger;
         _config = new ReleaserConfiguration();
         _assemblyCoverages = new List<AssemblyCoverage>();
+        _tableBorder = TableBorder.Square;
     }
 
     /// <summary>
@@ -47,6 +49,7 @@ public partial class ReleaserApp
     /// <returns>0 if successful; 1 otherwise.</returns>
     public static async Task<int> Run(string[] args)
     {
+        Console.OutputEncoding = Encoding.UTF8;
         // Create our log
         var runningOnGitHubAction = GitHubActionHelper.IsRunningOnGitHubAction;
         using var factory = LoggerFactory.Create(configure =>
@@ -156,6 +159,9 @@ public partial class ReleaserApp
                 cmd.Description = "Build only the project.";
             }
 
+            var tableKindOption = cmd.Option<TableBorderKind>("--table", "Specifies the rendering of the tables. Default is square.", CommandOptionType.SingleValue);
+            tableKindOption.DefaultValue = TableBorderKind.Square;
+
             var forceOption = cmd.Option<bool>("--force", "Force deleting and recreating the artifacts folder.", CommandOptionType.NoValue);
             var configurationFileArg = AddTomlConfigurationArgument(cmd, false);
 
@@ -169,6 +175,10 @@ public partial class ReleaserApp
                     "publish" => BuildKind.Publish,
                     _ => BuildKind.Build
                 };
+                if (tableKindOption.HasValue())
+                {
+                    appReleaser._tableBorder = GetTableBorderFromKind(tableKindOption.ParsedValue);
+                }
                 var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue ?? string.Empty, nugetToken?.ParsedValue, forceOption.ParsedValue);
                 return result ? 0 : 1;
             });
@@ -331,5 +341,31 @@ public partial class ReleaserApp
         public AppException(string message) : base(message)
         {
         }
+    }
+
+    private static TableBorder GetTableBorderFromKind(TableBorderKind tableBorderKind)
+    {
+        return tableBorderKind switch
+        {
+            TableBorderKind.None => TableBorder.None,
+            TableBorderKind.Ascii => TableBorder.Ascii,
+            TableBorderKind.Ascii2 => TableBorder.Ascii2,
+            TableBorderKind.AsciiDoubleHead => TableBorder.AsciiDoubleHead,
+            TableBorderKind.Square => TableBorder.Square,
+            TableBorderKind.Rounded => TableBorder.Rounded,
+            TableBorderKind.Minimal => TableBorder.Minimal,
+            TableBorderKind.MinimalHeavyHead => TableBorder.MinimalHeavyHead,
+            TableBorderKind.MinimalDoubleHead => TableBorder.MinimalDoubleHead,
+            TableBorderKind.Simple => TableBorder.Simple,
+            TableBorderKind.SimpleHeavy => TableBorder.SimpleHeavy,
+            TableBorderKind.Horizontal => TableBorder.Horizontal,
+            TableBorderKind.Heavy => TableBorder.Heavy,
+            TableBorderKind.HeavyEdge => TableBorder.HeavyEdge,
+            TableBorderKind.HeavyHead => TableBorder.HeavyHead,
+            TableBorderKind.Double => TableBorder.Double,
+            TableBorderKind.DoubleEdge => TableBorder.DoubleEdge,
+            TableBorderKind.Markdown => TableBorder.Markdown,
+            _ => throw new ArgumentOutOfRangeException(nameof(tableBorderKind), tableBorderKind, null)
+        };
     }
 }

@@ -120,6 +120,8 @@ public partial class ReleaserApp
         table.AddColumn("Line");
         table.AddColumn("Branch");
         table.AddColumn("Method");
+        table.Border = _tableBorder;
+
         var rows = Enumerable.Repeat((object)string.Empty, table.Columns.Count).ToList();
         HitCoverage totalLineRate = default;
         HitCoverage totalBranchRate = default;
