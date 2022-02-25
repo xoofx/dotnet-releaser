@@ -63,9 +63,9 @@ By default, `dotnet-releaser` will:
   user = "xoofx"
   repo = "Tomlyn"
   ```
-- Install `dotnet-releaser` as a global .NET tool. Verify or update to version accordingly.
+- Install `dotnet-releaser` as a global .NET tool.
   ```
-  dotnet tool install --global dotnet-releaser --version "0.2.*"
+  dotnet tool install --global dotnet-releaser"
   ```
 - If you want to try a full build locally:
   ```

@@ -57,10 +57,10 @@
 
 `dotnet-releaser` expects that [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) is installed.
 
-Then you just need to install it as a global tool. Check the latest version!
+Then you just need to install it as a global tool. Update to the latest version if you have installed it already!
 
 ```shell
-dotnet tool install --global dotnet-releaser --version "0.2.*"
+dotnet tool install --global dotnet-releaser"
 ```
 #### 1.1.2. Create a TOM configuration file
 
