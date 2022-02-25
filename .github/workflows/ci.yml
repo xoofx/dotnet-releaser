@@ -31,10 +31,6 @@ jobs:
     - name: Build and Test (Debug)
       run: dotnet test src -c Debug
 
-    - name: Pack
-      run: |
-          dotnet pack src -c Release
-
     - name: Self Build - Publish (main only)
       if: github.event_name == 'push'
       run: |
