@@ -66,6 +66,7 @@ public static class SimpleLogger
         }
 
         public bool HasErrors { get; private set; }
+
         public void LogStartGroup(string name)
         {
             if (_runningFromGitHubAction)
