@@ -91,11 +91,11 @@ public partial class ReleaserApp
     {
         var coverageFolder = GetCoverageFolder();
         _assemblyCoverages = new List<AssemblyCoverage>();
-        foreach (var file in Directory.EnumerateFiles(coverageFolder, "*.xml", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(coverageFolder, "coverage.json", SearchOption.AllDirectories))
         {
-            using var reader = new StreamReader(file);
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read);
             
-            var list  = CoberturaParser.Parse(reader);
+            var list  = CoverletJsonParser.Parse(stream);
             var merge = list.Count > 0;
             _assemblyCoverages.AddRange(list);
             if (merge)

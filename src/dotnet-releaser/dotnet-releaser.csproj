@@ -86,4 +86,8 @@
       <HintPath>..\..\ext\MsBuildPipeLogger\MsBuildPipeLogger.Server.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Coverage\Coveralls\" />
+  </ItemGroup>
 </Project>

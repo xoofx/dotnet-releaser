@@ -75,6 +75,7 @@ public class AssemblyCoverage : CoverageBase
                 mapClass.Add(methodSignature, mapMethodCoverage);
             }
             Merge(methodCoverage.Lines, mapMethodCoverage);
+            Merge(methodCoverage.Branches, mapMethodCoverage);
         }
     }
 
@@ -82,24 +83,42 @@ public class AssemblyCoverage : CoverageBase
     {
         foreach (var lineCoverage in list)
         {
-            if (!mapMethod.TryGetValue(lineCoverage.Number, out var mapLineCoverage))
+            if (!mapMethod.Lines.TryGetValue(lineCoverage.LineNumber, out var mapLineCoverage))
             {
                 mapLineCoverage = new LineCoverage()
                 {
-                    Number = lineCoverage.Number,
+                    LineNumber = lineCoverage.LineNumber,
                     Hits = lineCoverage.Hits,
-                    IsBranch = lineCoverage.IsBranch,
-                    ConditionCoverage = lineCoverage.ConditionCoverage
                 };
-                mapMethod.Add(lineCoverage.Number, mapLineCoverage);
+                mapMethod.Lines.Add(lineCoverage.LineNumber, mapLineCoverage);
             }
             else
             {
                 mapLineCoverage.Hits = Math.Max(mapLineCoverage.Hits, lineCoverage.Hits);
-                if (lineCoverage.ConditionCoverage.Rate > mapLineCoverage.ConditionCoverage.Rate)
+            }
+        }
+    }
+
+    private static void Merge(IEnumerable<BranchCoverage> list, MapMethodCoverage mapMethod)
+    {
+        foreach (var branchCoverage in list)
+        {
+            var key = new BranchKey(branchCoverage.LineNumber, branchCoverage.BlockNumber, branchCoverage.BranchNumber);
+            
+            if (!mapMethod.Branches.TryGetValue(key, out var mapBranchCoverage))
+            {
+                mapBranchCoverage = new BranchCoverage()
                 {
-                    mapLineCoverage.ConditionCoverage = lineCoverage.ConditionCoverage;
-                }
+                    LineNumber = branchCoverage.LineNumber,
+                    BlockNumber = branchCoverage.BlockNumber,
+                    BranchNumber = branchCoverage.BranchNumber,
+                    Hits = branchCoverage.Hits,
+                };
+                mapMethod.Branches.Add(key, mapBranchCoverage);
+            }
+            else
+            {
+                mapBranchCoverage.Hits = Math.Max(mapBranchCoverage.Hits, branchCoverage.Hits);
             }
         }
     }
@@ -179,26 +198,73 @@ public class AssemblyCoverage : CoverageBase
             {
                 methods.Add(value.ToMethodCoverage());
             }
-            classCoverage.Methods.AddRange(methods.OrderBy(x => x.Method.Name).ThenBy(y => y.Method.Signature));
+            classCoverage.Methods.AddRange(methods.OrderBy(x => x.Method.Name).ThenBy(y => y.Method.Arguments));
 
             return classCoverage;
         }
     }
 
-    private class MapMethodCoverage : Dictionary<int, LineCoverage>
+    private class MapMethodCoverage
     {
         public MapMethodCoverage(MethodSignature method)
         {
             Method = method;
+            Lines = new Dictionary<int, LineCoverage>();
+            Branches = new Dictionary<BranchKey, BranchCoverage>();
         }
+
+        public Dictionary<int, LineCoverage> Lines { get; }
+
+        public Dictionary<BranchKey, BranchCoverage> Branches { get; }
 
         public MethodSignature Method { get; }
 
         public MethodCoverage ToMethodCoverage()
         {
             var methodCoverage = new MethodCoverage(Method);
-            methodCoverage.Lines.AddRange(this.OrderBy(x => x.Key).Select(x => x.Value));
+            methodCoverage.Lines.AddRange(this.Lines.OrderBy(x => x.Key).Select(x => x.Value));
+            methodCoverage.Branches.AddRange(this.Branches.OrderBy(x => x.Key).Select(x => x.Value));
             return methodCoverage;
         }
     }
+
+    private readonly record struct BranchKey(int LineNumber, int BlockNumber, int BranchNumber) : IComparable<BranchKey>, IComparable
+    {
+        public int CompareTo(BranchKey other)
+        {
+            var lineNumberComparison = LineNumber.CompareTo(other.LineNumber);
+            if (lineNumberComparison != 0) return lineNumberComparison;
+            var blockNumberComparison = BlockNumber.CompareTo(other.BlockNumber);
+            if (blockNumberComparison != 0) return blockNumberComparison;
+            return BranchNumber.CompareTo(other.BranchNumber);
+        }
+
+        public int CompareTo(object? obj)
+        {
+            if (ReferenceEquals(null, obj)) return 1;
+            return obj is BranchKey other ? CompareTo(other) : throw new ArgumentException($"Object must be of type {nameof(BranchKey)}");
+        }
+
+        public static bool operator <(BranchKey left, BranchKey right)
+        {
+            return left.CompareTo(right) < 0;
+        }
+
+        public static bool operator >(BranchKey left, BranchKey right)
+        {
+            return left.CompareTo(right) > 0;
+        }
+
+        public static bool operator <=(BranchKey left, BranchKey right)
+        {
+            return left.CompareTo(right) <= 0;
+        }
+
+        public static bool operator >=(BranchKey left, BranchKey right)
+        {
+            return left.CompareTo(right) >= 0;
+        }
+    }
+
+
 }

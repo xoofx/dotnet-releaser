@@ -10,15 +10,18 @@ public class CoverageTests
     [Test]
     public void TestParser()
     {
-        using var reader = new StreamReader(Path.Combine(AppContext.BaseDirectory, "coverage.cobertura.xml"));
-        var assemblyCoverages = CoberturaParser.Parse(reader);
+        using var reader = new FileStream(Path.Combine(AppContext.BaseDirectory, "coverage.json"), FileMode.Open, FileAccess.Read);
+        var assemblyCoverages = CoverletJsonParser.Parse(reader);
 
         Assert.AreEqual(2, assemblyCoverages.Count, "Invalid number of assemblies");
 
-        Assert.AreEqual(new HitCoverage(2664, 3162), assemblyCoverages[0].LineRate);
-        Assert.AreEqual(new HitCoverage(1738, 2182), assemblyCoverages[0].BranchRate);
+        Assert.AreEqual("Tomlyn", assemblyCoverages[0].Name);
+        Assert.AreEqual("Tomlyn.Tests", assemblyCoverages[1].Name);
 
-        Assert.AreEqual(new HitCoverage(796, 842), assemblyCoverages[1].LineRate);
+        Assert.AreEqual(new HitCoverage(2664, 3162), assemblyCoverages[0].LineRate);
+        Assert.AreEqual(new HitCoverage(1740, 2182), assemblyCoverages[0].BranchRate);
+
+        Assert.AreEqual(new HitCoverage(817, 863), assemblyCoverages[1].LineRate);
         Assert.AreEqual(new HitCoverage(96, 150), assemblyCoverages[1].BranchRate);
         
         //foreach (var assemblyCoverage in assemblyCoverages)

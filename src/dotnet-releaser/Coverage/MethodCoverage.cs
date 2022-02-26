@@ -8,32 +8,40 @@ public class MethodCoverage : CoverageBase
     {
         Method = method;
         Lines = new List<LineCoverage>();
+        Branches = new List<BranchCoverage>();
     }
 
     public MethodSignature Method { get; init; }
 
     public List<LineCoverage> Lines { get; }
 
+    public List<BranchCoverage> Branches { get; }
+
     public override void UpdateCoverage()
     {
         int linesCovered = 0;
-        HitCoverage branchRate = default;
+        int branchCovered = 0;
         foreach (var lineCoverage in Lines)
         {
             if (lineCoverage.Hits != 0)
             {
                 linesCovered++;
             }
-            if (lineCoverage.IsBranch)
+        }
+
+        foreach (var branchCoverage in Branches)
+        {
+            if (branchCoverage.Hits != 0)
             {
-                branchRate += lineCoverage.ConditionCoverage;
+                branchCovered++;
             }
         }
 
+
         LineRate = new HitCoverage(linesCovered, Lines.Count);
-        BranchRate = branchRate;
+        BranchRate = new HitCoverage(branchCovered, Branches.Count);
         MethodRate = new HitCoverage(linesCovered > 0 ? 1 : 0, 1);
     }
 }
 
-public record MethodSignature(string Name, string Signature);
+public record MethodSignature(string Name, string Arguments, string ReturnType);

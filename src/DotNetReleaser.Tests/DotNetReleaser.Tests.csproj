@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="coverage.cobertura.xml" />
+    <None Remove="coverage.json" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="coverage.cobertura.xml">
+    <Content Include="coverage.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
