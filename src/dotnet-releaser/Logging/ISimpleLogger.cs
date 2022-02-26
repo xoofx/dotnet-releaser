@@ -83,10 +83,10 @@ public static class SimpleLogger
 
         public void LogEndGroup()
         {
+            AnsiConsole.WriteLine();
             if (_runningFromGitHubAction)
             {
                 AnsiConsole.WriteLine("::endgroup::");
-                AnsiConsole.WriteLine();
             }
             Console.Out.Flush();
         }
