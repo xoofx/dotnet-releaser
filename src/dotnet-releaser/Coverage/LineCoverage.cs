@@ -2,11 +2,18 @@
 
 public class LineCoverage
 {
-    public int Number { get; set; }
+    public int LineNumber { get; set; }
 
     public int Hits { get; set; }
+}
 
-    public bool IsBranch { get; set; }
+public class BranchCoverage
+{
+    public int LineNumber { get; set; }
 
-    public HitCoverage ConditionCoverage { get; set; }
+    public int BlockNumber { get; set; }
+
+    public int BranchNumber { get; set; }
+
+    public int Hits { get; set; }
 }

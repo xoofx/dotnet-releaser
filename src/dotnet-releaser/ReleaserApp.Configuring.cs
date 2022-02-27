@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 using CliWrap;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
+using LibGit2Sharp;
 using Spectre.Console;
 
 namespace DotNetReleaser;
@@ -23,6 +25,7 @@ public partial class ReleaserApp
         {
             Info($"Running from GitHub: {gitHubInfo}");
         }
+
         
         if (!await LoadConfiguration(configurationFile)) return null; // return false;
 
@@ -54,16 +57,16 @@ public partial class ReleaserApp
         // We require a branch name if we need to publish a changelog (for the draft version)
         // or we need to do an automatic run on GitHub Action.
         var requiresDraftForBuild = (buildKind == BuildKind.Run || buildKind == BuildKind.Build) && !string.IsNullOrEmpty(githubApiToken) && !_config.Changelog.DisableDraftForBuild;
-        var requiringBranchName = buildKind == BuildKind.Publish && hostingConfiguration.Publish
+        var requiringBranchNameAndCommitSha = buildKind == BuildKind.Publish && hostingConfiguration.Publish
                                   || requiresDraftForBuild
                                   || buildKind == BuildKind.Run;
         bool validateBranchName = false;
 
-        if (requiringBranchName)
+        buildInformation.GitInformation = GitInformation.Create(_logger, _config.ConfigurationFilePath, hostingConfiguration.Branches);
+        if (requiringBranchNameAndCommitSha && buildInformation.GitInformation is null)
         {
-            var branchName = await GetCurrentBranchName(devHosting);
-            if (branchName is null) return null;
-            buildInformation.CurrentBranchName = branchName;
+            Error($"Unable to find a git repository from the folder {Path.GetDirectoryName(_config.ConfigurationFilePath)}. This is required by the current action.");
+            return null;
         }
 
         // Fetch current branch name
@@ -129,7 +132,7 @@ public partial class ReleaserApp
         // Verifies that the branch is a supported branch for releases
         if (validateBranchName)
         {
-            var branchName = buildInformation.CurrentBranchName!;
+            var branchName = buildInformation.GitInformation!.BranchName;
             if (!_config.GitHub.Branches.Contains(branchName))
             {
                 Error($"The current git branch `{branchName}` is not listed in the authorized release branches from the configuration `github.branches = [{string.Join(", ", _config.GitHub.Branches)}]`");
@@ -140,7 +143,7 @@ public partial class ReleaserApp
         // Allow to generate a draft only when building from release branches
         if (requiresDraftForBuild)
         {
-            var branchName = buildInformation.CurrentBranchName!;
+            var branchName = buildInformation.GitInformation!.BranchName;
             if (_config.GitHub.Branches.Contains(branchName))
             {
                 buildInformation.AllowPublishDraft = true;
@@ -151,53 +154,5 @@ public partial class ReleaserApp
         buildInformation.BuildKind = buildKind;
 
         return (buildInformation, devHosting);
-    }
-
-
-    private async Task<string?> GetCurrentBranchName(IDevHosting? devHosting)
-    {
-        var stdOutAndErrorBuffer = new StringBuilder();
-        var result = await Cli.Wrap("git")
-            .WithArguments(new []{ "branch","--show-current"})
-            .WithWorkingDirectory(Environment.CurrentDirectory)
-            .WithStandardOutputPipe(PipeTarget.ToStringBuilder(stdOutAndErrorBuffer))
-            .WithStandardErrorPipe(PipeTarget.ToStringBuilder(stdOutAndErrorBuffer))
-            .WithValidation(CommandResultValidation.None)
-            .ExecuteAsync();
-
-        if (result.ExitCode != 0)
-        {
-            Error($"Error while executing `git branch --show-current`. Reason: {stdOutAndErrorBuffer}");
-            return null;
-        }
-
-        var branchName = stdOutAndErrorBuffer.ToString().Trim();
-        if (string.IsNullOrEmpty(branchName))
-        {
-            var branches = new List<string>();
-            if (devHosting is not null)
-            {
-                var sha = Environment.GetEnvironmentVariable("GITHUB_SHA");
-                if (string.IsNullOrEmpty(sha))
-                {
-                    Error("Unable to fetch environment variable GITHUB_SHA");
-                    return null;
-                }
-
-                branches = await devHosting.GetBranchNamesForCommit(_config.GitHub.User, _config.GitHub.Repo, sha);
-                branchName = branches.FirstOrDefault(x => _config.GitHub.Branches.Contains(x));
-                if (branchName is not null)
-                {
-                    return branchName;
-                }
-            }
-
-            Error($@"Unable retrieve the current branch with `git branch --show-current` or from the current branches for this commit [{string.Join(", ", branches)}. The current action requires it. Please make sure that:
-1) The current commit is a checkout on a valid branch.
-2) If running on GitHub Action, you are using `actions/checkout@v2` and not v1.");
-            return null;
-        }
-
-        return branchName;
     }
 }

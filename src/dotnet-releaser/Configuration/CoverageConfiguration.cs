@@ -65,6 +65,9 @@ public class CoverageConfiguration
 
     public void AddDefaults()
     {
-        if (Format.Count == 0) Format.Add("cobertura");
+        if (!Format.Contains("json"))
+        {
+            Format.Add("json");
+        }
     }
 }
