@@ -7,12 +7,12 @@ namespace DotNetReleaser;
 
 public class GitInformation
 {
-    private GitInformation(Repository repository, Branch branch)
+    private GitInformation(Repository repository, Branch branch, string branchName)
     {
         Repository = repository;
         Head = repository.Head.Tip;
         Branch = branch;
-        BranchName = GetShortBranchName(branch);
+        BranchName = branchName;
     }
 
     public Repository Repository { get; }
@@ -34,8 +34,8 @@ public class GitInformation
 
         var repository = new Repository(repositoryPath);
 
-        var branchesFound = repository.Branches.Where(branch => branch.Tip != null && branch.Tip.Sha == repository.Head.Tip.Sha).ToList();
-        var branchNamesFound = branchesFound.Select(GetShortBranchName).ToList();
+        var branchesFound = repository.Branches.Where(branch => branch.Tip != null && branch.Tip.Sha == repository.Head.Tip.Sha).Select(x => (Branch: x, BranchName: GetShortBranchName(x))).ToList();
+        var branchNamesFound = branchesFound.Select(x => x.BranchName).ToList();
 
         var branchName = branchNamesFound.FirstOrDefault(branches.Contains) ?? branchNamesFound.FirstOrDefault() ?? string.Empty;
 
@@ -49,9 +49,9 @@ public class GitInformation
             return null;
         }
 
-        var branch = branchesFound.First(x => x.FriendlyName == branchName);
+        var branchAndName = branchesFound.First(x => x.BranchName == branchName);
 
-        return new GitInformation(repository, branch);
+        return new GitInformation(repository, branchAndName.Branch, branchAndName.BranchName);
     }
 
     private static string GetShortBranchName(Branch branch)
