@@ -57,7 +57,7 @@ public record GitHubActionInfo(string OwnerName, string RepoName, string EventNa
 {
     public override string ToString()
     {
-        return $"user = {OwnerName}, repo = ${RepoName}, event = {EventName}, ref_name = {RefName}, ref_type = {RefType.ToString().ToLowerInvariant()}";
+        return $"user = {OwnerName}, repo = {RepoName}, event = {EventName}, ref_name = {RefName}, ref_type = {RefType.ToString().ToLowerInvariant()}";
     }
 }
 
