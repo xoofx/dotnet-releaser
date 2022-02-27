@@ -36,6 +36,7 @@ public class GitHubDevHosting : IDevHosting
     public ISimpleLogger Logger { get; }
 
     public DevHostingConfiguration Configuration { get; }
+    public string ApiToken => _apiToken;
 
     public async Task<bool> Connect()
     {

@@ -103,7 +103,7 @@ public class AssemblyCoverage : CoverageBase
     {
         foreach (var branchCoverage in list)
         {
-            var key = new BranchKey(branchCoverage.LineNumber, branchCoverage.BlockNumber, branchCoverage.BranchNumber);
+            var key = new BranchCoverageKey(branchCoverage.LineNumber, branchCoverage.BlockNumber, branchCoverage.BranchNumber);
             
             if (!mapMethod.Branches.TryGetValue(key, out var mapBranchCoverage))
             {
@@ -210,12 +210,12 @@ public class AssemblyCoverage : CoverageBase
         {
             Method = method;
             Lines = new Dictionary<int, LineCoverage>();
-            Branches = new Dictionary<BranchKey, BranchCoverage>();
+            Branches = new Dictionary<BranchCoverageKey, BranchCoverage>();
         }
 
         public Dictionary<int, LineCoverage> Lines { get; }
 
-        public Dictionary<BranchKey, BranchCoverage> Branches { get; }
+        public Dictionary<BranchCoverageKey, BranchCoverage> Branches { get; }
 
         public MethodSignature Method { get; }
 
@@ -227,44 +227,42 @@ public class AssemblyCoverage : CoverageBase
             return methodCoverage;
         }
     }
+}
 
-    private readonly record struct BranchKey(int LineNumber, int BlockNumber, int BranchNumber) : IComparable<BranchKey>, IComparable
+public readonly record struct BranchCoverageKey(int LineNumber, int BlockNumber, int BranchNumber) : IComparable<BranchCoverageKey>, IComparable
+{
+    public int CompareTo(BranchCoverageKey other)
     {
-        public int CompareTo(BranchKey other)
-        {
-            var lineNumberComparison = LineNumber.CompareTo(other.LineNumber);
-            if (lineNumberComparison != 0) return lineNumberComparison;
-            var blockNumberComparison = BlockNumber.CompareTo(other.BlockNumber);
-            if (blockNumberComparison != 0) return blockNumberComparison;
-            return BranchNumber.CompareTo(other.BranchNumber);
-        }
-
-        public int CompareTo(object? obj)
-        {
-            if (ReferenceEquals(null, obj)) return 1;
-            return obj is BranchKey other ? CompareTo(other) : throw new ArgumentException($"Object must be of type {nameof(BranchKey)}");
-        }
-
-        public static bool operator <(BranchKey left, BranchKey right)
-        {
-            return left.CompareTo(right) < 0;
-        }
-
-        public static bool operator >(BranchKey left, BranchKey right)
-        {
-            return left.CompareTo(right) > 0;
-        }
-
-        public static bool operator <=(BranchKey left, BranchKey right)
-        {
-            return left.CompareTo(right) <= 0;
-        }
-
-        public static bool operator >=(BranchKey left, BranchKey right)
-        {
-            return left.CompareTo(right) >= 0;
-        }
+        var lineNumberComparison = LineNumber.CompareTo(other.LineNumber);
+        if (lineNumberComparison != 0) return lineNumberComparison;
+        var blockNumberComparison = BlockNumber.CompareTo(other.BlockNumber);
+        if (blockNumberComparison != 0) return blockNumberComparison;
+        return BranchNumber.CompareTo(other.BranchNumber);
     }
 
+    public int CompareTo(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return 1;
+        return obj is BranchCoverageKey other ? CompareTo(other) : throw new ArgumentException($"Object must be of type {nameof(BranchCoverageKey)}");
+    }
 
+    public static bool operator <(BranchCoverageKey left, BranchCoverageKey right)
+    {
+        return left.CompareTo(right) < 0;
+    }
+
+    public static bool operator >(BranchCoverageKey left, BranchCoverageKey right)
+    {
+        return left.CompareTo(right) > 0;
+    }
+
+    public static bool operator <=(BranchCoverageKey left, BranchCoverageKey right)
+    {
+        return left.CompareTo(right) <= 0;
+    }
+
+    public static bool operator >=(BranchCoverageKey left, BranchCoverageKey right)
+    {
+        return left.CompareTo(right) >= 0;
+    }
 }

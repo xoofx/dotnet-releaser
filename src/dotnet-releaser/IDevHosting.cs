@@ -19,6 +19,8 @@ public interface IDevHosting
     public ISimpleLogger Logger { get; }
 
     DevHostingConfiguration Configuration { get; }
+
+    string ApiToken { get; }
     
     Task<bool> Connect();
 

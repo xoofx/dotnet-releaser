@@ -14,7 +14,8 @@ public partial class ReleaserApp
         try
         {
             var buildKind = buildInformation.BuildKind;
-            var releaseVersion = new ReleaseVersion(buildInformation.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{buildInformation.Version}", buildInformation.CurrentBranchName is not null ? $"draft-{buildInformation.CurrentBranchName}" : "draft");
+            var branchName = buildInformation.GitInformation?.BranchName;
+            var releaseVersion = new ReleaseVersion(buildInformation.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{buildInformation.Version}", branchName is not null ? $"draft-{branchName}" : "draft");
             if (buildKind == BuildKind.Publish)
             {
                 _logger.LogStartGroup($"Publishing Packages - {releaseVersion}");

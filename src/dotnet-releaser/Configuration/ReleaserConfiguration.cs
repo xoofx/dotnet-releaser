@@ -15,9 +15,11 @@ public class ReleaserConfiguration
 {
     public ReleaserConfiguration()
     {
+        ConfigurationFilePath = string.Empty;
         ArtifactsFolder = "artifacts-dotnet-releaser";
         Packs = new List<PackagingConfiguration>();
         Coverage = new CoverageConfiguration();
+        Coveralls = new CoverallsConfiguration();
         Test = new TestConfiguration();
         MSBuild = new MSBuildConfiguration();
         Changelog = new ChangelogConfiguration();
@@ -30,11 +32,17 @@ public class ReleaserConfiguration
     }
     public PackagingProfileKind Profile { get; set; }
 
+    internal string ConfigurationFilePath { get; set; }
+
+    internal string? ConfigurationFolder => Path.GetDirectoryName(ConfigurationFilePath);
+
     public string ArtifactsFolder { get; set; }
 
     public bool EnablePublishPackagesInDraft { get; set; }
 
     public CoverageConfiguration Coverage { get; }
+
+    public CoverallsConfiguration Coveralls { get; }
 
     public TestConfiguration Test { get; }
 
@@ -93,6 +101,7 @@ public class ReleaserConfiguration
                     return null;
                 }
 
+                configuration.ConfigurationFilePath = filePath;
                 return configuration;
             }
 

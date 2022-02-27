@@ -8,10 +8,14 @@
 
   <ItemGroup>
     <None Remove="coverage.json" />
+    <None Remove="event.json" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="coverage.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="event.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -23,8 +27,8 @@
     <PackageReference Include="coverlet.collector" Version="3.1.0" />
   </ItemGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\dotnet-releaser\dotnet-releaser.csproj" />
   </ItemGroup>
-
 </Project>

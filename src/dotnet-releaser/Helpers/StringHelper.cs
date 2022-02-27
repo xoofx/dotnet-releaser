@@ -1,12 +1,30 @@
-﻿using System.Linq;
-using Wcwidth;
+﻿namespace DotNetReleaser.Helpers;
 
-namespace DotNetReleaser.Helpers;
-
-internal class StringHelper
+internal static class StringHelper
 {
-    public static int Measure(string text)
+    public static int CountNewLines(this string text)
     {
-        return text.EnumerateRunes().Select(x => UnicodeCalculator.GetWidth(x.Value)).Sum();
+        int count = 0;
+        int index = 0;
+        while(true)
+        {
+            index = text.IndexOf('\n', index);
+            if (index > 0)
+            {
+                count++;
+                index++;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (!text.EndsWith('\n'))
+        {
+            count++;
+        }
+
+        return count;
     }
 }

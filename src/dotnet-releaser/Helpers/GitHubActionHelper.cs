@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 
 namespace DotNetReleaser.Helpers;
 
@@ -31,12 +34,25 @@ public static class GitHubActionHelper
             return null;
         }
 
-        return new GitHubActionInfo(owner, repo, eventName, refName, refType);
+        var eventJsonPath = Environment.GetEnvironmentVariable("GITHUB_EVENT_PATH");
+        var eventJson = new Dictionary<string, object?>();
+        if (File.Exists(eventJsonPath))
+        {
+            eventJson = JsonHelper.FromFile(File.ReadAllText(eventJsonPath)) as Dictionary<string, object?> ?? eventJson;
+        }
+
+        return new GitHubActionInfo(owner, repo, eventName, refName, refType, eventJson);
     }
 }
 
 
-public record GitHubActionInfo(string OwnerName, string RepoName, string EventName, string RefName, GitHubActionRefType RefType);
+public record GitHubActionInfo(string OwnerName, string RepoName, string EventName, string RefName, GitHubActionRefType RefType, Dictionary<string, object?> Event)
+{
+    public override string ToString()
+    {
+        return $"user = {OwnerName}, repo = ${RepoName}, event = {EventName}, ref_name = {RefName}, ref_type = {RefType.ToString().ToLowerInvariant()}";
+    }
+}
 
 
 public enum GitHubActionRefType

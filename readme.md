@@ -15,7 +15,8 @@ In practice, `dotnet-releaser` will automate the build and publish process of yo
 - `dotnet nuget push` to publish your package to a NuGet registry
 - [Pretty changelog](https://github.com/xoofx/dotnet-releaser/blob/main/doc/changelog_user_guide.md#11-overview) creation from pull-requests and commits.
 - Create and upload the changelog and all the packages packed to your GitHub repository associated with the release tag.
-
+- It will publish automatically the coverage results to https://coveralls.io if your repository is created there.
+  
 ![overview](https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/doc/overview.drawio.svg)
 
 ## Features

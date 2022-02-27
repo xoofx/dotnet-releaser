@@ -1,12 +1,31 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DotNetReleaser.Coverage;
+using DotNetReleaser.Coverage.Coveralls;
+using DotNetReleaser.Helpers;
 using NUnit.Framework;
 
 namespace DotNetReleaser.Tests;
 
 public class CoverageTests
 {
+    [Test]
+    public void ParseEventJson()
+    {
+        var evt = JsonHelper.FromFile(Path.Combine(AppContext.BaseDirectory, "event.json")) as Dictionary<string, object>;
+
+        Assert.NotNull(evt);
+
+        if (evt!.TryGetValue("number", out var prObject) && prObject is int value)
+        {
+            Assert.AreEqual(2, value);
+        }
+    }
+
     [Test]
     public void TestParser()
     {
@@ -36,5 +55,22 @@ public class CoverageTests
         //        }
         //    }
         //}
+    }
+
+    [Test]
+    public void TestConverterToCoveralls()
+    {
+        using var reader = new FileStream(Path.Combine(AppContext.BaseDirectory, "coverage.json"), FileMode.Open, FileAccess.Read);
+        var assemblyCoverages = CoverletJsonParser.Parse(reader);
+
+        var logger = new MockSimpleLogger();
+        var result = CoverallsHelper.ConvertToCoverallsSourceFiles(logger, assemblyCoverages, @"C:\code\Tomlyn\");
+
+        
+        //var stream = new MemoryStream();
+        //JsonSerializer.Serialize(stream, result, new JsonSerializerOptions() { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull});
+        //stream.Position = 0;
+        //var utf8 = Encoding.UTF8.GetString(stream.ToArray());
+        //Console.WriteLine(utf8);
     }
 }

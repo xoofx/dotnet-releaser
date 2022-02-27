@@ -28,7 +28,7 @@ public enum PackageOutputType
 
 public record BuildInformation(string Version, ProjectPackageInfoCollection[] ProjectPackageInfoCollections)
 {
-    public string? CurrentBranchName { get; set; }
+    public GitInformation? GitInformation { get; set; }
 
     public bool AllowPublishDraft { get; set; }
 

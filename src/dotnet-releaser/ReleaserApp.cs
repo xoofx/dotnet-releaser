@@ -311,6 +311,14 @@ public partial class ReleaserApp
         // Draft if we are just building and not publishing (to allow to update the changelog)
         await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, buildPackages, devHosting, changelog);
 
+        // ------------------------------------------------------------------
+        // Publish coverage results + (deb, zip, rpm, tar...)
+        // ------------------------------------------------------------------
+        if (!HasErrors && devHosting is not null)
+        {
+            await PublishCoveralls(devHosting, buildInformation);
+        }
+        
         return !HasErrors;
     }
 
