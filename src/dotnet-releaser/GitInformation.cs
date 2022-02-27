@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using DotNetReleaser.Logging;
 using LibGit2Sharp;
@@ -13,13 +12,14 @@ public class GitInformation
         Repository = repository;
         Head = repository.Head.Tip;
         Branch = branch;
+        BranchName = GetShortBranchName(branch);
     }
 
     public Repository Repository { get; }
 
     public Branch Branch { get; }
 
-    public string BranchName => Branch.FriendlyName;
+    public string BranchName { get; }
 
     public Commit Head { get; }
 
@@ -35,7 +35,7 @@ public class GitInformation
         var repository = new Repository(repositoryPath);
 
         var branchesFound = repository.Branches.Where(branch => branch.Tip != null && branch.Tip.Sha == repository.Head.Tip.Sha).ToList();
-        var branchNamesFound = branchesFound.Select(x => x.FriendlyName).ToList();
+        var branchNamesFound = branchesFound.Select(GetShortBranchName).ToList();
 
         var branchName = branchNamesFound.FirstOrDefault(branches.Contains) ?? branchNamesFound.FirstOrDefault() ?? string.Empty;
 
@@ -52,5 +52,22 @@ public class GitInformation
         var branch = branchesFound.First(x => x.FriendlyName == branchName);
 
         return new GitInformation(repository, branch);
+    }
+
+    private static string GetShortBranchName(Branch branch)
+    {
+        var branchName = branch.FriendlyName;
+
+        // If we have a remote branch, extract the local name
+        if (branch.IsRemote)
+        {
+            var branchNameParts = branch.FriendlyName.Split('/');
+            if (branchNameParts.Length == 2)
+            {
+                branchName = branchNameParts[1];
+            }
+        }
+
+        return branchName;
     }
 }
