@@ -21,7 +21,7 @@ In practice, `dotnet-releaser` will automate the build and publish process of yo
 
 ## Features
 
-- **Very simple to use, configure and [integrate into your GitHub Action CI](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md#3-adding-dotnet-releaser-to-your-ci-on-github)**
+- **Very simple to use, configure and [integrate into your GitHub Action CI](https://github.com/xoofx/dotnet-releaser/tree/main/doc#12-adding-dotnet-releaser-to-your-ci-on-github)**
 - **Build** and **tests** your .NET libraries and applications from **multiple solutions**.
 - Add automatic **coverage** support via [coverlet](https://github.com/coverlet-coverage/coverlet) with your tests.
 - **Cross-compile** your .NET 6.0+ application to **9+ OS/CPU targets**.
@@ -72,6 +72,7 @@ By default, `dotnet-releaser` will:
   ```
   dotnet-releaser build --force dotnet-releaser.toml
   ```
+- If you want to integrate it to GitHub Action, use the `dotnet-releaser run` command. More details in the doc _[Adding dotnet-releaser to your CI on GitHub](https://github.com/xoofx/dotnet-releaser/tree/main/doc#12-adding-dotnet-releaser-to-your-ci-on-github)_
 
 See the user guide below for further details on how to use `dotnet-releaser`.
 

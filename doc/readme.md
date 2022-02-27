@@ -184,6 +184,13 @@ An example of a setup with GitHub Actions:
         dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.GITHUB_TOKEN}} src/dotnet-releaser.toml
 ```
 
+> **NOTE about tokens:**
+> 
+> In order to publish changelogs, NuGet and app packages to NuGet and GitHub, you need to specify secrets tokens:
+> 
+> - `${{secrets.GITHUB_TOKEN}}` is available by default on GitHub Action and allow to interact directly with your repository. Nothing to create here. Unless you are going to publish an application to a separate Homebrew repository, and in that case you need to create an extra token. See [Homebrew documentation](#29-homebrew) for more details.
+> - `${{secrets.NUGET_TOKEN}}` needs to be created in your repository settings and add a secrets with the key `NUGET_TOKEN` by generating the token directly on your NuGet account [here](https://www.nuget.org/account/apikeys).
+
 > `dotnet-releaser` is currently not available as a GitHub Action, as it requires anyway `dotnet` to be installed (in order to compile the projects). As you can see, the integration is very straightforward with .NET global tools.
 
 If you want to see an example of integration in a real project on GitHub, checkout this [ci.yml from the project grpc-curl](https://github.com/xoofx/grpc-curl/blob/329ac4fce0c7840fbca63c0b66400fc24bce3791/.github/workflows/ci.yml#L42-L50).
