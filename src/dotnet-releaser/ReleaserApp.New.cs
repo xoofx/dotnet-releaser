@@ -18,33 +18,6 @@ public partial class ReleaserApp
             return false;
         }
 
-        var finalProjectFilePath = Path.Combine(Environment.CurrentDirectory, projectFile);
-        string? changeLogPath = null;
-        if (!File.Exists(finalProjectFilePath))
-        {
-            Warn($"The project file path `{finalProjectFilePath}` was not found.");
-        }
-        else
-        {
-            var file = new FileInfo(finalProjectFilePath);
-            var originalDir = file.Directory!;
-            var dir = originalDir;
-            var dirPath = "";
-            while (dir is not null)
-            {
-                changeLogPath = Path.Combine(dir.FullName, "changelog.md");
-                if (File.Exists(changeLogPath))
-                {
-                    changeLogPath = $"{dirPath}{Path.GetFileName(changeLogPath)}";
-                    break;
-                }
-
-                changeLogPath = null;
-                dir = dir.Parent;
-                dirPath += "../";
-            }
-        }
-
         var configAsText = $@"# configuration file for dotnet-releaser
 [msbuild]
 project = ""{projectFile.Replace('\\', '/')}""
@@ -52,13 +25,6 @@ project = ""{projectFile.Replace('\\', '/')}""
 user = ""{user ?? "github_user_or_org_here"}""
 repo = ""{repo ?? "github_repo_here"}""
 ";
-        if (changeLogPath is not null)
-        {
-            configAsText += $@"[changelog]
-path = ""{changeLogPath.Replace('\\', '/')}""
-";
-        }
-
 
         // Normalize the output
         configAsText = configAsText.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);

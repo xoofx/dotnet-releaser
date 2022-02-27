@@ -104,7 +104,7 @@ public partial class ReleaserApp
         app.Command("new", newCommand =>
             {
                 newCommand.Description = "Create a dotnet-releaser TOML configuration file for a specified project.";
-                var configurationFileArg = AddTomlConfigurationArgument(newCommand, false);
+                var configurationFileArg = AddTomlConfigurationArgument(newCommand, true);
                 var projectOption = newCommand.Option<string>("--project <project_file>", "A - relative - path to project file (csproj, vbproj, fsproj)", CommandOptionType.SingleValue).IsRequired();
                 var userOption = newCommand.Option<string>("--user <GitHub_user/org>", "The GitHub user/org where the packages will be published", CommandOptionType.SingleValue);
                 var repoOption = newCommand.Option<string>("--repo <GitHub_repo>", "The GitHub repo name where the packages will be published", CommandOptionType.SingleValue);
