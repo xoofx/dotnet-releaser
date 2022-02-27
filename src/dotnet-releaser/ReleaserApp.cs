@@ -36,11 +36,17 @@ public partial class ReleaserApp
 
     private ReleaserApp(ISimpleLogger logger)
     {
+        ExeName = "dotnet-releaser";
         _logger = logger;
         _config = new ReleaserConfiguration();
         _assemblyCoverages = new List<AssemblyCoverage>();
         _tableBorder = TableBorder.Square;
+        Version = typeof(ReleaserApp).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?.?.?";
     }
+
+    public string ExeName { get; }
+
+    public string Version { get; }
 
     /// <summary>
     /// Main entry for the releaser. Parser the argument and delegate to <see cref="RunImpl"/>
@@ -83,14 +89,13 @@ public partial class ReleaserApp
         var exeName = "dotnet-releaser";
         var logger = SimpleLogger.CreateConsoleLogger(factory, exeName);
         var appReleaser = new ReleaserApp(logger);
-        var version = typeof(ReleaserApp).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?.?.?";
 
         var app = new CommandLineApplication
         {
             Name = exeName,
         };
 
-        app.VersionOption("--version", $"{app.Name} {version} - {DateTime.Now.Year} (c) Copyright Alexandre Mutel", version);
+        app.VersionOption("--version", $"{app.Name} {appReleaser.Version} - {DateTime.Now.Year} (c) Copyright Alexandre Mutel", appReleaser.Version);
         app.HelpOption(inherited: true);
         app.Command("publish", AddPublishOrBuildArgs);
         app.Command("build", AddPublishOrBuildArgs);
@@ -257,7 +262,8 @@ public partial class ReleaserApp
         ChangelogResult? changelog = null;
         try
         {
-            _logger.LogStartGroup("Configuring");
+            _logger.Info($"dotnet-releaser {Version} - {buildKind.ToString().ToLowerInvariant()}");
+            _logger.LogStartGroup($"Configuring");
             var result = await Configuring(configurationFile, buildKind, githubApiToken, githubApiTokenExtra, nugetApiToken, forceArtifactsFolder);
             if (result is null) return false;
             buildInformation = result.Value.buildInformation!;

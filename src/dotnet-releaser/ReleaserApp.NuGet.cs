@@ -15,7 +15,7 @@ public partial class ReleaserApp
 
         try
         {
-            _logger.LogStartGroup("NuGet Packaging");
+            _logger.LogStartGroup($"NuGet Packaging - {buildInfo.Version}");
             foreach (var projectPackageInfo in buildInfo.GetAllPackableProjects())
             {
                 var nugetPackages = await BuildNuGetPackageImpl(projectPackageInfo);
@@ -43,7 +43,7 @@ public partial class ReleaserApp
 
     private async Task<List<string>?> BuildNuGetPackageImpl(ProjectPackageInfo projectPackageInfo)
     {
-        Info($"Building NuGet Package");
+        Info($"Building NuGet Package - {projectPackageInfo.Name}");
         var restoreResult = await RunMSBuild(projectPackageInfo.ProjectFullPath, "Restore");
         if (restoreResult is null)
         {

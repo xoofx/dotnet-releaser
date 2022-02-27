@@ -258,7 +258,7 @@ public class GitHubDevHosting : IDevHosting
     {
         var releases = await _client.Repository.Release.GetAll(user, repo);
 
-        string versionTagForDraft = version.DraftBranchName;
+        string versionTagForDraft = version.DraftName;
         var tag = version.IsDraft ? versionTagForDraft : version.Tag;
 
         Release? release = null;
