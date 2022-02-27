@@ -151,12 +151,14 @@ You can easily replace all the steps used to build, tests, cover, pack and publi
 
 In order to use `dotnet-releaser` on your GitHub CI, you need:
 
-1. To install `dotnet 6.0`
-2. To install the global tool `dotnet-releaser`
+1. Checkout your repository with the correct settings with [actions/checkout](https://github.com/actions/checkout) 
+   - Verify that you are using `v2` and by setting the property `fetch-depth: 0` to get all previous tags. See example below.
+2. To install `dotnet 6.0`
+3. To install the global tool `dotnet-releaser`
   ```sh
   dotnet tool install --global dotnet-releaser
   ```
-3. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
+4. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
   ```sh
   dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.GITHUB_TOKEN}} src/dotnet-releaser.toml
   ```
@@ -173,6 +175,12 @@ Depending on the kind of GitHub event, the run command will automatically:
 An example of a setup with GitHub Actions:
 
 ```yaml
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
     - name: Install .NET 6.0
       uses: actions/setup-dotnet@v1
       with:

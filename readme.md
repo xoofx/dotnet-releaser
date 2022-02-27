@@ -72,7 +72,26 @@ By default, `dotnet-releaser` will:
   ```
   dotnet-releaser build --force dotnet-releaser.toml
   ```
-- If you want to integrate it to GitHub Action, use the `dotnet-releaser run` command. More details in the doc _[Adding dotnet-releaser to your CI on GitHub](https://github.com/xoofx/dotnet-releaser/tree/main/doc#12-adding-dotnet-releaser-to-your-ci-on-github)_
+- If you want to integrate it to GitHub Action, use the `dotnet-releaser run` command. More details in the doc _[Adding dotnet-releaser to your CI on GitHub](https://github.com/xoofx/dotnet-releaser/tree/main/doc#12-adding-dotnet-releaser-to-your-ci-on-github)_. It is no more complicated than adding the following lines in your GitHub workflow file:
+  ```yaml
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Install .NET 6.0
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+
+    - name: Build, Tests, Cover, Pack and Publish (on push tag)
+      run: |
+        dotnet tool install --global dotnet-releaser
+        dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.GITHUB_TOKEN}} src/dotnet-releaser.toml
+  ```
+
+
 
 See the user guide below for further details on how to use `dotnet-releaser`.
 
@@ -85,10 +104,14 @@ This software is released under the [BSD-Clause 2 license](https://opensource.or
 
 ## Who is using `dotnet-releaser`?
 
-It's brand new, so only the author for now! :D
+It's brand new, so it's mainly used by the author for now! :innocent:
 
-You can see it's usage on the project [grpc-curl here](https://github.com/xoofx/grpc-curl/releases/tag/1.3.2).
+You can visit the `.github/workflows` folder, or check the release notes of the following projects to see `dotnet-releaser` in action:
 
+- [grpc-curl](https://github.com/xoofx/grpc-curl): An application shipping multiple executables
+- [Scriban](https://github.com/scriban/scriban): A regular .NET library
+- [Tomlyn](https://github.com/xoofx/Tomlyn): A regular .NET library
+- [Zio](https://github.com/xoofx/zio): A regular .NET library
 ## Credits
 
 `dotnet-releaser` is a wrapper around many amazing OSS libraries:
