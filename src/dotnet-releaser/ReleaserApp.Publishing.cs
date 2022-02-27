@@ -8,7 +8,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task PublishPackagesAndChangelog(string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration, List<(ProjectPackageInfo, List<AppPackageInfo>)> buildPackages, IDevHosting? devHosting, ChangelogResult? changelog)
+    private async Task PublishPackagesAndChangelog(string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration, List<(ProjectPackageInfo, List<AppPackageInfo>)> buildPackages, IDevHosting? devHosting, IDevHosting? devHostingExtra, ChangelogResult? changelog)
     {
         bool groupStarted = false;
         try
@@ -37,6 +37,13 @@ public partial class ReleaserApp
                         if (!HasErrors && _config.Brew.Publish)
                         {
                             UpdateHomebrewConfigurationFromPackage(packageInfo);
+
+                            // Log an error if we don't have an extra access for homebrew
+                            if (devHostingExtra is not null)
+                            {
+                                devHostingExtra = devHosting;
+                                Warn("Warning, publishing a new Homebrew formula requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
+                            }
 
                             var brewFormula = HomebrewHelper.CreateFormula(devHosting, packageInfo, entriesToPublish);
 

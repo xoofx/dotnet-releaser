@@ -15,7 +15,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? nugetApiToken, bool forceArtifactsFolder)
+    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder)
     {
         // ------------------------------------------------------------------
         // Load Configuration
@@ -43,12 +43,23 @@ public partial class ReleaserApp
         var hostingConfiguration = _config.GitHub;
 
         IDevHosting? devHosting = null;
+        IDevHosting? devHostingExtra = null;
 
         // Connect to GitHub if we have a token
         if (!string.IsNullOrEmpty(githubApiToken))
         {
             devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken);
             if (devHosting is null)
+            {
+                return null; // return false;
+            }
+        }
+
+        // Connet to GitHub for extra access
+        if (!string.IsNullOrEmpty(githubApiTokenExtra))
+        {
+            devHostingExtra = await ConnectToDevHosting(hostingConfiguration, githubApiTokenExtra);
+            if (devHostingExtra is null)
             {
                 return null; // return false;
             }
@@ -153,6 +164,6 @@ public partial class ReleaserApp
         // Store the build kind
         buildInformation.BuildKind = buildKind;
 
-        return (buildInformation, devHosting);
+        return (buildInformation, devHosting, devHostingExtra);
     }
 }

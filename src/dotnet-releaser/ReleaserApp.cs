@@ -135,6 +135,11 @@ public partial class ReleaserApp
             return cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
         }
 
+        CommandOption<string> AddGitHubTokenExtra(CommandLineApplication cmd)
+        {
+            return cmd.Option<string>("--github-token-extra <token>", "GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This token has usually more access than the --github-token that is only used for the current repository. ", CommandOptionType.SingleValue);
+        }
+
         CommandArgument<string> AddTomlConfigurationArgument(CommandLineApplication cmd, bool forNew)
         {
             var arg = cmd.Argument<string>("dotnet-releaser.toml", forNew ? "TOML configuration file path to create. Default is: dotnet-releaser.toml" : "The input TOML configuration file.");
@@ -144,15 +149,17 @@ public partial class ReleaserApp
 
         void AddPublishOrBuildArgs(CommandLineApplication cmd)
         {
-            CommandOption<string>? githubToken = null;
             CommandOption<string>? nugetToken = null;
+            CommandOption<string>? gitHubTokenExtra = null;
 
-            githubToken = AddGitHubToken(cmd);
+            var githubToken = AddGitHubToken(cmd);
 
             if (cmd.Name == "publish" || cmd.Name == "run")
             {
                 cmd.Description = cmd.Name == "run" ? "Automatically build and publish a project when running from a GitHub Action based on which branch is active, if there is a tag (for publish), and if the change is a `push`." : "Build and publish the project.";
                 nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
+
+                gitHubTokenExtra = AddGitHubTokenExtra(cmd);
             }
             else
             {
@@ -179,7 +186,7 @@ public partial class ReleaserApp
                 {
                     appReleaser._tableBorder = GetTableBorderFromKind(tableKindOption.ParsedValue);
                 }
-                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue ?? string.Empty, nugetToken?.ParsedValue, forceOption.ParsedValue);
+                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue);
                 return result ? 0 : 1;
             });
         }
@@ -241,19 +248,21 @@ public partial class ReleaserApp
     /// <summary>
     /// Runs the releaser app
     /// </summary>
-    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? nugetApiToken, bool forceArtifactsFolder)
+    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder)
     {
         BuildInformation? buildInformation = null;
         GitHubDevHostingConfiguration? hostingConfiguration = null;
         IDevHosting? devHosting = null;
+        IDevHosting? devHostingExtra = null;
         ChangelogResult? changelog = null;
         try
         {
             _logger.LogStartGroup("Configuring");
-            var result = await Configuring(configurationFile, buildKind, githubApiToken, nugetApiToken, forceArtifactsFolder);
+            var result = await Configuring(configurationFile, buildKind, githubApiToken, githubApiTokenExtra, nugetApiToken, forceArtifactsFolder);
             if (result is null) return false;
             buildInformation = result.Value.buildInformation!;
             devHosting = result.Value.devHosting;
+            devHostingExtra = result.Value.devHostingExtra;
             hostingConfiguration = _config.GitHub;
         }
         finally
@@ -309,7 +318,7 @@ public partial class ReleaserApp
         // Publish all packages NuGet + (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
         // Draft if we are just building and not publishing (to allow to update the changelog)
-        await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, buildPackages, devHosting, changelog);
+        await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, buildPackages, devHosting, devHostingExtra, changelog);
 
         // ------------------------------------------------------------------
         // Publish coverage results + (deb, zip, rpm, tar...)

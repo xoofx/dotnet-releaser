@@ -551,6 +551,10 @@ This repository will contain:
 
 See for example the generated [Homebrew repository for grpc-curl](https://github.com/xoofx/homebrew-grpc-curl)
 
+> NOTE: In order to create and publish to a different repository, you will need to create a personal access GitHub Token and pass it to `--github-token-extra`.
+> 
+> By default the `${{secrets.GITHUB_TOKEN}}` is only valid to interact with the current repository.
+
 ### 2.10. Changelog
 
 `dotnet-releaser` comes with great defaults that can generate automatically your changelog from your commits and pull-requests.
@@ -725,16 +729,19 @@ Build and publish the project.
 Usage: dotnet-releaser publish [options] <dotnet-releaser.toml>
 
 Arguments:
-  dotnet-releaser.toml    The input TOML configuration file.
+  dotnet-releaser.toml          The input TOML configuration file.
 
 Options:
-  --github-token <token>  GitHub Api Token. Required if publish to GitHub is true in the config file
-  --nuget-token <token>   NuGet Api Token. Required if publish to NuGet is true in the config file
-  --table                 Specifies the rendering of the tables. Default is square.
-                          Allowed values are: None, Ascii, Ascii2, AsciiDoubleHead, Square, Rounded, Minimal, MinimalHeavyHead, MinimalDoubleHead, Simple, SimpleHeavy, Horizontal, Heavy, HeavyEdge, HeavyHead, Double, DoubleEdge, Markdown.
-                          Default value is: Square.
-  --force                 Force deleting and recreating the artifacts folder.
-  -?|-h|--help            Show help information.
+  --github-token <token>        GitHub Api Token. Required if publish to GitHub is true in the config file
+  --nuget-token <token>         NuGet Api Token. Required if publish to NuGet is true in the config file
+  --github-token-extra <token>  GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This token has
+                                usually more access than the --github-token that is only used for the current repository.
+  --table                       Specifies the rendering of the tables. Default is square.
+                                Allowed values are: None, Ascii, Ascii2, AsciiDoubleHead, Square, Rounded, Minimal, MinimalHeavyHead, MinimalDoubleHead, Simple, SimpleHeavy, Horizontal, Heavy, HeavyEdge, HeavyHead, Double, DoubleEdge,
+                                Markdown.
+                                Default value is: Square.
+  --force                       Force deleting and recreating the artifacts folder.
+  -?|-h|--help                  Show help information.
 ```
 
 
@@ -750,16 +757,19 @@ Automatically build and publish a project when running from a GitHub Action base
 Usage: dotnet-releaser run [options] <dotnet-releaser.toml>
 
 Arguments:
-  dotnet-releaser.toml    The input TOML configuration file.
+  dotnet-releaser.toml          The input TOML configuration file.
 
 Options:
-  --github-token <token>  GitHub Api Token. Required if publish to GitHub is true in the config file
-  --nuget-token <token>   NuGet Api Token. Required if publish to NuGet is true in the config file
-  --table                 Specifies the rendering of the tables. Default is square.
-                          Allowed values are: None, Ascii, Ascii2, AsciiDoubleHead, Square, Rounded, Minimal, MinimalHeavyHead, MinimalDoubleHead, Simple, SimpleHeavy, Horizontal, Heavy, HeavyEdge, HeavyHead, Double, DoubleEdge, Markdown.
-                          Default value is: Square.
-  --force                 Force deleting and recreating the artifacts folder.
-  -?|-h|--help            Show help information.
+  --github-token <token>        GitHub Api Token. Required if publish to GitHub is true in the config file
+  --github-token-extra <token>  GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This token has
+                                usually more access than the --github-token that is only used for the current repository.
+  --nuget-token <token>         NuGet Api Token. Required if publish to NuGet is true in the config file
+  --table                       Specifies the rendering of the tables. Default is square.
+                                Allowed values are: None, Ascii, Ascii2, AsciiDoubleHead, Square, Rounded, Minimal, MinimalHeavyHead, MinimalDoubleHead, Simple, SimpleHeavy, Horizontal, Heavy, HeavyEdge, HeavyHead, Double, DoubleEdge,
+                                Markdown.
+                                Default value is: Square.
+  --force                       Force deleting and recreating the artifacts folder.
+  -?|-h|--help                  Show help information.
 ```
 
 ### 3.5. `dotnet-releaser changelog`
