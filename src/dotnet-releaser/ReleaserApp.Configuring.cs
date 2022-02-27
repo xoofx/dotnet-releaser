@@ -133,7 +133,7 @@ public partial class ReleaserApp
                 buildInformation.AllowPublishDraft = true;
             }
 
-            if (string.IsNullOrEmpty(nugetApiToken))
+            if (_config.NuGet.Publish && string.IsNullOrEmpty(nugetApiToken))
             {
                 Error("Publishing to NuGet requires to pass --nuget-token");
                 return null; // return false;
