@@ -74,8 +74,8 @@ public partial class ReleaserApp
                     Id = gitInfo.Head.Sha,
                     AuthorName = gitInfo.Head.Author.Name,
                     AuthorEmail = gitInfo.Head.Author.Email,
-                    CommitterEmail = gitInfo.Head.Committer.Name,
-                    CommitterName = gitInfo.Head.Committer.Email,
+                    CommitterName = gitInfo.Head.Committer.Name,
+                    CommitterEmail = gitInfo.Head.Committer.Email,
                     Message = gitInfo.Head.MessageShort,
                 },
                 Remotes =
