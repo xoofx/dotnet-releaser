@@ -38,7 +38,14 @@ public static class GitHubActionHelper
         var eventJson = new Dictionary<string, object?>();
         if (File.Exists(eventJsonPath))
         {
-            eventJson = JsonHelper.FromFile(File.ReadAllText(eventJsonPath)) as Dictionary<string, object?> ?? eventJson;
+            try
+            {
+                eventJson = JsonHelper.FromFile(eventJsonPath) as Dictionary<string, object?> ?? eventJson;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error while reading GITHUB_EVENT_PATH {eventJsonPath}. Reason: {ex.Message}");
+            }
         }
 
         return new GitHubActionInfo(owner, repo, eventName, refName, refType, eventJson);
