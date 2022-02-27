@@ -96,6 +96,8 @@ public partial class ReleaserApp
 
     private async Task PublishNuGet(ProjectPackageInfo projectPackageInfo, string nugetSecretKey)
     {
+        if (!_config.NuGet.Publish) return;
+
         Info($"Publishing NuGet {projectPackageInfo.Version}");
         try
         {
