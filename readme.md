@@ -39,15 +39,17 @@ By default, `dotnet-releaser` will:
 - **Run tests** in Release
 - **Create NuGet packages** for libraries and your application (packed as a .NET global tool)
 - **Create application packages** for any packable application in your project:
-  - `[win-x64]` with `[zip]` package            
-  - `[win-arm]` with `[zip]` package            
-  - `[win-arm64]` with `[zip]` package          
-  - `[linux-x64]` with `[deb, tar]` packages    
-  - `[linux-arm]` with `[deb, tar]` packages    
-  - `[linux-arm64]` with `[deb, tar]` packages  
-  - `[rhel-x64]` with `[rpm, tar]` packages     
-  - `[osx-x64]` with `[tar]` package            
-  - `[osx-arm64]` with `[tar]` package          
+  | Platform        | Packages         |
+  |-----------------|------------------|
+  | `win-x64`       | `zip`
+  | `win-arm`       | `zip`
+  | `win-arm64`     | `zip`
+  | `linux-x64`     | `deb`, `tar`
+  | `linux-arm`     | `deb`, `tar`
+  | `linux-arm64`   | `deb`, `tar`
+  | `rhel-x64`      | `rpm`, `tar`
+  | `osx-x64`       | `tar`
+  | `osx-arm64`     | `tar`
 - **Publish your application as a global tool to NuGet**
 - **Upload all the package artifacts and your changelog to GitHub** on the tag associated with your package version (e.g your package is `1.0.0`, it will try to find a git tag `v1.0.0` or `1.0.0`).
 - **Create a Homebrew repository and formula**  (e.g `user_or_org/homebrew-your-app-name`) for all the tar files associated with the targets for Linux and MacOS.
