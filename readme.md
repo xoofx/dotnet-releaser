@@ -90,10 +90,8 @@ By default, `dotnet-releaser` will:
     - name: Build, Tests, Cover, Pack and Publish (on push tag)
       run: |
         dotnet tool install --global dotnet-releaser
-        dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.GITHUB_TOKEN}} src/dotnet-releaser.toml
+        dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN != '' && secrets.NUGET_TOKEN || 'no_token'}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
   ```
-
-
 
 See the user guide below for further details on how to use `dotnet-releaser`.
 

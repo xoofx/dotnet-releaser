@@ -126,7 +126,7 @@ HelloWorld.1.0.0.win-x64.zip
 The `publish` command allows to build and publish all packages to GitHub and NuGet.
 
 ```shell
-dotnet-releaser publish --force --github-token ${{secrets.GITHUB_TOKEN}} --nuget-token YOUR_NUGET_TOKEN_HERE  dotnet-releaser.toml
+dotnet-releaser publish --force --github-token "${{secrets.GITHUB_TOKEN}}" --nuget-token "${{secrets.YOUR_NUGET_SECRET_TOKEN}}"  dotnet-releaser.toml
 ```
 
 > NOTE: When running from a GitHub Action, it is recommended to use the predefined `GITHUB_TOKEN` accessible from your secrets: `${{secrets.GITHUB_TOKEN}}`.
@@ -160,7 +160,7 @@ In order to use `dotnet-releaser` on your GitHub CI, you need:
   ```
 4. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
   ```sh
-  dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.GITHUB_TOKEN}} src/dotnet-releaser.toml
+  dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN != '' && secrets.NUGET_TOKEN || 'no_token'}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
   ```
 
 Depending on the kind of GitHub event, the run command will automatically:
@@ -189,7 +189,7 @@ An example of a setup with GitHub Actions:
     - name: Build, Tests, Cover, Pack and Publish (on push tag)
       run: |
         dotnet tool install --global dotnet-releaser
-        dotnet-releaser run --nuget-token ${{secrets.NUGET_TOKEN}} --github-token ${{secrets.GITHUB_TOKEN}} src/dotnet-releaser.toml
+        dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN != '' && secrets.NUGET_TOKEN || 'no_token'}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
 ```
 
 > **NOTE about tokens:**
