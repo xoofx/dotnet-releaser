@@ -59,7 +59,7 @@ public partial class ReleaserApp
             {
                 if (devHosting is not null && !_config.Changelog.DisableDraftForBuild && buildInformation.AllowPublishDraft)
                 {
-                    _logger.LogStartGroup(_config.EnablePublishPackagesInDraft ? $"Publishing Draft Changelog and App Packages- {releaseVersion}" : $"Publishing Draft Changelog - {releaseVersion}");
+                    _logger.LogStartGroup(_config.EnablePublishPackagesInDraft ? $"Publishing Draft Changelog and App Packages - {releaseVersion}" : $"Publishing Draft Changelog - {releaseVersion}");
                     groupStarted = true;
                     foreach (var (packageInfo, entriesToPublish) in buildPackages)
                     {

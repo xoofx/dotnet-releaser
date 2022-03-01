@@ -61,7 +61,7 @@ public partial class ReleaserApp
 
         if (hasPackagesToBuild)
         {
-            _logger.LogStartGroup($"App Packaging {packageInfo.Name}");
+            _logger.LogStartGroup($"App Packaging {packageInfo.Name} - {packageInfo.Version}");
             // Don't log an empty line
             _logger.InfoMarkup("Platforms and Packages Configured:", table);
             try

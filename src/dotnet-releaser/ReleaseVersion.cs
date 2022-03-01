@@ -4,6 +4,6 @@ public record ReleaseVersion(string Version, bool IsDraft, string Tag, string Dr
 {
     public override string ToString()
     {
-        return IsDraft ? $"version: {Version}, draft-name: {DraftName}" : $"version: {Version}";
+        return IsDraft ? $"{Version} (draft: \"{DraftName}\")" : Version;
     }
 }

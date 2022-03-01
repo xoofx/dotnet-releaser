@@ -283,7 +283,7 @@ public partial class ReleaserApp
         {
             try
             {
-                _logger.LogStartGroup("Preparing Changelog");
+                _logger.LogStartGroup($"Preparing Changelog - {buildInformation.Version}");
                 changelog = await CreateChangeLog(devHosting, buildInformation.Version);
                 if (changelog is not null)
                 {
