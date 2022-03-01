@@ -160,8 +160,9 @@ In order to use `dotnet-releaser` on your GitHub CI, you need:
   ```
 4. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
   ```sh
-  dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN != '' && secrets.NUGET_TOKEN || 'no_token'}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
+  dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
   ```
+  It is recommended to use `shell: bash` on GitHub Action so that if a secrets token is empty, bash won't remove the quotes, [unlike pwsh](https://github.com/PowerShell/PowerShell/issues/1995).
 
 Depending on the kind of GitHub event, the run command will automatically:
 
@@ -187,13 +188,16 @@ An example of a setup with GitHub Actions:
         dotnet-version: '6.0.x'
 
     - name: Build, Tests, Cover, Pack and Publish (on push tag)
+      shell: bash
       run: |
         dotnet tool install --global dotnet-releaser
-        dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN != '' && secrets.NUGET_TOKEN || 'no_token'}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
+        dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
 ```
 
 > **NOTE about tokens:**
-> 
+>
+> It is recommended to use `shell: bash` on GitHub Action so that if a secrets token is empty, bash won't remove the quotes, [unlike pwsh](https://github.com/PowerShell/PowerShell/issues/1995).
+>
 > In order to publish changelogs, NuGet and app packages to NuGet and GitHub, you need to specify secrets tokens:
 > 
 > - `${{secrets.GITHUB_TOKEN}}` is available by default on GitHub Action and allow to interact directly with your repository. Nothing to create here. Unless you are going to publish an application to a separate Homebrew repository, and in that case you need to create an extra token. See [Homebrew documentation](#29-homebrew) for more details.
