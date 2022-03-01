@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -90,6 +91,32 @@ public partial class ReleaserApp
         var logger = SimpleLogger.CreateConsoleLogger(factory, exeName);
         var appReleaser = new ReleaserApp(logger);
 
+        // -----------------------------------------------------------------
+        // Workaround with a PowerShell limitation that is stripping empty arguments "" from passing them to dotnet-releaser
+        // See issue https://github.com/PowerShell/PowerShell/issues/1995
+        // In order to protect against such error, we emit a more detailed error for the obvious cases with some guidance.
+        // -----------------------------------------------------------------
+        var previousArg = string.Empty;
+        var protectedArgs = new[] { "--github-token", "--nuget-token", "--github-token-extra" };
+        foreach (var arg in args)
+        {
+            if (protectedArgs.Contains(previousArg) && (protectedArgs.Contains(arg) || arg.EndsWith(".toml", StringComparison.OrdinalIgnoreCase)))
+            {
+                appReleaser.Error($"Invalid argument passed `{previousArg} {arg}` (All arguments: {string.Join(" ", args)}). Check that you are not passing an empty string to the argument `{previousArg}`. If you are using PowerShell running on GitHub Action, please use bash instead to avoid such limitation.");
+                break;
+            }
+            previousArg = arg;
+        }
+
+        // Early exit
+        if (appReleaser.HasErrors)
+        {
+            return 1;
+        }
+
+        // -----------------------------------------------------------------
+        // Declare command line arguments
+        // -----------------------------------------------------------------
         var app = new CommandLineApplication
         {
             Name = exeName,
