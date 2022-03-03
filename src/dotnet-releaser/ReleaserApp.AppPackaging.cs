@@ -37,59 +37,53 @@ public partial class ReleaserApp
         var entriesToPublish = new List<AppPackageInfo>();
 
         // No AppPackages to build for libraries
-        if (packageInfo.OutputType == PackageOutputType.Library)
+        if (packageInfo.OutputType == PackageOutputType.Library || _config.Packs.Count == 0)
         {
             return entriesToPublish;
         }
-        
+
+        _logger.LogStartGroup($"App Packaging {packageInfo.Name} - {packageInfo.Version}");
+
         var table = new Table();
         table.AddColumn("Platform");
         table.AddColumn("Packages");
+        table.AddColumn(new TableColumn("Publish?").Centered());
         table.Border = _tableBorder;
-        
-        bool hasPackagesToBuild = false;
+
         foreach (var pack in _config.Packs)
         {
-            foreach (var rid in pack.RuntimeIdentifiers)
-            {
-                if (pack.Publish) hasPackagesToBuild = true;
-
-                var kinds = string.Join(", ", pack.Kinds.Select(x => x.ToString().ToLowerInvariant()));
-                table.AddRow(rid, kinds);
-            }
+            var rids = string.Join(", ", pack.RuntimeIdentifiers.Select(x => x.ToString().ToLowerInvariant()));
+            var kinds = string.Join(", ", pack.Kinds.Select(x => x.ToString().ToLowerInvariant()));
+            var publish = pack.Publish ? "x" : string.Empty;
+            table.AddRow(rids, kinds, publish);
         }
 
-        if (hasPackagesToBuild)
+        _logger.InfoMarkup("Platforms and Packages Configured:", table);
+        try
         {
-            _logger.LogStartGroup($"App Packaging {packageInfo.Name} - {packageInfo.Version}");
-            // Don't log an empty line
-            _logger.InfoMarkup("Platforms and Packages Configured:", table);
-            try
+            foreach (var pack in _config.Packs)
             {
-                foreach (var pack in _config.Packs)
+                foreach (var rid in pack.RuntimeIdentifiers)
                 {
-                    foreach (var rid in pack.RuntimeIdentifiers)
-                    {
-                        var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
-                        if (HasErrors) goto exitPackOnError; // break on first errors
+                    var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
+                    if (HasErrors) goto exitPackOnError; // break on first errors
 
-                        if (list is not null && pack.Publish)
-                        {
-                            entriesToPublish.AddRange(list);
-                        }
+                    if (list is not null && pack.Publish)
+                    {
+                        entriesToPublish.AddRange(list);
                     }
                 }
+            }
 
-                exitPackOnError:
-                if (HasErrors)
-                {
-                    Error($"Error while building platform packages for `{packageInfo.Name}`.");
-                }
-            }
-            finally
+            exitPackOnError:
+            if (HasErrors)
             {
-                _logger.LogEndGroup();
+                Error($"Error while building platform packages for `{packageInfo.Name}`.");
             }
+        }
+        finally
+        {
+            _logger.LogEndGroup();
         }
 
         return entriesToPublish;
