@@ -39,7 +39,7 @@ public partial class ReleaserApp
                             UpdateHomebrewConfigurationFromPackage(packageInfo);
 
                             // Log an error if we don't have an extra access for homebrew
-                            if (devHostingExtra is not null)
+                            if (devHostingExtra is null)
                             {
                                 devHostingExtra = devHosting;
                                 Warn("Warning, publishing a new Homebrew formula requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
