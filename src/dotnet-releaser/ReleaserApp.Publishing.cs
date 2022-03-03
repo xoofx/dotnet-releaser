@@ -45,11 +45,11 @@ public partial class ReleaserApp
                                 Warn("Warning, publishing a new Homebrew formula requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
                             }
 
-                            var brewFormula = HomebrewHelper.CreateFormula(devHosting, packageInfo, entriesToPublish);
+                            var brewFormula = HomebrewHelper.CreateFormula(devHostingExtra, packageInfo, entriesToPublish);
 
                             if (brewFormula is not null)
                             {
-                                await devHosting.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
+                                await devHostingExtra.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
                             }
                         }
                     }
