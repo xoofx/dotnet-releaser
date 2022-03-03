@@ -39,17 +39,12 @@ By default, `dotnet-releaser` will:
 - **Run tests** in Release
 - **Create NuGet packages** for libraries and your application (packed as a .NET global tool)
 - **Create application packages** for any packable application in your project:
-  | Platform        | Packages         |
-  |-----------------|------------------|
-  | `win-x64`       | `zip`
-  | `win-arm`       | `zip`
-  | `win-arm64`     | `zip`
-  | `linux-x64`     | `deb`, `tar`
-  | `linux-arm`     | `deb`, `tar`
-  | `linux-arm64`   | `deb`, `tar`
-  | `rhel-x64`      | `rpm`, `tar`
-  | `osx-x64`       | `tar`
-  | `osx-arm64`     | `tar`
+  | Platform                                | Packages         |
+  |-----------------------------------------|------------------|
+  | `win-x64`, `win-arm`, `win-arm64`       | `zip`
+  | `linux-x64`, `linux-arm`, `linux-arm64` | `deb`, `tar`
+  | `rhel-x64`                              | `rpm`, `tar`
+  | `osx-x64`, `osx-arm64`                  | `tar`
 - **Publish your application as a global tool to NuGet**
 - **Upload all the package artifacts and your changelog to GitHub** on the tag associated with your package version (e.g your package is `1.0.0`, it will try to find a git tag `v1.0.0` or `1.0.0`).
 - **Create a Homebrew repository and formula**  (e.g `user_or_org/homebrew-your-app-name`) for all the tar files associated with the targets for Linux and MacOS.
@@ -110,10 +105,15 @@ It's brand new, so it's mainly used by the author for now! :innocent:
 
 You can visit the `.github/workflows` folder, or check the release notes of the following projects to see `dotnet-releaser` in action:
 
-- [grpc-curl](https://github.com/xoofx/grpc-curl): An application shipping multiple executables
-- [Scriban](https://github.com/scriban/scriban): A regular .NET library
-- [Tomlyn](https://github.com/xoofx/Tomlyn): A regular .NET library
-- [Zio](https://github.com/xoofx/zio): A regular .NET library
+Applications:
+- [grpc-curl](https://github.com/xoofx/grpc-curl): An application shipping multiple executables.
+- [lunet](https://github.com/lunet-io/lunet): An application shipping a .NET global tool to NuGet.
+  
+Regular .NET Libraries:
+- [Markdig](https://github.com/xoofx/markdig)
+- [Scriban](https://github.com/scriban/scriban)
+- [Tomlyn](https://github.com/xoofx/Tomlyn)
+- [Zio](https://github.com/xoofx/zio)
 ## Credits
 
 `dotnet-releaser` is a wrapper around many amazing OSS libraries:
