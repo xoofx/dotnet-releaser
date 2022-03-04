@@ -12,7 +12,7 @@ public partial class ReleaserApp
 {
     //                 (1)          (2)
     // git@github.com:xoofx/dotnet-releaser.git
-    private static readonly Regex GitUrlRegex = new Regex(@":(.+)/(.+)\.git");
+    private static readonly Regex GitUrlRegex = new Regex(@":(.+)/(.+)\.git$");
 
     private async Task<bool> CreateConfigurationFile(string? destinationFilePath, string? projectFile, string? user, string? repo, bool force)
     {
@@ -24,19 +24,27 @@ public partial class ReleaserApp
             return false;
         }
 
-        var folder = Path.GetDirectoryName(destinationFilePath)!;
+        // If projectFile is null, try to find a sln or project files
+        var folder = Path.GetFullPath(Path.GetDirectoryName(destinationFilePath)!);
         if (projectFile is null)
         {
             projectFile = Directory.GetFiles(folder).FirstOrDefault(x => x.EndsWith(".sln"));
+            string kind = "Solution";
             if (projectFile is null)
             {
-                Error($"Unable to find a solution file in the folder {folder}");
-                return false;
+                projectFile = Directory.GetFiles(folder).FirstOrDefault(x => x.EndsWith(".csproj") || x.EndsWith(".fsproj") || x.EndsWith(".vbproj"));
+                kind = "Project";
+                if (projectFile is null)
+                {
+                    Error($"Unable to find a solution file (.sln) or project files (.csproj, .fsproj, .vbproj) in the current folder `{folder}`");
+                    return false;
+                }
             }
-
             projectFile = Path.GetFileName(projectFile);
+            Info($"{kind} file detected: {projectFile}");
         }
 
+        // Try to detect the user/repo
         var repositoryPath = Repository.Discover(Path.GetDirectoryName(destinationFilePath));
         if (repositoryPath is not null && user is null && repo is null)
         {
@@ -44,13 +52,14 @@ public partial class ReleaserApp
             foreach (var remote in repository.Network.Remotes)
             {
                 var url = remote.Url;
-                if (url.StartsWith("git"))
+                if (url.Contains('@'))
                 {
                     var match = GitUrlRegex.Match(url);
                     if (match.Success)
                     {
                         user = match.Groups[1].Value;
                         repo = match.Groups[2].Value;
+                        Info($"git user/repo detected: {user}/{repo}");
                         break;
                     }
                 }
@@ -61,6 +70,7 @@ public partial class ReleaserApp
                     var path = uri.PathAndQuery;
                     user = Path.GetFileName(Path.GetDirectoryName(path));
                     repo = Path.GetFileNameWithoutExtension(path);
+                    Info($"git user/repo detected: {user}/{repo}");
                     break;
                 }
             }
@@ -68,7 +78,6 @@ public partial class ReleaserApp
 
         user ??= "github_user_or_org_here";
         repo ??= "github_repo_here";
-        
 
         var configAsText = $@"# configuration file for dotnet-releaser
 [msbuild]
