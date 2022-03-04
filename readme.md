@@ -53,17 +53,21 @@ By default, `dotnet-releaser` will:
 > See the [user guide](https://github.com/xoofx/dotnet-releaser/blob/main/doc/readme.md) on how to setup this differently for your application.
 ## Getting Started
 
-- Create a `dotnet-releaser.toml` at the same level you have your .NET solution. Most projects won't need more than this kind of configuration:
+- Install `dotnet-releaser` as a global .NET tool.
+  ```
+  dotnet tool install --global dotnet-releaser"
+  ```
+- Go to a folder where you have your solution `.sln` file or your project file (`.csproj`, `.fsproj`, `.vbproj`) and run:
+  ```
+  dotnet releaser new
+  ```
+- It should create a `dotnet-releaser.toml` at the same level than your solution with a content like:
   ```toml
   [msbuild]
   project = "Tonlyn.sln"
   [github]
   user = "xoofx"
   repo = "Tomlyn"
-  ```
-- Install `dotnet-releaser` as a global .NET tool.
-  ```
-  dotnet tool install --global dotnet-releaser"
   ```
 - If you want to try a full build locally:
   ```

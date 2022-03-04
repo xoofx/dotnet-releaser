@@ -699,9 +699,12 @@ Arguments:
   dotnet-releaser.toml      TOML configuration file path to create. Default is: dotnet-releaser.toml
 
 Options:
-  --project <project_file>  A - relative - path to project file (csproj, vbproj, fsproj)
-  --user <GitHub_user/org>  The GitHub user/org where the packages will be published
-  --repo <GitHub_repo>      The GitHub repo name where the packages will be published
+  --project <project_file>  A - relative - path to a solution file (.sln) or project file (.csproj, .fsproj, .vbproj). By default, it will try to find a solution file where this command is run or where the output dotnet-releaser.toml file
+                            is specified.
+  --user <GitHub_user/org>  The GitHub user/org where the packages will be published. If not specified, it will try to detect automatically if there is a git repository configured from the folder (and parents) of the TOML configuration
+                            file, and extract any git remote that could give this information.
+  --repo <GitHub_repo>      The GitHub repo name where the packages will be published. If not specified, it will try to detect automatically if there is a git repository configured from the folder (and parents) of the TOML configuration
+                            file, and extract any git remote that could give this information.
   --force                   Force overwriting the existing TOML configuration file.
   -?|-h|--help              Show help information.
 ```
