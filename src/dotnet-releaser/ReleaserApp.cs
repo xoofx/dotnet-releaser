@@ -132,9 +132,9 @@ public partial class ReleaserApp
             {
                 newCommand.Description = "Create a dotnet-releaser TOML configuration file for a specified project.";
                 var configurationFileArg = AddTomlConfigurationArgument(newCommand, true);
-                var projectOption = newCommand.Option<string>("--project <project_file>", "A - relative - path to project file (csproj, vbproj, fsproj)", CommandOptionType.SingleValue).IsRequired();
-                var userOption = newCommand.Option<string>("--user <GitHub_user/org>", "The GitHub user/org where the packages will be published", CommandOptionType.SingleValue);
-                var repoOption = newCommand.Option<string>("--repo <GitHub_repo>", "The GitHub repo name where the packages will be published", CommandOptionType.SingleValue);
+                var projectOption = newCommand.Option<string>("--project <project_file>", "A - relative - path to a solution file (.sln) or project file (.csproj, .fsproj, .vbproj). By default, it will try to find a solution file where this command is run or where the output dotnet-releaser.toml file is specified.", CommandOptionType.SingleValue);
+                var userOption = newCommand.Option<string>("--user <GitHub_user/org>", "The GitHub user/org where the packages will be published. If not specified, it will try to detect automatically if there is a git repository configured from the folder (and parents) of the TOML configuration file, and extract any git remote that could give this information.", CommandOptionType.SingleValue);
+                var repoOption = newCommand.Option<string>("--repo <GitHub_repo>", "The GitHub repo name where the packages will be published. If not specified, it will try to detect automatically if there is a git repository configured from the folder (and parents) of the TOML configuration file, and extract any git remote that could give this information.", CommandOptionType.SingleValue);
                 var forceOption = newCommand.Option<bool>("--force", "Force overwriting the existing TOML configuration file.", CommandOptionType.NoValue);
 
                 newCommand.OnExecuteAsync(async token =>
