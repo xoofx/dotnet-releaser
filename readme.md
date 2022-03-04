@@ -35,9 +35,9 @@ In practice, `dotnet-releaser` will automate the build and publish process of yo
 
 By default, `dotnet-releaser` will:
 
-- **Build your project/solution** in Release 
+- **Build your project(s)/solution(s)** in Release 
 - **Run tests** in Release
-- **Create NuGet packages** for libraries and your application (packed as a .NET global tool)
+- **Create NuGet packages** for libraries and applications (packed as a .NET global tool)
 - **Create application packages** for any packable application in your project:
   | Platform                                | Packages         |
   |-----------------------------------------|------------------|
@@ -45,7 +45,7 @@ By default, `dotnet-releaser` will:
   | `linux-x64`, `linux-arm`, `linux-arm64` | `deb`, `tar`
   | `rhel-x64`                              | `rpm`, `tar`
   | `osx-x64`, `osx-arm64`                  | `tar`
-- **Publish your application as a global tool to NuGet**
+- **Publish libraries and/or applications to NuGet**
 - **Upload all the package artifacts and your changelog to GitHub** on the tag associated with your package version (e.g your package is `1.0.0`, it will try to find a git tag `v1.0.0` or `1.0.0`).
 - **Create a Homebrew repository and formula**  (e.g `user_or_org/homebrew-your-app-name`) for all the tar files associated with the targets for Linux and MacOS.
 
