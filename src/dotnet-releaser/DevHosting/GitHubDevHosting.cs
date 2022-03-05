@@ -35,6 +35,8 @@ public class GitHubDevHosting : IDevHosting
 
     public ISimpleLogger Logger { get; }
 
+    public GitHubClient Client => _client;
+
     public DevHostingConfiguration Configuration { get; }
     public string ApiToken => _apiToken;
 
@@ -260,11 +262,27 @@ public class GitHubDevHosting : IDevHosting
         var tag = version.IsDraft ? versionTagForDraft : version.Tag;
 
         // Always try to update the previous draft
-        var release = await _client.Repository.Release.Get(user, repo, versionTagForDraft);
+        Release? release = null;
+        try
+        {
+            release = await _client.Repository.Release.Get(user, repo, versionTagForDraft);
+        }
+        catch (NotFoundException)
+        {
+            // ignore
+        }
+
         if (!version.IsDraft && release is null)
         {
-            // If not found, try to see if we have already a release for this tag.
-            release = await _client.Repository.Release.Get(user, repo, version.Tag);
+            try
+            {
+                // If not found, try to see if we have already a release for this tag.
+                release = await _client.Repository.Release.Get(user, repo, version.Tag);
+            }
+            catch (NotFoundException)
+            {
+                // ignore
+            }
         }
 
         if (release is null)
