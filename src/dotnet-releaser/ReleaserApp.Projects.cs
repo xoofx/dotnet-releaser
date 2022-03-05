@@ -26,19 +26,58 @@ public enum PackageOutputType
     Library,
 }
 
-public record BuildInformation(string Version, ProjectPackageInfoCollection[] ProjectPackageInfoCollections)
+public class BuildInformation
 {
+    public BuildInformation(string version, ProjectPackageInfoCollection[] projectPackageInfoCollections)
+    {
+        Version = version;
+        ProjectPackageInfoCollections = projectPackageInfoCollections;
+        BuildPackages = new Dictionary<ProjectPackageInfo, BuildPackageInformation>();
+    }
+
+    public string Version { get; }
+
+    public ProjectPackageInfoCollection[] ProjectPackageInfoCollections { get; }
+    
     public GitInformation? GitInformation { get; set; }
 
     public bool AllowPublishDraft { get; set; }
 
     public BuildKind BuildKind { get; set; }
 
+    public Dictionary<ProjectPackageInfo, BuildPackageInformation> BuildPackages { get; }
+
+    public BuildPackageInformation GetOrCreateBuildPackageInformation(ProjectPackageInfo packageInfo)
+    {
+        if (!BuildPackages.TryGetValue(packageInfo, out var buildPackageInformation))
+        {
+            buildPackageInformation = new BuildPackageInformation();
+            BuildPackages.Add(packageInfo, buildPackageInformation);
+        }
+
+        return buildPackageInformation;
+    }
+    
     public List<ProjectPackageInfo> GetAllPackableProjects()
     {
         return ProjectPackageInfoCollections.SelectMany(x => x.Packages).Where(x => x.IsPackable).ToList();
     }
 }
+
+
+public class BuildPackageInformation
+{
+    public BuildPackageInformation()
+    {
+        NuGetPackages = new List<string>();
+        AppPackages = new List<AppPackageInfo>();
+    }
+
+    public List<string> NuGetPackages { get; }
+
+    public List<AppPackageInfo> AppPackages { get; }
+}
+
 
 public enum BuildKind
 {

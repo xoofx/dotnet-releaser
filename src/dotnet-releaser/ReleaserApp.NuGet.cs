@@ -25,9 +25,11 @@ public partial class ReleaserApp
                 }
                 else
                 {
+                    var buildPackageInfo = buildInfo.GetOrCreateBuildPackageInformation(projectPackageInfo);
                     foreach (var nugetPackage in nugetPackages)
                     {
                         Info($"NuGet Package built: {nugetPackage}");
+                        buildPackageInfo.NuGetPackages.Add(nugetPackage);
                     }
                 }
             }
@@ -94,39 +96,44 @@ public partial class ReleaserApp
         return list.Count == 0 ? null : list;
     }
 
-    private async Task PublishNuGet(ProjectPackageInfo projectPackageInfo, string nugetSecretKey)
+    private async Task PublishNuGet(List<string> nugetPackages, string nugetSecretKey)
     {
         if (!_config.NuGet.Publish) return;
 
-        Info($"Publishing NuGet {projectPackageInfo.Version}");
-        try
+        foreach (var nugetPackage in nugetPackages)
         {
-            var program = new DotNetRunner("nuget")
+            var fileName = Path.GetFileName(nugetPackage);
+
+            Info($"Publishing NuGet {fileName}");
+            try
             {
-                Arguments =
+                var program = new DotNetRunner("nuget")
                 {
-                    "push",
-                    "*.nupkg",
-                    $"-s", _config.NuGet.Source,
-                    $"-k", nugetSecretKey,
-                    "--skip-duplicate"
-                },
-                WorkingDirectory = _config.ArtifactsFolder
-            };
-            var result = await program.Run();
-            if (result.HasErrors)
-            {
-                Error(result.Output);
+                    Arguments =
+                    {
+                        "push",
+                        fileName,
+                        $"-s", _config.NuGet.Source,
+                        $"-k", nugetSecretKey,
+                        "--skip-duplicate"
+                    },
+                    WorkingDirectory = _config.ArtifactsFolder
+                };
+                var result = await program.Run();
+                if (result.HasErrors)
+                {
+                    Error(result.Output);
+                }
+                else
+                {
+                    Info(result.Output);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Info(result.Output);
+                var message = ex.Message.Replace(nugetSecretKey, "**********");
+                Error($"Failing to push nuget package. Reason: {message}");
             }
-        }
-        catch (Exception ex)
-        {
-            var message = ex.Message.Replace(nugetSecretKey, "**********");
-            Error($"Failing to push nuget package. Reason: {message}");
         }
     }
 }

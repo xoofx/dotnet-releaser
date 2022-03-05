@@ -13,7 +13,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp 
 {
-    private async Task<List<(ProjectPackageInfo, List<AppPackageInfo>)>?> BuildAppPackages(BuildInformation buildInformation)
+    private async Task<bool> BuildAppPackages(BuildInformation buildInformation)
     {
         var list = new List<(ProjectPackageInfo, List<AppPackageInfo>)>();
         foreach (var packageInfo in buildInformation.GetAllPackableProjects())
@@ -23,13 +23,14 @@ public partial class ReleaserApp
             // Exit if we have any errors.
             if (HasErrors)
             {
-                return null;
+                return false;
             }
 
-            list.Add((packageInfo, entriesToPublish));
+            var buildPackageInformation = buildInformation.GetOrCreateBuildPackageInformation(packageInfo);
+            buildPackageInformation.AppPackages.AddRange(entriesToPublish);
         }
 
-        return list;
+        return true;
     }
 
     private async Task<List<AppPackageInfo>> BuildAppPackages(ProjectPackageInfo packageInfo)
@@ -235,7 +236,8 @@ public partial class ReleaserApp
 
     private string CopyToArtifacts(string source)
     {
-        var dest = Path.Combine(_config.ArtifactsFolder, Path.GetFileName(source));
+        var fileName = Path.GetFileName(source);
+        var dest = Path.GetFullPath(Path.Combine(_config.ArtifactsFolder, fileName));
         File.Copy(source, dest);
         return dest;
     }

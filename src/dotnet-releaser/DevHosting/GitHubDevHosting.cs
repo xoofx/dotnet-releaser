@@ -256,45 +256,67 @@ public class GitHubDevHosting : IDevHosting
 
     private async Task<Release> CreateOrUpdateReleaseImpl(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
     {
-        var releases = await _client.Repository.Release.GetAll(user, repo);
-
         string versionTagForDraft = version.DraftName;
         var tag = version.IsDraft ? versionTagForDraft : version.Tag;
 
-        Release? release = null;
-        if (releases is not null)
+        // Always try to update the previous draft
+        var release = await _client.Repository.Release.Get(user, repo, versionTagForDraft);
+        if (!version.IsDraft && release is null)
         {
-            // First fetch any previous draft release notes
-            // or fetch the existing version (in case of an update)
-            release = releases.FirstOrDefault(releaseCheck => releaseCheck.TagName == versionTagForDraft) ??
-                      releases.FirstOrDefault(releaseCheck => releaseCheck.TagName == tag);
+            // If not found, try to see if we have already a release for this tag.
+            release = await _client.Repository.Release.Get(user, repo, version.Tag);
         }
 
-        // Create a release
-        release ??= await _client.Repository.Release.Create(user, repo, new NewRelease(tag)
+        if (release is null)
         {
-            Name = changelog?.Title,
-            Draft = version.IsDraft,
-            Body = changelog?.Body,
-        });
-
-        _log.Info($"Loading release tag {release.TagName}");
-
-        ReleaseUpdate? releaseUpdate = null;
-        if (changelog is not null && (release.Name != changelog.Title || release.TagName != tag || release.Draft != version.IsDraft || release.Body != changelog.Body))
-        {
-            releaseUpdate = release.ToUpdate();
-            releaseUpdate.Name = changelog.Title;
-            releaseUpdate.TagName = tag;
-            releaseUpdate.Draft = version.IsDraft;
-            releaseUpdate.Body = changelog.Body;
+            _log.Info(version.IsDraft ? $"Creating draft release {tag}" : $"Creating release with tag {tag}");
+            release = await _client.Repository.Release.Create(user, repo, new NewRelease(tag)
+            {
+                Name = changelog?.Title,
+                Draft = version.IsDraft,
+                Body = changelog?.Body,
+            });
         }
-
-        // Update the body if necessary
-        if (releaseUpdate != null)
+        else
         {
-            _log.Info($"Updating release {release.TagName} with new changelog");
-            release = await _client.Repository.Release.Edit(user, repo, release.Id, releaseUpdate);
+            var tagHasChanged = release.TagName != tag;
+            var draftHasChanged = release.Draft != version.IsDraft;
+            if (changelog is not null && (release.Name != changelog.Title || tagHasChanged || draftHasChanged || release.Body != changelog.Body))
+            {
+                var titleHasChanged = release.Name != changelog.Title;
+                var bodyHasChanged = release.Body != changelog.Body;
+
+                string reason = string.Empty;
+                if (tagHasChanged)
+                {
+                    if (!version.IsDraft)
+                    {
+                        reason += $"\n -> Removing draft from previous release notes (previous: {release.TagName}).";
+                    }
+                    else
+                    {
+                        reason += "\n -> Tag has changed.";
+                    }
+                }
+
+                if (titleHasChanged)
+                {
+                    reason += $"\n -> Title has changed: {changelog.Title}.";
+                }
+
+                if (bodyHasChanged)
+                {
+                    reason += $"\n -> Changelog has changed.";
+                }
+
+                _log.Info($"Updating release with tag {tag}.{reason}");
+                var releaseUpdate = release.ToUpdate();
+                releaseUpdate.Name = changelog.Title;
+                releaseUpdate.TagName = tag;
+                releaseUpdate.Draft = version.IsDraft;
+                releaseUpdate.Body = changelog.Body;
+                release = await _client.Repository.Release.Edit(user, repo, release.Id, releaseUpdate);
+            }
         }
 
         return release;

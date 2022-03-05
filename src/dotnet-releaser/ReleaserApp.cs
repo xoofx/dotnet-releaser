@@ -344,14 +344,13 @@ public partial class ReleaserApp
         // ------------------------------------------------------------------
         // Build executable packages (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
-        var buildPackages = await BuildAppPackages(buildInformation);
-        if (buildPackages is null) return false;
+        if (!await BuildAppPackages(buildInformation)) return false;
 
         // ------------------------------------------------------------------
         // Publish all packages NuGet + (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
         // Draft if we are just building and not publishing (to allow to update the changelog)
-        await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, buildPackages, devHosting, devHostingExtra, changelog);
+        await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, devHosting, devHostingExtra, changelog);
 
         // ------------------------------------------------------------------
         // Publish coverage results + (deb, zip, rpm, tar...)
