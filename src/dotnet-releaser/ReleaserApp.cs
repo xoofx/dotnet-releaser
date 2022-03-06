@@ -34,6 +34,7 @@ public partial class ReleaserApp
     private readonly ISimpleLogger _logger;
     private ReleaserConfiguration _config;
     private TableBorder _tableBorder;
+    private bool _skipAppPackagesForBuildOnly;
 
     private ReleaserApp(ISimpleLogger logger)
     {
@@ -183,6 +184,7 @@ public partial class ReleaserApp
         {
             CommandOption<string>? nugetToken = null;
             CommandOption<string>? gitHubTokenExtra = null;
+            CommandOption<bool>? skipAppPackagesOption = null;
 
             var githubToken = AddGitHubToken(cmd);
 
@@ -196,6 +198,12 @@ public partial class ReleaserApp
             else
             {
                 cmd.Description = "Build only the project.";
+            }
+
+            if (cmd.Name == "run" || cmd.Name == "build")
+            {
+                skipAppPackagesOption = cmd.Option<bool>("--skip-app-packages-for-build-only",
+                    "Skip building application packages (e.g tar) when building only (but not publishing). This is useful when running on a CI and you want to build app packages only when publishing.", CommandOptionType.NoValue);
             }
 
             var tableKindOption = cmd.Option<TableBorderKind>("--table", "Specifies the rendering of the tables. Default is square.", CommandOptionType.SingleValue);
@@ -214,6 +222,7 @@ public partial class ReleaserApp
                     "publish" => BuildKind.Publish,
                     _ => BuildKind.Build
                 };
+                appReleaser._skipAppPackagesForBuildOnly = skipAppPackagesOption?.ParsedValue ?? false;
                 if (tableKindOption.HasValue())
                 {
                     appReleaser._tableBorder = GetTableBorderFromKind(tableKindOption.ParsedValue);

@@ -712,11 +712,10 @@ Options:
 Example:
 
 ```sh
-$ dotnet-releaser new --project HelloWorld.csproj --user xoofx --repo HelloWorld
+$ dotnet-releaser new
 ``` 
 
-The command above will create a `dotnet-releaser.toml` configuration file. See [](#)
-
+The command above will create a `dotnet-releaser.toml` configuration file and detect automatically which solution file and user/repo GitHub project from current folder.
 
 ### 3.2. `dotnet-releaser build`
 
@@ -726,15 +725,17 @@ Build only the project.
 Usage: dotnet-releaser build [options] <dotnet-releaser.toml>
 
 Arguments:
-  dotnet-releaser.toml    The input TOML configuration file.
+  dotnet-releaser.toml                The input TOML configuration file.
 
 Options:
-  --github-token <token>  GitHub Api Token. Required if publish to GitHub is true in the config file
-  --table                 Specifies the rendering of the tables. Default is square.
-                          Allowed values are: None, Ascii, Ascii2, AsciiDoubleHead, Square, Rounded, Minimal, MinimalHeavyHead, MinimalDoubleHead, Simple, SimpleHeavy, Horizontal, Heavy, HeavyEdge, HeavyHead, Double, DoubleEdge, Markdown.
-                          Default value is: Square.
-  --force                 Force deleting and recreating the artifacts folder.
-  -?|-h|--help            Show help information.
+  --github-token <token>              GitHub Api Token. Required if publish to GitHub is true in the config file
+  --skip-app-packages-for-build-only  Skip building application packages (e.g tar) when building only (but not publishing). This is useful when running on a CI and you want to build app packages only when publishing.
+  --table                             Specifies the rendering of the tables. Default is square.
+                                      Allowed values are: None, Ascii, Ascii2, AsciiDoubleHead, Square, Rounded, Minimal, MinimalHeavyHead, MinimalDoubleHead, Simple, SimpleHeavy, Horizontal, Heavy, HeavyEdge, HeavyHead, Double, DoubleEdge,
+                                      Markdown.
+                                      Default value is: Square.
+  --force                             Force deleting and recreating the artifacts folder.
+  -?|-h|--help                        Show help information.
 ```
 
 Example:
@@ -779,19 +780,20 @@ Automatically build and publish a project when running from a GitHub Action base
 Usage: dotnet-releaser run [options] <dotnet-releaser.toml>
 
 Arguments:
-  dotnet-releaser.toml          The input TOML configuration file.
+  dotnet-releaser.toml                The input TOML configuration file.
 
 Options:
-  --github-token <token>        GitHub Api Token. Required if publish to GitHub is true in the config file
-  --github-token-extra <token>  GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This token has
-                                usually more access than the --github-token that is only used for the current repository.
-  --nuget-token <token>         NuGet Api Token. Required if publish to NuGet is true in the config file
-  --table                       Specifies the rendering of the tables. Default is square.
-                                Allowed values are: None, Ascii, Ascii2, AsciiDoubleHead, Square, Rounded, Minimal, MinimalHeavyHead, MinimalDoubleHead, Simple, SimpleHeavy, Horizontal, Heavy, HeavyEdge, HeavyHead, Double, DoubleEdge,
-                                Markdown.
-                                Default value is: Square.
-  --force                       Force deleting and recreating the artifacts folder.
-  -?|-h|--help                  Show help information.
+  --github-token <token>              GitHub Api Token. Required if publish to GitHub is true in the config file
+  --nuget-token <token>               NuGet Api Token. Required if publish to NuGet is true in the config file
+  --github-token-extra <token>        GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This
+                                      token has usually more access than the --github-token that is only used for the current repository.
+  --skip-app-packages-for-build-only  Skip building application packages (e.g tar) when building only (but not publishing). This is useful when running on a CI and you want to build app packages only when publishing.
+  --table                             Specifies the rendering of the tables. Default is square.
+                                      Allowed values are: None, Ascii, Ascii2, AsciiDoubleHead, Square, Rounded, Minimal, MinimalHeavyHead, MinimalDoubleHead, Simple, SimpleHeavy, Horizontal, Heavy, HeavyEdge, HeavyHead, Double, DoubleEdge,
+                                      Markdown.
+                                      Default value is: Square.
+  --force                             Force deleting and recreating the artifacts folder.
+  -?|-h|--help                        Show help information.
 ```
 
 ### 3.5. `dotnet-releaser changelog`

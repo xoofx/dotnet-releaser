@@ -15,10 +15,9 @@ public partial class ReleaserApp
 {
     private async Task<bool> BuildAppPackages(BuildInformation buildInformation)
     {
-        var list = new List<(ProjectPackageInfo, List<AppPackageInfo>)>();
         foreach (var packageInfo in buildInformation.GetAllPackableProjects())
         {
-            var entriesToPublish = await BuildAppPackages(packageInfo);
+            var entriesToPublish = await BuildAppPackages(buildInformation, packageInfo);
 
             // Exit if we have any errors.
             if (HasErrors)
@@ -33,7 +32,7 @@ public partial class ReleaserApp
         return true;
     }
 
-    private async Task<List<AppPackageInfo>> BuildAppPackages(ProjectPackageInfo packageInfo)
+    private async Task<List<AppPackageInfo>> BuildAppPackages(BuildInformation buildInformation, ProjectPackageInfo packageInfo)
     {
         var entriesToPublish = new List<AppPackageInfo>();
 
@@ -62,24 +61,31 @@ public partial class ReleaserApp
         _logger.InfoMarkup("Platforms and Packages Configured:", table);
         try
         {
-            foreach (var pack in _config.Packs)
+            if (buildInformation.BuildKind == BuildKind.Build && _skipAppPackagesForBuildOnly)
             {
-                foreach (var rid in pack.RuntimeIdentifiers)
+                Info("Skipping building app packages during build-only.");
+            }
+            else
+            {
+                foreach (var pack in _config.Packs)
                 {
-                    var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
-                    if (HasErrors) goto exitPackOnError; // break on first errors
-
-                    if (list is not null && pack.Publish)
+                    foreach (var rid in pack.RuntimeIdentifiers)
                     {
-                        entriesToPublish.AddRange(list);
+                        var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
+                        if (HasErrors) goto exitPackOnError; // break on first errors
+
+                        if (list is not null && pack.Publish)
+                        {
+                            entriesToPublish.AddRange(list);
+                        }
                     }
                 }
-            }
 
-            exitPackOnError:
-            if (HasErrors)
-            {
-                Error($"Error while building platform packages for `{packageInfo.Name}`.");
+                exitPackOnError:
+                if (HasErrors)
+                {
+                    Error($"Error while building platform packages for `{packageInfo.Name}`.");
+                }
             }
         }
         finally
