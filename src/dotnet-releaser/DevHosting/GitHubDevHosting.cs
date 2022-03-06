@@ -258,31 +258,20 @@ public class GitHubDevHosting : IDevHosting
 
     private async Task<Release> CreateOrUpdateReleaseImpl(string user, string repo, ReleaseVersion version, ChangelogResult? changelog)
     {
-        string versionTagForDraft = version.DraftName;
-        var tag = version.IsDraft ? versionTagForDraft : version.Tag;
+        //string versionTagForDraft = version.DraftName;
+        //var tag = version.IsDraft ? versionTagForDraft : version.Tag;
+        var tag = version.Tag;
 
         // Always try to update the previous draft
         Release? release = null;
         try
         {
-            release = await _client.Repository.Release.Get(user, repo, versionTagForDraft);
+            // If not found, try to see if we have already a release for this tag.
+            release = await _client.Repository.Release.Get(user, repo, tag);
         }
         catch (NotFoundException)
         {
             // ignore
-        }
-
-        if (!version.IsDraft && release is null)
-        {
-            try
-            {
-                // If not found, try to see if we have already a release for this tag.
-                release = await _client.Repository.Release.Get(user, repo, version.Tag);
-            }
-            catch (NotFoundException)
-            {
-                // ignore
-            }
         }
 
         if (release is null)

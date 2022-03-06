@@ -57,19 +57,22 @@ public partial class ReleaserApp
                     }
                 }
             }
-            else if (buildKind == BuildKind.Build)
-            {
-                if (devHosting is not null && !_config.Changelog.DisableDraftForBuild && buildInformation.AllowPublishDraft)
-                {
-                    _logger.LogStartGroup(_config.EnablePublishPackagesInDraft ? $"Publishing Draft Changelog and App Packages - {releaseVersion}" : $"Publishing Draft Changelog - {releaseVersion}");
-                    groupStarted = true;
-                    foreach (var (packageInfo, buildPackageInformation) in buildInformation.BuildPackages)
-                    {
-                        var appPackagesToPublish = buildPackageInformation.AppPackages;
-                        await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, appPackagesToPublish, _config.EnablePublishPackagesInDraft);
-                    }
-                }
-            }
+
+            // Disable publishing draft release for now as we can't list draft release anymore
+
+            //else if (buildKind == BuildKind.Build)
+            //{
+            //    if (devHosting is not null && !_config.Changelog.DisableDraftForBuild && buildInformation.AllowPublishDraft)
+            //    {
+            //        _logger.LogStartGroup(_config.EnablePublishPackagesInDraft ? $"Publishing Draft Changelog and App Packages - {releaseVersion}" : $"Publishing Draft Changelog - {releaseVersion}");
+            //        groupStarted = true;
+            //        foreach (var (packageInfo, buildPackageInformation) in buildInformation.BuildPackages)
+            //        {
+            //            var appPackagesToPublish = buildPackageInformation.AppPackages;
+            //            await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, appPackagesToPublish, _config.EnablePublishPackagesInDraft);
+            //        }
+            //    }
+            //}
         }
         finally
         {
