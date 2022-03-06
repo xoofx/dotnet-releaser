@@ -59,6 +59,9 @@ public partial class ReleaserApp
             properties["PackAsTool"] = "true";
         }
 
+        // Set a link back to GitHub release notes
+        properties["PackageReleaseNotes"] = _config.GitHub.GetReleaseNotesUrl(projectPackageInfo.Version);
+
         // We need to inject via props to support multi-targeting projects
         var outputs = await RunMSBuild(projectPackageInfo.ProjectFullPath, ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput, properties, injectViaProps: true);
         if (outputs is null) return null;

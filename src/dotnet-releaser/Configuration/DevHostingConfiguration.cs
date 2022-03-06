@@ -33,6 +33,8 @@ public abstract class DevHostingConfiguration : ConfigurationBase
 
     public string GetUrl() => $"{Base.Trim('/')}/{User}/{Repo}";
 
+    public string GetReleaseNotesUrl(string version) => $"{Base.Trim('/')}/{User}/{Repo}/releases/tag/{VersionPrefix}{version}";
+
     public void AddDefaults()
     {
         // Don't add default branches if they are added manually
