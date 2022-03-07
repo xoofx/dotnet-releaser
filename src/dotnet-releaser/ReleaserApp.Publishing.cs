@@ -38,19 +38,16 @@ public partial class ReleaserApp
 
                         if (!HasErrors && _config.Brew.Publish)
                         {
-                            UpdateHomebrewConfigurationFromPackage(packageInfo);
-
                             // Log an error if we don't have an extra access for homebrew
-                            if (devHostingExtra is null)
-                            {
-                                devHostingExtra = devHosting;
-                                Warn("Warning, publishing a new Homebrew formula requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
-                            }
-
-                            var brewFormula = HomebrewHelper.CreateFormula(devHostingExtra, packageInfo, appPackagesToPublish);
+                            devHostingExtra ??= devHosting;
+                            var brewFormula = CreateFormula(devHostingExtra, packageInfo, appPackagesToPublish);
 
                             if (brewFormula is not null)
                             {
+                                if (devHostingExtra == devHosting)
+                                {
+                                    Warn("Warning, publishing a new Homebrew formula requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
+                                }
                                 await devHostingExtra.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
                             }
                         }
