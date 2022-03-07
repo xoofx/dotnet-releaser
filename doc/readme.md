@@ -205,7 +205,7 @@ An example of a setup with GitHub Actions:
 
 > `dotnet-releaser` is currently not available as a GitHub Action, as it requires anyway `dotnet` to be installed (in order to compile the projects). As you can see, the integration is very straightforward with .NET global tools.
 
-If you want to see an example of integration in a real project on GitHub, checkout this [ci.yml from the project grpc-curl](https://github.com/xoofx/grpc-curl/blob/329ac4fce0c7840fbca63c0b66400fc24bce3791/.github/workflows/ci.yml#L42-L50).
+If you want to see an example of integration in a real project on GitHub, checkout this [ci.yml from the project grpc-curl](https://github.com/xoofx/grpc-curl/blob/main/.github/workflows/ci.yml).
 
 ### 1.3. Prepare your project/packages
 
