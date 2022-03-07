@@ -71,7 +71,7 @@ public class MockDevHosting : IDevHosting
 
     public string GetDownloadReleaseUrl(string version, string fileEntry)
     {
-        return $"{Configuration.Base}/releases/download/{Configuration.VersionPrefix}{version}/{Path.GetFileName(fileEntry)}";
+        return $"{Configuration.Base}/{Configuration.User}/{Configuration.Repo}/releases/download/{Configuration.VersionPrefix}{version}/{Path.GetFileName(fileEntry)}";
     }
 
     public Task<List<string>> GetBranchNamesForCommit(string user, string repo, string sha)
