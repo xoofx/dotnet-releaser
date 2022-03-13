@@ -11,12 +11,13 @@ public partial class ReleaserApp
 {
     private async Task<bool> BuildNuGetPackage(BuildInformation buildInfo)
     {
-        if (!_config.NuGet.Publish) return true;
+        var packableProjects = buildInfo.GetAllPackableProjects();
+        if (!_config.NuGet.Publish || packableProjects.Count == 0) return true;
 
         try
         {
             _logger.LogStartGroup($"NuGet Packaging - {buildInfo.Version}");
-            foreach (var projectPackageInfo in buildInfo.GetAllPackableProjects())
+            foreach (var projectPackageInfo in packableProjects)
             {
                 var nugetPackages = await BuildNuGetPackageImpl(projectPackageInfo);
                 if (nugetPackages is null)
@@ -45,7 +46,7 @@ public partial class ReleaserApp
 
     private async Task<List<string>?> BuildNuGetPackageImpl(ProjectPackageInfo projectPackageInfo)
     {
-        Info($"Building NuGet Package - {projectPackageInfo.Name}");
+        Info($"Building NuGet Package - {projectPackageInfo.PackageId}");
         var restoreResult = await RunMSBuild(projectPackageInfo.ProjectFullPath, "Restore");
         if (restoreResult is null)
         {

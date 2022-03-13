@@ -185,13 +185,16 @@ public partial class ReleaserApp
             CommandOption<string>? nugetToken = null;
             CommandOption<string>? gitHubTokenExtra = null;
             CommandOption<bool>? skipAppPackagesOption = null;
-
+            CommandOption<string>? webAppPublishProfileOption = null;
+            
             var githubToken = AddGitHubToken(cmd);
 
             if (cmd.Name == "publish" || cmd.Name == "run")
             {
                 cmd.Description = cmd.Name == "run" ? "Automatically build and publish a project when running from a GitHub Action based on which branch is active, if there is a tag (for publish), and if the change is a `push`." : "Build and publish the project.";
                 nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
+                webAppPublishProfileOption = cmd.Option<string>("--webapp-publish-profile <ProjectNameAndPublishProfile>", "Pass the publish profile that will be used for publishing a WebApp. The <ProjectNameAndPublishProfile> is of the form <ProjectName>=<PublishProfile>. The ProjectName is name of the csproj/fsproj/vbproj without the extension.",
+                    CommandOptionType.MultipleValue);
 
                 gitHubTokenExtra = AddGitHubTokenExtra(cmd);
             }
@@ -227,7 +230,7 @@ public partial class ReleaserApp
                 {
                     appReleaser._tableBorder = GetTableBorderFromKind(tableKindOption.ParsedValue);
                 }
-                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue);
+                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue, webAppPublishProfileOption?.ParsedValues ?? new List<string>());
                 return result ? 0 : 1;
             });
         }
@@ -289,7 +292,7 @@ public partial class ReleaserApp
     /// <summary>
     /// Runs the releaser app
     /// </summary>
-    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder)
+    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder, IReadOnlyList<string> webAppPublishProfile)
     {
         BuildInformation? buildInformation = null;
         GitHubDevHostingConfiguration? hostingConfiguration = null;
@@ -300,7 +303,7 @@ public partial class ReleaserApp
         {
             _logger.Info($"dotnet-releaser {Version} - {buildKind.ToString().ToLowerInvariant()}");
             _logger.LogStartGroup($"Configuring");
-            var result = await Configuring(configurationFile, buildKind, githubApiToken, githubApiTokenExtra, nugetApiToken, forceArtifactsFolder);
+            var result = await Configuring(configurationFile, buildKind, githubApiToken, githubApiTokenExtra, nugetApiToken, forceArtifactsFolder, webAppPublishProfile);
             if (result is null) return false;
             buildInformation = result.Value.buildInformation!;
             devHosting = result.Value.devHosting;
@@ -362,6 +365,14 @@ public partial class ReleaserApp
         if (buildInformation.BuildKind == BuildKind.Publish)
         {
             await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, devHosting, devHostingExtra, changelog);
+        }
+
+        // ------------------------------------------------------------------
+        // Publish WebApps
+        // ------------------------------------------------------------------
+        if (!HasErrors)
+        {
+            await BuildAndPublishWebApp(buildInformation);
         }
 
         // ------------------------------------------------------------------

@@ -23,6 +23,7 @@ public class ReleaserConfiguration
         Test = new TestConfiguration();
         MSBuild = new MSBuildConfiguration();
         Changelog = new ChangelogConfiguration();
+        WebApp = new WebAppConfiguration();
         GitHub = new GitHubDevHostingConfiguration();
         NuGet = new NuGetPublisher();
         Brew = new BrewPublisher();
@@ -47,6 +48,9 @@ public class ReleaserConfiguration
     public TestConfiguration Test { get; }
 
     public MSBuildConfiguration MSBuild { get; }
+
+    [DataMember(Name = "webapp")]
+    public WebAppConfiguration WebApp { get; }
 
     [DataMember(Name="github")]
     public GitHubDevHostingConfiguration GitHub { get; }

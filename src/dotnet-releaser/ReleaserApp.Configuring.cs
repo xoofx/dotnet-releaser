@@ -15,7 +15,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder)
+    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder, IReadOnlyList<string> webAppProfiles)
     {
         // ------------------------------------------------------------------
         // Load Configuration
@@ -36,7 +36,10 @@ public partial class ReleaserApp
         // ------------------------------------------------------------------
         var buildInformation = await LoadProjects();
         if (buildInformation is null || HasErrors) return null; // return false;
-
+        
+        // Find and assign PublishProfile for WebApp publishing
+        AssignWebAppProfiles(buildInformation, webAppProfiles);
+        
         // ------------------------------------------------------------------
         // Validate Publish parameters
         // ------------------------------------------------------------------
@@ -133,7 +136,7 @@ public partial class ReleaserApp
                 buildInformation.AllowPublishDraft = true;
             }
 
-            if (_config.NuGet.Publish && string.IsNullOrEmpty(nugetApiToken))
+            if (_config.NuGet.Publish && string.IsNullOrEmpty(nugetApiToken) && buildInformation.GetAllPackableProjects().Count > 0)
             {
                 Error("Publishing to NuGet requires to pass --nuget-token");
                 return null; // return false;
@@ -165,5 +168,36 @@ public partial class ReleaserApp
         buildInformation.BuildKind = buildKind;
 
         return (buildInformation, devHosting, devHostingExtra);
+    }
+
+    private void AssignWebAppProfiles(BuildInformation buildInformation, IReadOnlyList<string> webAppProfiles)
+    {
+        for (var i = 0; i < webAppProfiles.Count; i++)
+        {
+            var webAppProfile = webAppProfiles[i];
+            var indexOfEqual = webAppProfile.IndexOf('=');
+            if (indexOfEqual < 0)
+            {
+                Error($"Invalid publish profile at {i}. Expecting an equal `=` between <ProjectName>=<PublishProfile>.");
+                continue;
+            }
+
+            var projectName = webAppProfile.Substring(0, indexOfEqual).Trim();
+            var publishProfile = webAppProfile.Substring(indexOfEqual + 1).Trim();
+            if (publishProfile == "")
+            {
+                Error($"Invalid empty publish profile at {i}. Expecting a publish profile after the ProjectName: <ProjectName>=<PublishProfile>.");
+                continue;
+            }
+
+            var projectPackageInfo = buildInformation.ProjectPackageInfoCollections.SelectMany(x => x.Packages).FirstOrDefault(x => x.ProjectName == projectName);
+            if (projectPackageInfo is null)
+            {
+                Error($"Invalid publish profile at {i}. The ProjectName `{projectName}` was not found in the MSBuild project name list [{string.Join(", ", buildInformation.ProjectPackageInfoCollections.SelectMany(x => x.Packages).Select(x => x.ProjectName))}]");
+                continue;
+            }
+
+            projectPackageInfo.WebAppPublishProfile = publishProfile;
+        }
     }
 }

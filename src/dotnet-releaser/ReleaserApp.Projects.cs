@@ -62,6 +62,11 @@ public class BuildInformation
     {
         return ProjectPackageInfoCollections.SelectMany(x => x.Packages).Where(x => x.IsPackable).ToList();
     }
+
+    public List<ProjectPackageInfo> GetAllWebAppProjects()
+    {
+        return ProjectPackageInfoCollections.SelectMany(x => x.Packages).Where(x => x.IsWebApp).ToList();
+    }
 }
 
 
@@ -162,8 +167,9 @@ public partial class ReleaserApp
             var packageVersion = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageVersion).ItemSpec;
             var packageDescription = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageDescription)?.ItemSpec;
             var packageLicenseExpression = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageLicenseExpression)?.ItemSpec;
-            var packageOutputType = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.ItemSpec?.Trim() ?? string.Empty;
+            var packageOutputTypeStr = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.ItemSpec?.Trim() ?? string.Empty;
             var packageProjectUrl = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageProjectUrl)?.ItemSpec ?? $"{_config.GitHub.GetUrl()}";
+            var usingSdkWeb = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.UsingMicrosoftNETSdkWeb)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
             var isNuGetPackable = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsNuGetPackable)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
             var isTestProject = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestProject)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
 
@@ -177,13 +183,15 @@ public partial class ReleaserApp
                 projectReferences.Add(projectReferenceFullPath);
             }
 
-            if (!Enum.TryParse<PackageOutputType>(packageOutputType, true, out var result))
+            if (!Enum.TryParse<PackageOutputType>(packageOutputTypeStr, true, out var packageOutputType))
             {
-                Error($"Unsupported project type `{packageOutputType}` found for project `{projectFullFilePath}`");
+                Error($"Unsupported project type `{packageOutputTypeStr}` found for project `{projectFullFilePath}`");
                 return null;
             }
 
-            return new ProjectPackageInfo(projectFullFilePath, packageId, assemblyName, result, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject, projectReferences.ToArray(), targetFrameworkInfo);
+            bool isWebApp = packageOutputType != PackageOutputType.Library && usingSdkWeb;
+            
+            return new ProjectPackageInfo(projectFullFilePath, packageId, assemblyName, packageOutputType, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject, projectReferences.ToArray(), targetFrameworkInfo, isWebApp);
         }
         catch (Exception ex)
         {
@@ -386,6 +394,15 @@ public partial class ReleaserApp
         table.AddColumn("License");
         table.AddColumn(new TableColumn("Packable?").Centered());
         table.AddColumn(new TableColumn("Test?").Centered());
+
+
+        bool hasWebApps = projectPackageInfoCollections.SelectMany(x => x.Packages).Any(x => x.IsWebApp);
+        if (hasWebApps)
+        {
+            table.AddColumn(new TableColumn("WebApp?").Centered());
+        }
+
+
         table.Border = _tableBorder;
 
         var row = new List<object>();
@@ -424,7 +441,8 @@ public partial class ReleaserApp
                 bool invalidVersion = project.IsPackable && version != project.Version;
                 int c = 0;
                 row[c++] = project.AssemblyName;
-                row[c++] = project.OutputType.ToString().ToLowerInvariant();
+                var outputTypeStr = project.OutputType.ToString().ToLowerInvariant();
+                row[c++] = outputTypeStr;
                 row[c++] = invalidVersion ? $"{project.Version} (invalid)" : project.Version;
                 row[c++] = string.Join("\n", project.TargetFrameworkInfo.TargetFrameworks);
                 if (project.IsPackable)
@@ -439,10 +457,15 @@ public partial class ReleaserApp
                 }
 
                 row[c++] = project.IsPackable ? "x" : string.Empty;
-                row[c] = project.IsTestProject ? "x" : string.Empty;
+                row[c++] = project.IsTestProject ? "x" : string.Empty;
                 if (invalidVersion)
                 {
                     invalidPackageVersions.Add(project);
+                }
+
+                if (hasWebApps)
+                {
+                    row[c++] = project.IsWebApp ? "x" : string.Empty;
                 }
 
                 //table.AddRow(row.Select(Markup.Escape).ToArray());
@@ -460,7 +483,8 @@ public partial class ReleaserApp
             }
         }
 
-        if (string.IsNullOrEmpty(version))
+        // Produce an error only if we have packable projects without a version
+        if (string.IsNullOrEmpty(version) && projectPackageInfoCollections.SelectMany(x => x.Packages).Any(x => x.IsPackable))
         {
             Error("No version found from all projects");
         }

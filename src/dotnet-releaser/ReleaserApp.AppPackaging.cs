@@ -42,7 +42,7 @@ public partial class ReleaserApp
             return entriesToPublish;
         }
 
-        _logger.LogStartGroup($"App Packaging {packageInfo.Name} - {packageInfo.Version}");
+        _logger.LogStartGroup($"App Packaging {packageInfo.PackageId} - {packageInfo.Version}");
 
         var table = new Table();
         table.AddColumn("Platform");
@@ -84,7 +84,7 @@ public partial class ReleaserApp
                 exitPackOnError:
                 if (HasErrors)
                 {
-                    Error($"Error while building platform packages for `{packageInfo.Name}`.");
+                    Error($"Error while building platform packages for `{packageInfo.PackageId}`.");
                 }
             }
         }

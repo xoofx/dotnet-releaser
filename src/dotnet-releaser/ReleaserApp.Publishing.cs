@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using DotNetReleaser.Changelog;
 using DotNetReleaser.Configuration;
-using DotNetReleaser.Helpers;
 
 namespace DotNetReleaser;
 
