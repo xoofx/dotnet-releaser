@@ -10,6 +10,7 @@ using DotNetReleaser.Configuration;
 using DotNetReleaser.Coverage;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
+using Lunet.Extensions.Logging.SpectreConsole;
 using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -72,7 +73,7 @@ public partial class ReleaserApp
                 };
             }
             
-            configure.AddProvider(new SpectreConsoleLoggerProvider(new SpectreConsoleLoggerOptions()
+            configure.AddSpectreConsole(new SpectreConsoleLoggerOptions()
             {
                 ConsoleSettings = runningOnGitHubAction ? new AnsiConsoleSettings()
                 {
@@ -84,9 +85,9 @@ public partial class ReleaserApp
                 },
                 IndentAfterNewLine = false,
                 IncludeTimestamp = true,
-                IncludeNewLine = false,
+                IncludeNewLineBeforeMessage = false,
                 IncludeCategory = false
-            }));
+            });
         });
         var exeName = "dotnet-releaser";
         var logger = SimpleLogger.CreateConsoleLogger(factory, exeName);

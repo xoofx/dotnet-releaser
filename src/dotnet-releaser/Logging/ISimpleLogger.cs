@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 using DotNetReleaser.Helpers;
+using Lunet.Extensions.Logging.SpectreConsole;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Rendering;
