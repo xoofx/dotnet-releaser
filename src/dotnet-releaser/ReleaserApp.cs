@@ -360,7 +360,7 @@ public partial class ReleaserApp
         // Publish all packages NuGet + (deb, zip, rpm, tar...)
         // ------------------------------------------------------------------
         // Draft if we are just building and not publishing (to allow to update the changelog)
-        if (buildInformation.BuildKind == BuildKind.Publish)
+        if (buildInformation.BuildKind == BuildKind.Publish || buildInformation.PublishNuGet)
         {
             await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, devHosting, devHostingExtra, changelog);
         }

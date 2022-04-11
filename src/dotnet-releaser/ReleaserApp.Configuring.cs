@@ -80,6 +80,8 @@ public partial class ReleaserApp
             return null;
         }
 
+        var originalBuildKind = buildKind;
+
         // Fetch current branch name
         if (buildKind == BuildKind.Run)
         {
@@ -132,11 +134,37 @@ public partial class ReleaserApp
                 validateBranchName = true;
                 buildInformation.AllowPublishDraft = true;
             }
+        }
 
+        // We publish to NuGet if there is a PublishPerCommit configured or we are actually publishing
+        if (originalBuildKind == BuildKind.Run && _config.NuGet.PublishDraft || buildKind == BuildKind.Publish)
+        {
             if (_config.NuGet.Publish && string.IsNullOrEmpty(nugetApiToken))
             {
                 Error("Publishing to NuGet requires to pass --nuget-token");
                 return null; // return false;
+            }
+
+            // Allow to publish a draft NuGet package only authorized branches
+            if (_config.NuGet.PublishDraft && buildKind == BuildKind.Build)
+            {
+                var branchName = buildInformation.GitInformation?.BranchName;
+                if (branchName != null)
+                {
+                    buildInformation.PublishNuGet = _config.GitHub.Branches.Contains(branchName);
+                    if (buildInformation.PublishNuGet)
+                    {
+                        Info($"Enabling draft package publishing to NuGet for the authorized main branch `{branchName}`");
+                    }
+                    else
+                    {
+                        Info($"Disabling draft package publishing to NuGet for the non-main branch `{branchName}` (authorized main branches -> `github.branches = [{string.Join(", ", _config.GitHub.Branches)}]`)");
+                    }
+                }
+            }
+            else
+            {
+                buildInformation.PublishNuGet = true;
             }
         }
 

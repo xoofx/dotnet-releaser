@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using DotNetReleaser.Changelog;
 using DotNetReleaser.Configuration;
-using DotNetReleaser.Helpers;
 
 namespace DotNetReleaser;
 
@@ -16,60 +14,43 @@ public partial class ReleaserApp
             var buildKind = buildInformation.BuildKind;
             var branchName = buildInformation.GitInformation?.BranchName;
             var releaseVersion = new ReleaseVersion(buildInformation.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{buildInformation.Version}", branchName is not null ? $"draft-{branchName}" : "draft");
-            if (buildKind == BuildKind.Publish)
+
+            _logger.LogStartGroup($"Publishing Packages - {releaseVersion}");
+            groupStarted = true;
+
+            foreach (var (packageInfo, buildPackageInformation) in buildInformation.BuildPackages)
             {
-                _logger.LogStartGroup($"Publishing Packages - {releaseVersion}");
-                groupStarted = true;
-                foreach (var (packageInfo, buildPackageInformation) in buildInformation.BuildPackages)
+                if (nugetApiToken is not null && buildInformation.PublishNuGet)
                 {
-                    if (nugetApiToken is not null)
+                    await PublishNuGet(buildPackageInformation.NuGetPackages, nugetApiToken);
+                }
+
+                // Don't try to continue publishing if we had errors with NuGet publishing
+                // Otherwise publish any packages that we have generated before
+                if (!HasErrors && devHosting is not null && buildKind == BuildKind.Publish)
+                {
+                    var appPackagesToPublish = buildPackageInformation.AppPackages;
+
+                    // In the case of a build, we still want to upload a draft release notes
+                    await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, appPackagesToPublish, _config.EnablePublishPackagesInDraft);
+
+                    if (!HasErrors && _config.Brew.Publish)
                     {
-                        await PublishNuGet(buildPackageInformation.NuGetPackages, nugetApiToken);
-                    }
+                        // Log an error if we don't have an extra access for homebrew
+                        devHostingExtra ??= devHosting;
+                        var brewFormula = CreateFormula(devHostingExtra, packageInfo, appPackagesToPublish);
 
-                    // Don't try to continue publishing if we had errors with NuGet publishing
-                    // Otherwise publish any packages that we have generated before
-                    if (!HasErrors && devHosting is not null)
-                    {
-                        var appPackagesToPublish = buildPackageInformation.AppPackages;
-
-                        // In the case of a build, we still want to upload a draft release notes
-                        await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, appPackagesToPublish, _config.EnablePublishPackagesInDraft);
-
-                        if (!HasErrors && _config.Brew.Publish)
+                        if (brewFormula is not null)
                         {
-                            // Log an error if we don't have an extra access for homebrew
-                            devHostingExtra ??= devHosting;
-                            var brewFormula = CreateFormula(devHostingExtra, packageInfo, appPackagesToPublish);
-
-                            if (brewFormula is not null)
+                            if (devHostingExtra == devHosting)
                             {
-                                if (devHostingExtra == devHosting)
-                                {
-                                    Warn("Warning, publishing a new Homebrew formula requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
-                                }
-                                await devHostingExtra.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
+                                Warn("Warning, publishing a new Homebrew formula requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
                             }
+                            await devHostingExtra.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
                         }
                     }
                 }
             }
-
-            // Disable publishing draft release for now as we can't list draft release anymore
-
-            //else if (buildKind == BuildKind.Build)
-            //{
-            //    if (devHosting is not null && !_config.Changelog.DisableDraftForBuild && buildInformation.AllowPublishDraft)
-            //    {
-            //        _logger.LogStartGroup(_config.EnablePublishPackagesInDraft ? $"Publishing Draft Changelog and App Packages - {releaseVersion}" : $"Publishing Draft Changelog - {releaseVersion}");
-            //        groupStarted = true;
-            //        foreach (var (packageInfo, buildPackageInformation) in buildInformation.BuildPackages)
-            //        {
-            //            var appPackagesToPublish = buildPackageInformation.AppPackages;
-            //            await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, appPackagesToPublish, _config.EnablePublishPackagesInDraft);
-            //        }
-            //    }
-            //}
         }
         finally
         {

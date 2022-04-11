@@ -536,6 +536,7 @@ Allow to publish to a NuGet registry. By default it is on and publishing to the 
 |-----------------|------------|----------------------------|
 | `publish`       | `bool`     | Allow to disable publishing to NuGet.
 | `source`        | `string`   | Allow to override the default publish NuGet registry (`https://api.nuget.org/v3/index.json`) when publishing to NuGet.
+| `publish_draft` | `bool`     | Allow to publish NuGet draft packages with `dotnet-releaser run`. Default is `false`. When this option is `true`, even if there is no release tag on the current commit, the NuGet package will still be pushed if the current branch is listed in the main branches in `github.branches`. This option is useful when you want to push draft/pre-release NuGet packages per commit.
 
 For example:
 

@@ -41,6 +41,8 @@ public class BuildInformation
     
     public GitInformation? GitInformation { get; set; }
 
+    public bool PublishNuGet { get; set; }
+
     public bool AllowPublishDraft { get; set; }
 
     public BuildKind BuildKind { get; set; }

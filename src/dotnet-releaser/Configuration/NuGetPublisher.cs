@@ -7,6 +7,8 @@ public class NuGetPublisher : ConfigurationBase
         Source = "https://api.nuget.org/v3/index.json";
     }
 
+    public bool PublishDraft { get; set; }
+
     public string Source { get; set; }
 
     public override string ToString()
