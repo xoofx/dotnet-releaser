@@ -1,23 +1,49 @@
 ﻿<Project>
   <ItemGroup>
-    <PackageReference Include="Packaging.Targets" Version="0.1.220">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>compile;build</IncludeAssets>
-      <ExcludeAssets>runtime;contentFiles;native</ExcludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
     <DebDependency Condition="'$(DotNetReleaserDebDependencies)' != ''" Include="$(DotNetReleaserDebDependencies.Split(';'))"></DebDependency>
     <RpmDependency Condition="'$(DotNetReleaserRpmDependencies)' != ''" Include="$(DotNetReleaserRpmDependencies.Split(';'))"></RpmDependency>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(DotNetReleaserCoverage)' == 'true' AND '$(IsTestProject)' == 'true'">
-    <PackageReference Include="$(DotNetReleaserCoveragePackage)" Version="$(DotNetReleaserCoverageVersion)">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+  <!--Handle Central package version-->
+  <Choose>
+    <When Condition="'$(ManagePackageVersionsCentrally)' == 'true' AND '$(CentralPackageVersionsFileImported)' == 'true'">
+      <ItemGroup>
+        <PackageReference Include="Packaging.Targets" VersionOverride="0.1.220">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>compile;build</IncludeAssets>
+          <ExcludeAssets>runtime;contentFiles;native</ExcludeAssets>
+        </PackageReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <PackageReference Include="Packaging.Targets" Version="0.1.220">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>compile;build</IncludeAssets>
+          <ExcludeAssets>runtime;contentFiles;native</ExcludeAssets>
+        </PackageReference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+
+  <Choose>
+    <When Condition="'$(ManagePackageVersionsCentrally)' == 'true' AND '$(CentralPackageVersionsFileImported)' == 'true' AND '$(DotNetReleaserCoverage)' == 'true' AND '$(IsTestProject)' == 'true'">
+      <ItemGroup>
+        <PackageReference Include="$(DotNetReleaserCoveragePackage)" VersionOverride="$(DotNetReleaserCoverageVersion)">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+      </ItemGroup>
+    </When>
+    <When Condition="'$(DotNetReleaserCoverage)' == 'true' AND '$(IsTestProject)' == 'true'">
+      <ItemGroup>
+        <PackageReference Include="$(DotNetReleaserCoveragePackage)" Version="$(DotNetReleaserCoverageVersion)">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+      </ItemGroup>
+    </When>
+  </Choose>
 
   <!--<Target Name="CreateSetup" AfterTargets="Publish">
     <PropertyGroup>
