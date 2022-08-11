@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using DotNetReleaser.Coverage.Coveralls;
@@ -100,7 +101,14 @@ public partial class ReleaserApp
             {
                 { new StringContent(json), "json" }
             };
-            
+
+            // Credits fix from https://github.com/csMACnz/coveralls.net/issues/110#issuecomment-1203220933
+            var boundary = formData.Headers.ContentType?.Parameters.FirstOrDefault(o => o.Name == "boundary");
+            if (boundary != null)
+            {
+                boundary.Value = boundary.Value?.Replace("\"", string.Empty);
+            }
+
             var postResponse = await httpClient.PostAsync(new Uri(baseUri, "/api/v1/jobs"), formData);
 
             if (!postResponse.IsSuccessStatusCode)
