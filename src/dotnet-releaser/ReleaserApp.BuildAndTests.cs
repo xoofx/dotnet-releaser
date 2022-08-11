@@ -79,7 +79,11 @@ public partial class ReleaserApp
 
             if (groupLogged)
             {
-                LoadAndDisplayCoverageResults();
+                if (_config.Coverage.Enable)
+                {
+                    LoadAndDisplayCoverageResults();
+                }
+
                 _logger.LogEndGroup();
             }
         }
