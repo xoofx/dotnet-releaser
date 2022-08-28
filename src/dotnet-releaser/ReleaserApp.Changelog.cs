@@ -39,9 +39,7 @@ public partial class ReleaserApp
         var repo = devHosting.Configuration.Repo;
         var tagPrefix = devHosting.Configuration.VersionPrefix;
 
-        var changelogConfiguration = new ChangelogConfiguration();
-        changelogConfiguration.Owners.Add(user);
-        changelogConfiguration.AddDefaults();
+        var changelogConfiguration = _config.Changelog;
 
         bool hasErrors = false;
         Info($"Updating changelog for for repository `{user}/{repo}`. Fetching tags.");
