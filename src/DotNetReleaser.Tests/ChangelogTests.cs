@@ -63,6 +63,8 @@ public class ChangelogTests
 - Go to misc but it's the owner (47b1ecf3)
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBigChangesImpl);
     }
 
@@ -84,6 +86,8 @@ public class ChangelogTests
 - Add example for alpha (PR #2) by @mister_pr_example
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBigChangesImpl, configuration =>
         {
             configuration.IncludeCommits = false;
@@ -100,6 +104,8 @@ public class ChangelogTests
 - Maybe support for xyz (PR #1) by @mister_pr_feature
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBigChangesImpl, configuration =>
         {
             configuration.IncludeCommits = false;
@@ -117,6 +123,8 @@ public class ChangelogTests
 - Add example for alpha (PR #2) by @mister_pr_example
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBigChangesImpl, configuration =>
         {
             configuration.IncludeCommits = false;
@@ -138,6 +146,8 @@ public class ChangelogTests
 - Add tests for abc (PR #3)
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBigChangesImpl, configuration =>
         {
             configuration.IncludeCommits = false;
@@ -159,6 +169,8 @@ public class ChangelogTests
 - Add example for alpha (PR #2) by @mister_pr_example
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBigChangesImpl, configuration =>
         {
             configuration.IncludeCommits = false;
@@ -180,6 +192,8 @@ public class ChangelogTests
 - This is not a change of doc 2 (PR #2) by @mister_pr_misc
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBranchAndFilesDispatchChangesImpl, configuration =>
         {
             configuration.Autolabelers.Insert(0, new ChangelogAutolabeler("doc").AppendFiles("/doc/*.md"));
@@ -200,6 +214,8 @@ public class ChangelogTests
 - This is a change of doc 1 (PR #1) by @mister_pr_doc
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBranchAndFilesDispatchChangesImpl, configuration =>
         {
             configuration.Autolabelers.Insert(0, new ChangelogAutolabeler("samples").AppendBranch(@"special_branch\d+"));
@@ -220,6 +236,8 @@ public class ChangelogTests
 - This is a change of doc 1 (PR #1) by @mister_pr_doc
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBranchAndFilesDispatchChangesImpl, configuration =>
         {
             configuration.Autolabelers.Insert(0, new ChangelogAutolabeler("feature").AppendBody(@"special \d+ comment"));
@@ -240,6 +258,8 @@ public class ChangelogTests
 - This is a change of doc 1 (PR #1) by @mister_pr_doc
 
 **Full Changelog**: [0.1.3...1.0.0](https://github.com/xoofx/dotnet-releaser/compare/0.1.3...1.0.0)
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ", GetBranchAndFilesDispatchChangesImpl, configuration =>
         {
             configuration.BodyTemplate = @"# {{ properties.changes_pre_title }} Changes {{ properties.hello_number }}
@@ -247,6 +267,8 @@ public class ChangelogTests
 {{ changes }}
 
 **Full Changelog**: {{ url_full_changelog_compare_changes }}
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ";
             configuration.TemplateProperties.Add("changes_pre_title", "Amazing");
             configuration.TemplateProperties.Add("hello_number", 1);

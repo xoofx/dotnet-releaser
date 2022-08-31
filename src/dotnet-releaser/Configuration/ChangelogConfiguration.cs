@@ -27,6 +27,8 @@ public class ChangelogConfiguration : ConfigurationBase
 {{ changes }}
 
 **Full Changelog**: {{ url_full_changelog_compare_changes }}
+
+<sub>Published with [dotnet-releaser](https://github.com/xoofx/dotnet-releaser/)</sub>
 ";
         TemplateProperties = new Dictionary<string, object>();
     }
