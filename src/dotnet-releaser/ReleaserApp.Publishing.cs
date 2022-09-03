@@ -49,6 +49,22 @@ public partial class ReleaserApp
                             await devHostingExtra.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
                         }
                     }
+                    
+                    if (!HasErrors && _config.Scoop.Publish)
+                    {
+                        // Log an error if we don't have an extra access for homebrew
+                        devHostingExtra ??= devHosting;
+                        var scoopManifest = CreateScoopManifest(devHostingExtra, packageInfo, appPackagesToPublish);
+
+                        if (scoopManifest is not null)
+                        {
+                            if (devHostingExtra == devHosting)
+                            {
+                                Warn("Warning, publishing a new Scoop manifest requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
+                            }
+                            await devHostingExtra.UploadScoopManifest(hostingConfiguration.User, _config.Scoop.Home, packageInfo, scoopManifest);
+                        }
+                    }
                 }
             }
         }

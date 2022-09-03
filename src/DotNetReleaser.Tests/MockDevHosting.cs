@@ -60,6 +60,11 @@ public class MockDevHosting : IDevHosting
         return Task.CompletedTask;
     }
 
+    public Task UploadScoopManifest(string user, string repo, ProjectPackageInfo projectPackageInfo, string scoopManifest)
+    {
+        return Task.CompletedTask;
+    }
+
     private static readonly Regex VersionRegex = new(@"^\d+(\.\d+)+");
 
     public string GetCompareUrl(string user, string repo, string fromRef, string toRef)

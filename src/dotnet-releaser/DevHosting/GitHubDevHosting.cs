@@ -360,7 +360,7 @@ public class GitHubDevHosting : IDevHosting
             {
                 try
                 {
-                    _log.Info($"{(i > 0 ? $"Retry ({{i}}/{maxHttpRetry - 1}) " : "")}Uploading {filename} to GitHub Release: {release.TagName} (Size: {new FileInfo(entry.Path).Length / (1024 * 1024)}MB)");
+                    _log.Info($"{(i > 0 ? $"Retry ({i}/{maxHttpRetry - 1}) " : "")}Uploading {filename} to GitHub Release: {release.TagName} (Size: {new FileInfo(entry.Path).Length / (1024 * 1024)}MB)");
                     // Upload assets
                     using var stream = File.OpenRead(entry.Path);
 
@@ -464,6 +464,68 @@ public class GitHubDevHosting : IDevHosting
             }
         }
 
+    }
+
+    public async Task UploadScoopManifest(string user, string repo, ProjectPackageInfo projectPackageInfo, string scoopManifest)
+    {
+        var appName = projectPackageInfo.AssemblyName;
+        var filePath = $"bucket/{appName}.json";
+
+        Repository? existingRepository = null;
+        try
+        {
+            existingRepository = await _client.Repository.Get(user, repo);
+        }
+        catch (NotFoundException)
+        {
+            // ignore
+        }
+
+        if (existingRepository is null)
+        {
+            _log.Info($"Creating Scoop repository {user}/{repo}");
+            var newRepositoryFromTemplate = new NewRepositoryFromTemplate(repo)
+            {
+                Description = $"Scoop repository for {projectPackageInfo.ProjectUrl}",
+            };
+            await _client.Repository.Generate("ScoopInstaller", "BucketTemplate", newRepositoryFromTemplate);
+        }
+        else
+        {
+            _log.Info($"Scoop repository found {user}/{repo}");
+        }
+
+        IReadOnlyList<RepositoryContent>? repositoryContents = null;
+        try
+        {
+            repositoryContents = await _client.Repository.Content.GetAllContents(user, repo, filePath);
+        }
+        catch (NotFoundException)
+        {
+            // ignore
+        }
+
+        var shouldCreate = repositoryContents is null || repositoryContents.Count == 0;
+        if (shouldCreate)
+        {
+            _log.Info($"Creating Scoop manifest {user}/{repo}/{filePath}");
+            await _client.Repository.Content.CreateFile(user, repo, filePath, new CreateFileRequest($"{projectPackageInfo.Version}", scoopManifest));
+        }
+        else
+        {
+            Debug.Assert(repositoryContents is not null);
+            var file = repositoryContents[0];
+            if (file.Content != scoopManifest)
+            {
+                _log.Info($"Updating Scoop manifest {user}/{repo}/{filePath}");
+                await _client.Repository.Content.UpdateFile(user, repo, filePath,
+                    new UpdateFileRequest($"{projectPackageInfo.Version}", scoopManifest, file.Sha));
+            }
+            else
+            {
+                _log.Info($"No need to update Scoop manifest {user}/{repo}/{filePath}. Already up-to-date.");
+            }
+        }
     }
 
     private static readonly Regex VersionRegex = new(@"^\d+(\.\d+)+");
