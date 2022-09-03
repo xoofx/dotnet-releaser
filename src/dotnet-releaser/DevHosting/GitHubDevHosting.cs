@@ -286,6 +286,8 @@ public class GitHubDevHosting : IDevHosting
         }
         else
         {
+            _log.Info(version.IsDraft ? $"Updating draft release {tag}" : $"Updating release with tag {tag}");
+
             var tagHasChanged = release.TagName != tag;
             var draftHasChanged = release.Draft != version.IsDraft;
             if (changelog is not null && (release.Name != changelog.Title || tagHasChanged || draftHasChanged || release.Body != changelog.Body))
@@ -329,7 +331,7 @@ public class GitHubDevHosting : IDevHosting
         return release;
     }
 
-    public async Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft)
+    public async Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft, bool forceUpload)
     {
         var release = await CreateOrUpdateReleaseImpl(user, repo, version, changelog);
         // Don't publish packages if draft is enabled but not packages
@@ -349,10 +351,10 @@ public class GitHubDevHosting : IDevHosting
             }
 
             var filename = Path.GetFileName(entry.Path);
-            if (assets.Any(x => x.Name == filename))
+            if (assets.Any(x => x.Name == filename) && !forceUpload)
             {
-                _log.Info($"No need to update {entry.Path} on GitHub. Already uploaded.");
-                continue;
+                _log.Error($"{entry.Path} has already been uploaded. Use --force-upload to replace it.");
+                return;
             }
 
             const int maxHttpRetry = 10;

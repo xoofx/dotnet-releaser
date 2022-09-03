@@ -211,6 +211,13 @@ public partial class ReleaserApp
             tableKindOption.DefaultValue = TableBorderKind.Square;
 
             var forceOption = cmd.Option<bool>("--force", "Force deleting and recreating the artifacts folder.", CommandOptionType.NoValue);
+
+            CommandOption<bool>? forceUploadOption = null;
+            if (cmd.Name == "publish")
+            {
+                forceUploadOption = cmd.Option<bool>("--force-upload", "Force uploading the release assets.", CommandOptionType.NoValue);
+            }
+
             var configurationFileArg = AddTomlConfigurationArgument(cmd, false);
 
             cmd.OnExecuteAsync(async (token) =>
@@ -228,7 +235,7 @@ public partial class ReleaserApp
                 {
                     appReleaser._tableBorder = GetTableBorderFromKind(tableKindOption.ParsedValue);
                 }
-                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue);
+                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue, forceUploadOption?.ParsedValue ?? false);
                 return result ? 0 : 1;
             });
         }
@@ -290,7 +297,7 @@ public partial class ReleaserApp
     /// <summary>
     /// Runs the releaser app
     /// </summary>
-    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder)
+    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder, bool forceUpload)
     {
         BuildInformation? buildInformation = null;
         GitHubDevHostingConfiguration? hostingConfiguration = null;
@@ -362,7 +369,7 @@ public partial class ReleaserApp
         // Draft if we are just building and not publishing (to allow to update the changelog)
         if (buildInformation.BuildKind == BuildKind.Publish || buildInformation.PublishNuGet)
         {
-            await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, devHosting, devHostingExtra, changelog);
+            await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, devHosting, devHostingExtra, changelog, forceUpload);
         }
 
         // ------------------------------------------------------------------

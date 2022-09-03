@@ -30,7 +30,7 @@ public interface IDevHosting
 
     Task CreateOrUpdateRelease(string user, string repo, ReleaseVersion version, ChangelogResult? changelog);
 
-    Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft);
+    Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft, bool forceUpload);
 
     Task UploadHomebrewFormula(string user, string repo, ProjectPackageInfo projectPackageInfo, string brewFormula);
     
