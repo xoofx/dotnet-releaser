@@ -23,10 +23,11 @@
   - [2.7. Packaging](#27-packaging)
   - [2.8. NuGet](#28-nuget)
   - [2.9. Homebrew](#29-homebrew)
-  - [2.10. Changelog](#210-changelog)
-  - [2.11. Service](#211-service)
-    - [2.11.1. Systemd](#2111-systemd)
-  - [2.12. Package Dependencies](#212-package-dependencies)
+  - [2.10. Scoop](#210-scoop)
+  - [2.11. Changelog](#211-changelog)
+  - [2.12. Service](#212-service)
+    - [2.12.1. Systemd](#2121-systemd)
+  - [2.13. Package Dependencies](#213-package-dependencies)
 - [3. CLI Usage](#3-cli-usage)
   - [3.1. `dotnet-releaser new`](#31-dotnet-releaser-new)
   - [3.2. `dotnet-releaser build`](#32-dotnet-releaser-build)
@@ -545,6 +546,7 @@ For example:
 source = "https://my.special.registry.nuget.org/v3/index.json"
 # publish = false
 ```
+
 ### 2.9. Homebrew
 
 By default, a Homebrew repository and formula will be created if a `tar` file is generated for either a Linux or MacOS platform.
@@ -575,7 +577,31 @@ See for example the generated [Homebrew repository for grpc-curl](https://github
 > 
 > By default the `${{secrets.GITHUB_TOKEN}}` is only valid to interact with the current repository.
 
-### 2.10. Changelog
+### 2.10. Scoop
+
+By default, a Scoop repository (bucket) and manifest will be created if a `zip` file is generated for the Windows platform.
+
+| `[scoop]`       | Type       | Description                |
+|-----------------|------------|----------------------------|
+| `publish`       | `bool`     | Enable or disable Scoop support. Default is enabled.
+| `home`          | `string`   | Allow to override the default scoop repository name. See more details below.
+
+By default, if your application name is `my-application`, and your GitHub user `xyz`, it will create and update automatically a repository at `https://github.com/xyz/scoop-my-application`.
+
+If you want to change this default behavior, and use your own scoop bucket, you can specify it by setting `home`:
+
+```toml
+[scoop]
+home = "scoop-all-my-apps"
+```
+
+This repository will be created using the [Scoop bucket template](https://github.com/ScoopInstaller/BucketTemplate).
+
+> NOTE: In order to create and publish to a different repository, you will need to create a personal access GitHub Token and pass it to `--github-token-extra`.
+>
+> By default the `${{secrets.GITHUB_TOKEN}}` is only valid to interact with the current repository.
+
+### 2.11. Changelog
 
 `dotnet-releaser` comes with great defaults that can generate automatically your changelog from your commits and pull-requests.
 
@@ -583,7 +609,7 @@ The generated changelog can then be uploaded as part of the publish process when
 
 Please follow the dedicated [user-guide for configuring changelog](changelog_user_guide.md).
 
-### 2.11. Service
+### 2.12. Service
 
 `dotnet-releaser` allows to package an application as a service that can be be automatically started by the platform supporting such kind of packages.
 
@@ -598,7 +624,7 @@ publish = true # Allow to package the application as a service for the packages 
 
 Then for each kind of service system, your application might require specific configuration.
 
-#### 2.11.1. Systemd
+#### 2.12.1. Systemd
 
 An example of a specific configuration for a systemd service
 
@@ -649,7 +675,7 @@ Type = simple
 
 See the [Systemd configuration manual](https://manpages.debian.org/bullseye-backports/systemd/systemd.unit.5.en.html) for the meaning of these defaults.
 
-### 2.12. Package Dependencies
+### 2.13. Package Dependencies
 
 It is possible to define package dependencies if the underlying package model supports it.
 
@@ -747,7 +773,9 @@ $ dotnet-releaser build --project HelloWorld.csproj --user xoofx --repo HelloWor
 
 ### 3.3. `dotnet-releaser publish`
 
-```
+> NOTE: this command fails if the release assets have been already uploaded; use `--force-upload` to replace them.
+
+```text
 Build and publish the project.
 
 Usage: dotnet-releaser publish [options] <dotnet-releaser.toml>
@@ -765,6 +793,7 @@ Options:
                                 Markdown.
                                 Default value is: Square.
   --force                       Force deleting and recreating the artifacts folder.
+  --force-upload                Force uploading the release assets.
   -?|-h|--help                  Show help information.
 ```
 
