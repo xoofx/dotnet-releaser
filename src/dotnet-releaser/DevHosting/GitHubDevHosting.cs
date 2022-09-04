@@ -468,9 +468,9 @@ public class GitHubDevHosting : IDevHosting
 
     }
 
-    public async Task UploadScoopManifest(string user, string repo, ProjectPackageInfo projectPackageInfo, string scoopManifest)
+    public async Task UploadScoopManifest(string user, string repo, ProjectPackageInfo packageInfo, string scoopManifest)
     {
-        var appName = projectPackageInfo.AssemblyName;
+        var appName = packageInfo.AssemblyName;
         var filePath = $"bucket/{appName}.json";
 
         Repository? existingRepository = null;
@@ -488,7 +488,7 @@ public class GitHubDevHosting : IDevHosting
             _log.Info($"Creating Scoop repository {user}/{repo}");
             var newRepositoryFromTemplate = new NewRepositoryFromTemplate(repo)
             {
-                Description = $"Scoop repository for {projectPackageInfo.ProjectUrl}",
+                Description = $"Scoop repository for {packageInfo.ProjectUrl}",
             };
             await _client.Repository.Generate("ScoopInstaller", "BucketTemplate", newRepositoryFromTemplate);
         }
@@ -507,26 +507,17 @@ public class GitHubDevHosting : IDevHosting
             // ignore
         }
 
-        var shouldCreate = repositoryContents is null || repositoryContents.Count == 0;
-        if (shouldCreate)
+        var manifestFile = repositoryContents?.FirstOrDefault(x => x.Path == filePath);
+        if (manifestFile is null)
         {
             _log.Info($"Creating Scoop manifest {user}/{repo}/{filePath}");
-            await _client.Repository.Content.CreateFile(user, repo, filePath, new CreateFileRequest($"{projectPackageInfo.Version}", scoopManifest));
+            await _client.Repository.Content.CreateFile(user, repo, filePath, new CreateFileRequest(packageInfo.Version, scoopManifest));
         }
         else
         {
-            Debug.Assert(repositoryContents is not null);
-            var file = repositoryContents[0];
-            if (file.Content != scoopManifest)
-            {
-                _log.Info($"Updating Scoop manifest {user}/{repo}/{filePath}");
-                await _client.Repository.Content.UpdateFile(user, repo, filePath,
-                    new UpdateFileRequest($"{projectPackageInfo.Version}", scoopManifest, file.Sha));
-            }
-            else
-            {
-                _log.Info($"No need to update Scoop manifest {user}/{repo}/{filePath}. Already up-to-date.");
-            }
+            // if we got here the sha256 has changed and the scoop manifest needs to be recreated
+            _log.Info($"Updating Scoop manifest {user}/{repo}/{filePath}");
+            await _client.Repository.Content.UpdateFile(user, repo, filePath, new UpdateFileRequest(packageInfo.Version, scoopManifest, manifestFile.Sha));
         }
     }
 
