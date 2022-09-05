@@ -353,7 +353,7 @@ public class GitHubDevHosting : IDevHosting
             var filename = Path.GetFileName(entry.Path);
             if (assets.Any(x => x.Name == filename) && !forceUpload)
             {
-                _log.Info($"{entry.Path} has already been uploaded. Use --force-upload to replace it.");
+                _log.Warn($"{entry.Path} has already been uploaded. Use --force-upload to replace it.");
                 continue;
             }
 
