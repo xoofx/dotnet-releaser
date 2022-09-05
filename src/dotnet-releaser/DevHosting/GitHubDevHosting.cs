@@ -286,6 +286,8 @@ public class GitHubDevHosting : IDevHosting
         }
         else
         {
+            _log.Info(version.IsDraft ? $"Updating draft release {tag}" : $"Updating release with tag {tag}");
+
             var tagHasChanged = release.TagName != tag;
             var draftHasChanged = release.Draft != version.IsDraft;
             if (changelog is not null && (release.Name != changelog.Title || tagHasChanged || draftHasChanged || release.Body != changelog.Body))
@@ -329,7 +331,7 @@ public class GitHubDevHosting : IDevHosting
         return release;
     }
 
-    public async Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft)
+    public async Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft, bool forceUpload)
     {
         var release = await CreateOrUpdateReleaseImpl(user, repo, version, changelog);
         // Don't publish packages if draft is enabled but not packages
@@ -349,9 +351,9 @@ public class GitHubDevHosting : IDevHosting
             }
 
             var filename = Path.GetFileName(entry.Path);
-            if (assets.Any(x => x.Name == filename))
+            if (assets.Any(x => x.Name == filename) && !forceUpload)
             {
-                _log.Info($"No need to update {entry.Path} on GitHub. Already uploaded.");
+                _log.Info($"{entry.Path} has already been uploaded. Use --force-upload to replace it.");
                 continue;
             }
 
@@ -360,7 +362,7 @@ public class GitHubDevHosting : IDevHosting
             {
                 try
                 {
-                    _log.Info($"{(i > 0 ? $"Retry ({{i}}/{maxHttpRetry - 1}) " : "")}Uploading {filename} to GitHub Release: {release.TagName} (Size: {new FileInfo(entry.Path).Length / (1024 * 1024)}MB)");
+                    _log.Info($"{(i > 0 ? $"Retry ({i}/{maxHttpRetry - 1}) " : "")}Uploading {filename} to GitHub Release: {release.TagName} (Size: {new FileInfo(entry.Path).Length / (1024 * 1024)}MB)");
                     // Upload assets
                     using var stream = File.OpenRead(entry.Path);
 
@@ -464,6 +466,59 @@ public class GitHubDevHosting : IDevHosting
             }
         }
 
+    }
+
+    public async Task UploadScoopManifest(string user, string repo, ProjectPackageInfo packageInfo, string scoopManifest)
+    {
+        var appName = packageInfo.AssemblyName;
+        var filePath = $"bucket/{appName}.json";
+
+        Repository? existingRepository = null;
+        try
+        {
+            existingRepository = await _client.Repository.Get(user, repo);
+        }
+        catch (NotFoundException)
+        {
+            // ignore
+        }
+
+        if (existingRepository is null)
+        {
+            _log.Info($"Creating Scoop repository {user}/{repo}");
+            var newRepositoryFromTemplate = new NewRepositoryFromTemplate(repo)
+            {
+                Description = $"Scoop repository for {packageInfo.ProjectUrl}",
+            };
+            await _client.Repository.Generate("ScoopInstaller", "BucketTemplate", newRepositoryFromTemplate);
+        }
+        else
+        {
+            _log.Info($"Scoop repository found {user}/{repo}");
+        }
+
+        IReadOnlyList<RepositoryContent>? repositoryContents = null;
+        try
+        {
+            repositoryContents = await _client.Repository.Content.GetAllContents(user, repo, filePath);
+        }
+        catch (NotFoundException)
+        {
+            // ignore
+        }
+
+        var manifestFile = repositoryContents?.FirstOrDefault(x => x.Path == filePath);
+        if (manifestFile is null)
+        {
+            _log.Info($"Creating Scoop manifest {user}/{repo}/{filePath}");
+            await _client.Repository.Content.CreateFile(user, repo, filePath, new CreateFileRequest(packageInfo.Version, scoopManifest));
+        }
+        else
+        {
+            // if we got here the sha256 has changed and the scoop manifest needs to be recreated
+            _log.Info($"Updating Scoop manifest {user}/{repo}/{filePath}");
+            await _client.Repository.Content.UpdateFile(user, repo, filePath, new UpdateFileRequest(packageInfo.Version, scoopManifest, manifestFile.Sha));
+        }
     }
 
     private static readonly Regex VersionRegex = new(@"^\d+(\.\d+)+");

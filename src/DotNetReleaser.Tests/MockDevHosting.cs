@@ -50,12 +50,17 @@ public class MockDevHosting : IDevHosting
 
 
 
-    public Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft)
+    public Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft, bool forceUpload)
     {
         return Task.CompletedTask;
     }
 
     public Task UploadHomebrewFormula(string user, string repo, ProjectPackageInfo projectPackageInfo, string brewFormula)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task UploadScoopManifest(string user, string repo, ProjectPackageInfo projectPackageInfo, string scoopManifest)
     {
         return Task.CompletedTask;
     }

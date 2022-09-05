@@ -26,6 +26,7 @@ public class ReleaserConfiguration
         GitHub = new GitHubDevHostingConfiguration();
         NuGet = new NuGetPublisher();
         Brew = new BrewPublisher();
+        Scoop = new ScoopPublisher();
         Service = new ServiceConfiguration();
         Debian = new DebianConfiguration();
         Rpm = new RpmConfiguration();
@@ -57,6 +58,8 @@ public class ReleaserConfiguration
     public NuGetPublisher NuGet { get; }
 
     public BrewPublisher Brew { get; }
+
+    public ScoopPublisher Scoop { get; set; }
 
     /// <summary>
     /// Configuration for service

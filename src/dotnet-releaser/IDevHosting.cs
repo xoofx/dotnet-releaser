@@ -30,9 +30,11 @@ public interface IDevHosting
 
     Task CreateOrUpdateRelease(string user, string repo, ReleaseVersion version, ChangelogResult? changelog);
 
-    Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft);
+    Task UpdateChangelogAndUploadPackages(string user, string repo, ReleaseVersion version, ChangelogResult? changelog, List<AppPackageInfo> entries, bool enablePublishPackagesInDraft, bool forceUpload);
 
     Task UploadHomebrewFormula(string user, string repo, ProjectPackageInfo projectPackageInfo, string brewFormula);
+    
+    Task UploadScoopManifest(string user, string repo, ProjectPackageInfo projectPackageInfo, string scoopManifest);
 
     string GetCompareUrl(string user, string repo, string fromRef, string toRef);
 

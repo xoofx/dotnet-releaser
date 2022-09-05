@@ -6,7 +6,8 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task PublishPackagesAndChangelog(string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration, IDevHosting? devHosting, IDevHosting? devHostingExtra, ChangelogResult? changelog)
+    private async Task PublishPackagesAndChangelog(string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration,
+        IDevHosting? devHosting, IDevHosting? devHostingExtra, ChangelogResult? changelog, bool forceUpload)
     {
         bool groupStarted = false;
         try
@@ -32,7 +33,7 @@ public partial class ReleaserApp
                     var appPackagesToPublish = buildPackageInformation.AppPackages;
 
                     // In the case of a build, we still want to upload a draft release notes
-                    await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, appPackagesToPublish, _config.EnablePublishPackagesInDraft);
+                    await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, appPackagesToPublish, _config.EnablePublishPackagesInDraft, forceUpload);
 
                     if (!HasErrors && _config.Brew.Publish)
                     {
@@ -47,6 +48,22 @@ public partial class ReleaserApp
                                 Warn("Warning, publishing a new Homebrew formula requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
                             }
                             await devHostingExtra.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
+                        }
+                    }
+                    
+                    if (!HasErrors && _config.Scoop.Publish)
+                    {
+                        // Log an error if we don't have an extra access for homebrew
+                        devHostingExtra ??= devHosting;
+                        var scoopManifest = CreateScoopManifest(devHostingExtra, packageInfo, appPackagesToPublish);
+
+                        if (scoopManifest is not null)
+                        {
+                            if (devHostingExtra == devHosting)
+                            {
+                                Warn("Warning, publishing a new Scoop manifest requires to use --github-token-extra. Using --github-token as a fallback but it might fail!");
+                            }
+                            await devHostingExtra.UploadScoopManifest(hostingConfiguration.User, _config.Scoop.Home, packageInfo, scoopManifest);
                         }
                     }
                 }
