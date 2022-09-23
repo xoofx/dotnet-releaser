@@ -9,7 +9,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DotNetReleaser.Changelog;
 using DotNetReleaser.Configuration;
-using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using NuGet.Versioning;
 using Octokit;
@@ -486,11 +485,14 @@ public class GitHubDevHosting : IDevHosting
         if (existingRepository is null)
         {
             _log.Info($"Creating Scoop repository {user}/{repo}");
-            var newRepositoryFromTemplate = new NewRepositoryFromTemplate(repo)
+            var newRepository = new NewRepository(repo)
             {
-                Description = $"Scoop repository for {packageInfo.ProjectUrl}",
+                Description = $@"Scoop repository for {packageInfo.ProjectUrl}.",
+                AutoInit = true,
+                LicenseTemplate = packageInfo.License
             };
-            await _client.Repository.Generate("ScoopInstaller", "BucketTemplate", newRepositoryFromTemplate);
+
+            await _client.Repository.Create(newRepository);
         }
         else
         {
