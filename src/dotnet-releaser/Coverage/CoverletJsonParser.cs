@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Octokit;
 
 namespace DotNetReleaser.Coverage;
 
@@ -24,6 +22,24 @@ public class CoverletJsonParser
         {
             var assemblyCoverage = ParseAssemblyCoverage(module, documents);
             list.Add(assemblyCoverage);
+
+            // Discard files added by test framework
+            bool hasRemoved = false;
+            for (var i = 0; i < assemblyCoverage.Files.Count; i++)
+            {
+                var fileCoverage = assemblyCoverage.Files[i];
+                if (fileCoverage.FullPath.Contains("packages/microsoft.net.test.sdk/", StringComparison.OrdinalIgnoreCase))
+                {
+                    assemblyCoverage.Files.RemoveAt(i);
+                    i--;
+                    hasRemoved = true;
+                }
+            }
+
+            if (hasRemoved)
+            {
+                assemblyCoverage.UpdateCoverage();
+            }
         }
 
         return list;
