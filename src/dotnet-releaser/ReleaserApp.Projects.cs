@@ -89,7 +89,7 @@ public enum BuildKind
     Run,
 }
 
-public record TargetFrameworkInfo(bool IsMultiTargeting, List<string> TargetFrameworks);
+public record TargetFrameworkInfo(bool IsMultiTargeting, List<string> TargetFrameworks, string HighestTargetFramework);
 
 
 public partial class ReleaserApp
@@ -122,11 +122,19 @@ public partial class ReleaserApp
         }
 
         var targetFrameworks = new List<string>();
+        var highestTargetFramework = string.Empty;
+        var highestTargetFrameworkVersion = new Version(0, 0, 0, 0);
+
         foreach (var targetFrameworkAsString in targetFrameworksAsArray)
         {
             try
             {
                 var targetFramework = NuGetFramework.Parse(targetFrameworkAsString);
+                if (targetFramework.Version > highestTargetFrameworkVersion)
+                {
+                    highestTargetFramework = targetFrameworkAsString;
+                    highestTargetFrameworkVersion = targetFramework.Version;
+                }
                 targetFrameworks.Add(targetFrameworkAsString);
             }
             catch (Exception ex)
@@ -135,7 +143,7 @@ public partial class ReleaserApp
                 return null;
             }
         }
-        return new TargetFrameworkInfo(isCrossBuilding, targetFrameworks);
+        return new TargetFrameworkInfo(isCrossBuilding, targetFrameworks, highestTargetFramework);
     }
 
     private async Task<ProjectPackageInfo?> LoadPackageInfo(string projectFullFilePath, TargetFrameworkInfo targetFrameworkInfo)

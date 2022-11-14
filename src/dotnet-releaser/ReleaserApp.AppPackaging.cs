@@ -106,6 +106,9 @@ public partial class ReleaserApp
             { "RuntimeIdentifier", rid }, // Make sure that we have the last word on the target platform
         };
 
+        // Make sure that for an app, we build only the highest target framework version
+        var targetFramework = projectPackageInfo.TargetFrameworkInfo.HighestTargetFramework;
+
         var clock = Stopwatch.StartNew();
         var entries = new List<AppPackageInfo>();
         foreach (var kind in kinds)
@@ -140,7 +143,7 @@ public partial class ReleaserApp
                     throw new ArgumentException($"Invalid kind {kind}", nameof(kind));
             }
 
-            Info($"Building {FormatRidAndKind(rid, kind)}.");
+            Info($"Building {FormatRidAndKind(rid, kind)}, target framework: [{targetFramework}].");
             clock.Restart();
 
             // We need to explicitly restore the platform RID before trying to build it
@@ -149,6 +152,12 @@ public partial class ReleaserApp
             {
                 // Stop on first error
                 break;
+            }
+
+            // If we are multi-targeting, we select the highest TFM for packaging the app.
+            if (projectPackageInfo.TargetFrameworkInfo.IsMultiTargeting)
+            {
+                propertiesForTarget["TargetFramework"] = targetFramework;
             }
 
             // Create service
