@@ -30,7 +30,7 @@ public class BuildInformation
 {
     public BuildInformation(ProjectPackageInfoCollection[] projectPackageInfoCollections)
     {
-        Version = "(dev build - no release tag)";
+        Version = "9999.0.0";
         ProjectPackageInfoCollections = projectPackageInfoCollections;
         BuildPackages = new Dictionary<ProjectPackageInfo, BuildPackageInformation>();
     }
