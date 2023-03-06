@@ -15,7 +15,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder)
+    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder, string? publishVersion)
     {
         // ------------------------------------------------------------------
         // Load Configuration
@@ -36,6 +36,11 @@ public partial class ReleaserApp
         // ------------------------------------------------------------------
         var buildInformation = await LoadProjects();
         if (buildInformation is null || HasErrors) return null; // return false;
+
+        if (buildKind == BuildKind.Publish && publishVersion != null)
+        {
+            buildInformation.Version = publishVersion;
+        }
 
         // ------------------------------------------------------------------
         // Validate Publish parameters
@@ -100,10 +105,12 @@ public partial class ReleaserApp
             // Automatically convert a run into a publish if we have a release tag
             if (gitHubInfo.EventName == "push" && gitHubInfo.RefType == GitHubActionRefType.Tag)
             {
-                var regexVersion = new Regex(@$"^{hostingConfiguration.VersionPrefix}\d+(\.\d+)*");
-                if (regexVersion.IsMatch(gitHubInfo.RefName))
+                var regexVersion = new Regex(@$"^{hostingConfiguration.VersionPrefix}(\d+.*)");
+                var match = regexVersion.Match(gitHubInfo.RefName);
+                if (match.Success)
                 {
-                    _logger.InfoMarkup($"The tag `{Markup.Escape(gitHubInfo.RefName)}` is identified as a release tag. [green on black]Publish mode[/] selected.");
+                    buildInformation.Version = match.Groups[1].Value;
+                    _logger.InfoMarkup($"The tag `{Markup.Escape(gitHubInfo.RefName)}` is identified as a release tag with version `{buildInformation.Version}`. [green on black]Publish mode[/] selected.");
                     buildKind = BuildKind.Publish;
                 }
                 else

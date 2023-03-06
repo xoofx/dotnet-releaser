@@ -213,8 +213,10 @@ public partial class ReleaserApp
             var forceOption = cmd.Option<bool>("--force", "Force deleting and recreating the artifacts folder.", CommandOptionType.NoValue);
 
             CommandOption<bool>? forceUploadOption = null;
+            CommandOption<string>? publishVersion = null;
             if (cmd.Name == "publish")
             {
+                publishVersion = cmd.Option<string>("--version <version>", "Tag version used when publishing the changelog and creating the release tag.", CommandOptionType.SingleValue);
                 forceUploadOption = cmd.Option<bool>("--force-upload", "Force uploading the release assets.", CommandOptionType.NoValue);
             }
 
@@ -235,7 +237,7 @@ public partial class ReleaserApp
                 {
                     appReleaser._tableBorder = GetTableBorderFromKind(tableKindOption.ParsedValue);
                 }
-                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue, forceUploadOption?.ParsedValue ?? false);
+                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue, forceUploadOption?.ParsedValue ?? false, publishVersion?.ParsedValue);
                 return result ? 0 : 1;
             });
         }
@@ -297,7 +299,7 @@ public partial class ReleaserApp
     /// <summary>
     /// Runs the releaser app
     /// </summary>
-    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder, bool forceUpload)
+    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder, bool forceUpload, string? publishVersion)
     {
         BuildInformation? buildInformation = null;
         GitHubDevHostingConfiguration? hostingConfiguration = null;
@@ -308,7 +310,7 @@ public partial class ReleaserApp
         {
             _logger.Info($"dotnet-releaser {Version} - {buildKind.ToString().ToLowerInvariant()}");
             _logger.LogStartGroup($"Configuring");
-            var result = await Configuring(configurationFile, buildKind, githubApiToken, githubApiTokenExtra, nugetApiToken, forceArtifactsFolder);
+            var result = await Configuring(configurationFile, buildKind, githubApiToken, githubApiTokenExtra, nugetApiToken, forceArtifactsFolder, publishVersion);
             if (result is null) return false;
             buildInformation = result.Value.buildInformation!;
             devHosting = result.Value.devHosting;

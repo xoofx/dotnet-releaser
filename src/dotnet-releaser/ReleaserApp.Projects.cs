@@ -28,14 +28,14 @@ public enum PackageOutputType
 
 public class BuildInformation
 {
-    public BuildInformation(string version, ProjectPackageInfoCollection[] projectPackageInfoCollections)
+    public BuildInformation(ProjectPackageInfoCollection[] projectPackageInfoCollections)
     {
-        Version = version;
+        Version = "(dev build - no release tag)";
         ProjectPackageInfoCollections = projectPackageInfoCollections;
         BuildPackages = new Dictionary<ProjectPackageInfo, BuildPackageInformation>();
     }
 
-    public string Version { get; }
+    public string Version { get; set; }
 
     public ProjectPackageInfoCollection[] ProjectPackageInfoCollections { get; }
     
@@ -381,12 +381,12 @@ public partial class ReleaserApp
         // --------------------------------------------------------------------------
         // Verify versions of projects and display all projects
         // --------------------------------------------------------------------------
-        var version = VerifyVersionsAndDisplayAllProjects(allProjectPackageInfoCollections);
+        DisplayAllProjects(allProjectPackageInfoCollections);
 
-        return new BuildInformation(version, allProjectPackageInfoCollections.ToArray());
+        return new BuildInformation(allProjectPackageInfoCollections.ToArray());
     }
 
-    private string VerifyVersionsAndDisplayAllProjects(List<ProjectPackageInfoCollection> projectPackageInfoCollections)
+    private void DisplayAllProjects(List<ProjectPackageInfoCollection> projectPackageInfoCollections)
     {
         var table = new Table();
         table.AddColumn("Project");
@@ -401,8 +401,6 @@ public partial class ReleaserApp
         var row = new List<object>();
         row.AddRange(Enumerable.Repeat(string.Empty, table.Columns.Count));
         
-        string? version = null;
-        var invalidPackageVersions = new List<ProjectPackageInfo>();
         string? previousSolution = null;
         foreach (var projectPackageInfoCollection in projectPackageInfoCollections)
         {
@@ -427,15 +425,10 @@ public partial class ReleaserApp
 
             foreach (var project in projectPackageInfoCollection.Packages)
             {
-                if (project.IsPackable)
-                {
-                    version ??= project.Version;
-                }
-                bool invalidVersion = project.IsPackable && version != project.Version;
                 int c = 0;
                 row[c++] = project.AssemblyName;
                 row[c++] = project.OutputType.ToString().ToLowerInvariant();
-                row[c++] = invalidVersion ? $"{project.Version} (invalid)" : project.Version;
+                row[c++] = project.Version;
                 row[c++] = string.Join("\n", project.TargetFrameworkInfo.TargetFrameworks);
                 if (project.IsPackable)
                 {
@@ -450,10 +443,6 @@ public partial class ReleaserApp
 
                 row[c++] = project.IsPackable ? "x" : string.Empty;
                 row[c] = project.IsTestProject ? "x" : string.Empty;
-                if (invalidVersion)
-                {
-                    invalidPackageVersions.Add(project);
-                }
 
                 //table.AddRow(row.Select(Markup.Escape).ToArray());
                 table.AddRow(row.Select(x => x is IRenderable renderable ? renderable : new Text(x.ToString() ?? string.Empty)).ToArray());
@@ -461,21 +450,6 @@ public partial class ReleaserApp
         }
 
         Info($"Packages and Projects", table);
-
-        if (invalidPackageVersions.Count > 0)
-        {
-            foreach (var invalidPackageVersion in invalidPackageVersions)
-            {
-                Error($"Invalid version {invalidPackageVersion.Version} for package {invalidPackageVersion.AssemblyName}");
-            }
-        }
-
-        if (string.IsNullOrEmpty(version))
-        {
-            Error("No version found from all projects");
-        }
-
-        return version ?? string.Empty;
     }
 
     private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, params string[] arguments)
