@@ -39,7 +39,7 @@ public partial class ReleaserApp
                     {
                         // Log an error if we don't have an extra access for homebrew
                         devHostingExtra ??= devHosting;
-                        var brewFormula = CreateFormula(devHostingExtra, packageInfo, appPackagesToPublish);
+                        var brewFormula = CreateFormula(devHostingExtra, buildInformation, packageInfo, appPackagesToPublish);
 
                         if (brewFormula is not null)
                         {
@@ -55,7 +55,7 @@ public partial class ReleaserApp
                     {
                         // Log an error if we don't have an extra access for homebrew
                         devHostingExtra ??= devHosting;
-                        var scoopManifest = CreateScoopManifest(devHostingExtra, packageInfo, appPackagesToPublish);
+                        var scoopManifest = CreateScoopManifest(devHostingExtra, buildInformation, packageInfo, appPackagesToPublish);
 
                         if (scoopManifest is not null)
                         {

@@ -18,7 +18,7 @@ public partial class ReleaserApp
             _logger.LogStartGroup($"NuGet Packaging - {buildInfo.Version}");
             foreach (var projectPackageInfo in buildInfo.GetAllPackableProjects())
             {
-                var nugetPackages = await BuildNuGetPackageImpl(projectPackageInfo);
+                var nugetPackages = await BuildNuGetPackageImpl(buildInfo, projectPackageInfo);
                 if (nugetPackages is null)
                 {
                     Error("Failed to build nuget packages or no packages were found.");
@@ -43,7 +43,7 @@ public partial class ReleaserApp
         return !HasErrors;
     }
 
-    private async Task<List<string>?> BuildNuGetPackageImpl(ProjectPackageInfo projectPackageInfo)
+    private async Task<List<string>?> BuildNuGetPackageImpl(BuildInformation buildInfo, ProjectPackageInfo projectPackageInfo)
     {
         Info($"Building NuGet Package - {projectPackageInfo.Name}");
         var restoreResult = await RunMSBuild(projectPackageInfo.ProjectFullPath, "Restore");
@@ -60,7 +60,7 @@ public partial class ReleaserApp
         }
 
         // Set a link back to GitHub release notes
-        properties["PackageReleaseNotes"] = _config.GitHub.GetReleaseNotesUrl(projectPackageInfo.Version);
+        properties["PackageReleaseNotes"] = _config.GitHub.GetReleaseNotesUrl(buildInfo.Version);
 
         // We need to inject via props to support multi-targeting projects
         var outputs = await RunMSBuild(projectPackageInfo.ProjectFullPath, ReleaserConstants.DotNetReleaserPackAndGetNuGetPackOutput, properties, injectViaProps: true);

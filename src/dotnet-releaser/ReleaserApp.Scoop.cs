@@ -17,7 +17,7 @@ public partial class ReleaserApp
         Info($"The configured scoop destination repository is `{_config.GitHub.User}/{_config.Scoop.Home}`.");
     }
 
-    private string? CreateScoopManifest(IDevHosting hosting, ProjectPackageInfo projectPackageInfo, List<AppPackageInfo> appPackagesToPublish)
+    private string? CreateScoopManifest(IDevHosting hosting, BuildInformation buildInformation, ProjectPackageInfo projectPackageInfo, List<AppPackageInfo> appPackagesToPublish)
     {
         var entriesForScoop = new List<(AppPackageInfo, string)>();
         foreach (var packageInfo in appPackagesToPublish)
@@ -51,7 +51,7 @@ public partial class ReleaserApp
         {
             var (packageEntry, arch) = entries[i];
             manifestBuilder.Append($@"        ""{arch}"": {{
-            ""url"": ""{hosting.GetDownloadReleaseUrl(projectPackageInfo.Version, Path.GetFileName(packageEntry.Path))}"",
+            ""url"": ""{hosting.GetDownloadReleaseUrl(buildInformation.Version, Path.GetFileName(packageEntry.Path))}"",
             ""hash"": ""{packageEntry.Sha256}""
         }}");
 

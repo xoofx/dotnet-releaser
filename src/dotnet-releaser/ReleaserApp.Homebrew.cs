@@ -17,7 +17,7 @@ public partial class ReleaserApp
         Info($"The configured homebrew destination repository is `{_config.GitHub.User}/{_config.Brew.Home}`.");
     }
 
-    private string? CreateFormula(IDevHosting hosting, ProjectPackageInfo projectPackageInfo, List<AppPackageInfo> entries)
+    private string? CreateFormula(IDevHosting hosting, BuildInformation buildInformation, ProjectPackageInfo projectPackageInfo, List<AppPackageInfo> entries)
     {
         var log = hosting.Logger;
 
@@ -77,7 +77,7 @@ class {className} < Formula
                 }
 
                 formulaBuilder.Append($@"    if {brewCpuCheck}
-      url ""{hosting.GetDownloadReleaseUrl(projectPackageInfo.Version, Path.GetFileName(packageEntry.Path))}""
+      url ""{hosting.GetDownloadReleaseUrl(buildInformation.Version, Path.GetFileName(packageEntry.Path))}""
       sha256 ""{packageEntry.Sha256}""
 
       def install
