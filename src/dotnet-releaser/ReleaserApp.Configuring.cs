@@ -53,7 +53,7 @@ public partial class ReleaserApp
         // Connect to GitHub if we have a token
         if (!string.IsNullOrEmpty(githubApiToken))
         {
-            devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken);
+            devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken, "For this CI");
             if (devHosting is null)
             {
                 return null; // return false;
@@ -63,7 +63,7 @@ public partial class ReleaserApp
         // Connet to GitHub for extra access
         if (!string.IsNullOrEmpty(githubApiTokenExtra))
         {
-            devHostingExtra = await ConnectToDevHosting(hostingConfiguration, githubApiTokenExtra);
+            devHostingExtra = await ConnectToDevHosting(hostingConfiguration, githubApiTokenExtra, "For External Repositories");
             if (devHostingExtra is null)
             {
                 return null; // return false;

@@ -26,7 +26,7 @@ public partial class ReleaserApp
             return false;
         }
         
-        var devHosting = await ConnectToDevHosting(_config.GitHub, githubApiToken);
+        var devHosting = await ConnectToDevHosting(_config.GitHub, githubApiToken, "For Fetching Changelog");
         if (devHosting is null) return false;
 
         return await ListOrUpdateChangelog(devHosting, version, update);

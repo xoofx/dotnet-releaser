@@ -21,6 +21,8 @@ public interface IDevHosting
     DevHostingConfiguration Configuration { get; }
 
     string ApiToken { get; }
+
+    string ApiTokenUsage { get; }
     
     Task<bool> Connect();
 

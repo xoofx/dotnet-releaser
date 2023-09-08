@@ -15,12 +15,14 @@ public class MockDevHosting : IDevHosting
         Logger = logger;
         Configuration = configuration;
         ApiToken = string.Empty;
+        ApiTokenUsage = string.Empty;
     }
     
     public ISimpleLogger Logger { get; }
 
     public DevHostingConfiguration Configuration { get; }
     public string ApiToken { get; }
+    public string ApiTokenUsage { get; }
 
     public Task<bool> Connect()
 

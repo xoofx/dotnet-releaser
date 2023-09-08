@@ -22,13 +22,14 @@ public class GitHubDevHosting : IDevHosting
     private readonly string _apiToken;
     private readonly GitHubClient _client;
     
-    public GitHubDevHosting(ISimpleLogger log, DevHostingConfiguration hostingConfiguration, string apiToken)
+    public GitHubDevHosting(ISimpleLogger log, DevHostingConfiguration hostingConfiguration, string apiToken, string apiTokenUsage)
     {
         Logger = log;
         Configuration = hostingConfiguration;
         _log = log;
         _url = hostingConfiguration.Base;
         _apiToken = apiToken;
+        ApiTokenUsage = apiTokenUsage;
         _client = new GitHubClient(new ProductHeaderValue(nameof(ReleaserApp)), new Uri(hostingConfiguration.Api));
     }
 
@@ -38,20 +39,21 @@ public class GitHubDevHosting : IDevHosting
 
     public DevHostingConfiguration Configuration { get; }
     public string ApiToken => _apiToken;
+    public string ApiTokenUsage { get; }
 
     public async Task<bool> Connect()
     {
         var tokenAuth = new Credentials(_apiToken); // NOTE: not real token
         _client.Credentials = tokenAuth;
 
-        _log.Info("Connecting to GitHub");
+        _log.Info($"Connecting to GitHub ({ApiTokenUsage})");
         try
         {
             _ = await _client.Repository.Get(Configuration.User, Configuration.Repo);
         }
         catch (Exception ex)
         {
-            _log.Error($"Unable to connect GitHub. Reason: {ex.Message}");
+            _log.Error($"Unable to connect GitHub ({ApiTokenUsage}). Reason: {ex.Message}");
             return false;
         }
         return true;

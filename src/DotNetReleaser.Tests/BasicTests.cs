@@ -40,7 +40,7 @@ namespace DotNetReleaser.Tests
 
             var logger = new MockSimpleLogger();
 
-            var githubHosting = new GitHubDevHosting(logger, devHosting, "TBD");
+            var githubHosting = new GitHubDevHosting(logger, devHosting, "TBD", "TBD");
             var branches = await githubHosting.GetBranchNamesForCommit("xoofx", "dotnet-releaser", "afe9d28493c05d24f16b5ffdac011b73f66e3c5c");
         }
 

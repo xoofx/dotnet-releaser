@@ -6,9 +6,9 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp 
 {
-    private async Task<IDevHosting?> ConnectToDevHosting(DevHostingConfiguration hostingConfiguration, string githubApiToken)
+    private async Task<IDevHosting?> ConnectToDevHosting(DevHostingConfiguration hostingConfiguration, string githubApiToken, string apiTokenUsage)
     {
-        var hosting = new GitHubDevHosting(_logger, hostingConfiguration, githubApiToken);
+        var hosting = new GitHubDevHosting(_logger, hostingConfiguration, githubApiToken, apiTokenUsage);
 
         if (await hosting.Connect())
         {
