@@ -78,7 +78,7 @@ public static class SimpleLogger
                 AnsiConsole.WriteLine($"::group::{name}");
             }
 
-            AnsiConsole.Write(new Rule(name) { Alignment = Justify.Left });
+            AnsiConsole.Write(new Rule(name) { Justification = Justify.Left });
             Console.Out.Flush();
         }
 

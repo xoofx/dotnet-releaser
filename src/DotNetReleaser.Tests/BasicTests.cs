@@ -226,8 +226,15 @@ Type = simple
 
             StringAssert.Contains("yoyo-runtime", packageInfo, "The package doesn't contain the 'yoyo-runtime' dependency");
 
-            Directory.Delete(_artifactsFolder, true);
-            File.Delete(_configurationFile);
+            try
+            {
+                Directory.Delete(_artifactsFolder, true);
+                File.Delete(_configurationFile);
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
         [TestCase("grpc-curl", "GrpcCurl")]

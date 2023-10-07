@@ -12,7 +12,7 @@ public class CoverageConfiguration
         Enable = true;
 
         Package = "coverlet.collector";
-        Version = "3.1.*";
+        Version = "6.0.*";
         SingleHit = false;
         SourceLink = true;
         IncludeTestAssembly = true;
