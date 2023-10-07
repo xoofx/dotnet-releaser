@@ -45,6 +45,25 @@
     </When>
   </Choose>
 
+  <Choose>
+    <When Condition="'$(ManagePackageVersionsCentrally)' == 'true' AND '$(CentralPackageVersionsFileImported)' == 'true' AND '$(IsTestProject)' == 'true'">
+      <ItemGroup>
+        <PackageReference Include="GitHubActionsTestLogger" VersionOverride="2.3.3">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+      </ItemGroup>
+    </When>
+    <When Condition="'$(IsTestProject)' == 'true'">
+      <ItemGroup>
+        <PackageReference Include="GitHubActionsTestLogger" Version="2.3.3">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+      </ItemGroup>
+    </When>
+  </Choose>
+
   <!--<Target Name="CreateSetup" AfterTargets="Publish">
     <PropertyGroup>
       <PublishDirFullPath>$([System.IO.Path]::GetFullPath('$(PublishDir)'))</PublishDirFullPath>

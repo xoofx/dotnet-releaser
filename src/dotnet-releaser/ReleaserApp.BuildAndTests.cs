@@ -225,6 +225,8 @@ public partial class ReleaserApp
         var runner = new DotNetRunner("test");
         runner.Arguments.Add("--no-restore"); // Because we ran it just before
         runner.Arguments.Add("--no-build"); // Because we ran it just before
+        runner.Arguments.Add("--logger");
+        runner.Arguments.Add("GitHubActions");
         runner.Arguments.Add("--configuration");
         runner.Arguments.Add($"{configuration}");
         runner.Arguments.Add(projectFile);
