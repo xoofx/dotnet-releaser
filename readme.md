@@ -77,14 +77,14 @@ By default, `dotnet-releaser` will:
   ```yaml
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Install .NET 6.0
-      uses: actions/setup-dotnet@v1
+    - name: Install .NET 7.0
+      uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '7.0.x'
 
     - name: Build, Tests, Cover, Pack and Publish (on push tag)
       shell: bash
