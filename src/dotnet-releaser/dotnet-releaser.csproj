@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>DotNetReleaser</RootNamespace>
     <AssemblyName>dotnet-releaser</AssemblyName>
     <Nullable>enable</Nullable>
