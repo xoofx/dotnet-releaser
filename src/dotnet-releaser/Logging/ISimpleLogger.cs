@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using DotNetReleaser.Helpers;
 using Lunet.Extensions.Logging.SpectreConsole;
@@ -59,6 +60,7 @@ public static class SimpleLogger
         private readonly ILogger _log;
         private int _logId;
         private readonly bool _runningFromGitHubAction;
+        private static readonly Regex MatchGitHubWorkflowCommand = new("^::[a-z]+");
 
         public SimpleLoggerRedirect(ILogger log)
         {
@@ -94,6 +96,13 @@ public static class SimpleLogger
 
         public void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args)
         {
+            if (message is not null && MatchGitHubWorkflowCommand.IsMatch(message))
+            {
+                AnsiConsole.WriteLine(message);
+                Console.Out.Flush();
+                return;
+            }
+
             if (level == LogLevel.Error) HasErrors = true;
             var id = Interlocked.Increment(ref _logId);
             if (markup)
