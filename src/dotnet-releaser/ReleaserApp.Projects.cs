@@ -43,6 +43,8 @@ public class BuildInformation
 
     public bool PublishNuGet { get; set; }
 
+    public bool IsPush { get; set; }
+
     public bool AllowPublishDraft { get; set; }
 
     public BuildKind BuildKind { get; set; }

@@ -102,6 +102,8 @@ public partial class ReleaserApp
                 return null;
             }
 
+            buildInformation.IsPush = gitHubInfo.EventName == "push";
+
             // Automatically convert a run into a publish if we have a release tag
             if (gitHubInfo.EventName == "push" && gitHubInfo.RefType == GitHubActionRefType.Tag)
             {
