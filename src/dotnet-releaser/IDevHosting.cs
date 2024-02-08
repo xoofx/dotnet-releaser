@@ -26,6 +26,8 @@ public interface IDevHosting
     
     Task<bool> Connect();
 
+    Task CreateOrUpdateGist(string gistId, string fileName, string content);
+
     Task<List<ReleaseVersion>> GetAllReleaseTags(string user, string repo, string tagPrefix);
 
     Task<ChangelogCollection?> GetChanges(string user, string repo, string tagPrefix, string version);

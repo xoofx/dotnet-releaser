@@ -72,6 +72,37 @@ public class GitHubDevHosting : IDevHosting
 
         return result;
     }
+    
+    public async Task CreateOrUpdateGist(string gistId, string fileName, string content)
+    {
+        var gist = await _client.Gist.Get(gistId);
+        if (gist is null)
+        {
+            _log.Error($"The gist {gistId} for code coverage was not found");
+            return;
+        }
+
+        if (gist.Files.ContainsKey(fileName))
+        {
+            var existingContent = gist.Files[fileName].Content;
+            if (existingContent == content)
+            {
+                _log.Info($"No need to update the gist {gistId} as the content is the same.");
+                return;
+            }
+        }
+        else
+        {
+            _log.Warn($"Cannot update gist {gistId} as it does not contain the required file {fileName}");
+            return;
+        }
+
+        // Update the file
+        GistUpdate gistUpdate = new GistUpdate();
+        //gistUpdate.Files.Add();
+        gistUpdate.Files.Add(fileName, new GistFileUpdate() { NewFileName = fileName, Content = content });
+        await _client.Gist.Edit(gistId, gistUpdate);
+    }
 
     private async Task<List<(RepositoryTag, NuGetVersion)>> GetAllReleaseTagsImpl(string user, string repo, string tagPrefix)
     {

@@ -30,6 +30,11 @@ public class MockDevHosting : IDevHosting
         return Task.FromResult(true);
     }
 
+    public Task CreateOrUpdateGist(string gistId, string fileName, string content)
+    {
+        return Task.CompletedTask;
+    }
+
     public Task<List<ReleaseVersion>> GetAllReleaseTags(string user, string repo, string tagPrefix)
     {
         throw new System.NotImplementedException();

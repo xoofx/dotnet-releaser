@@ -353,7 +353,7 @@ public partial class ReleaserApp
         // ------------------------------------------------------------------
         // Build Projects (debug/release)
         // ------------------------------------------------------------------
-        if (!await BuildAndTest(buildInformation)) return false;
+        if (!await BuildAndTest(devHosting, buildInformation)) return false;
 
         // ------------------------------------------------------------------
         // Build NuGet package

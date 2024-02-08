@@ -15,7 +15,7 @@ public partial class ReleaserApp
 {
     private List<AssemblyCoverage> _assemblyCoverages;
 
-    private async Task<bool> BuildAndTest(BuildInformation buildInfo)
+    private async Task<bool> BuildAndTest(IDevHosting? devHosting, BuildInformation buildInfo)
     {
         var coverage = _config.Coverage.Enable && _config.Test.Enable;
 
@@ -81,7 +81,13 @@ public partial class ReleaserApp
             {
                 if (_config.Coverage.Enable)
                 {
-                    LoadAndDisplayCoverageResults();
+                    var coverageResult = LoadAndDisplayCoverageResults();
+
+                    // Publish badge if requested
+                    if (devHosting is not null)
+                    {
+                        await PublishCoverageToGist(devHosting, buildInfo, coverageResult);
+                    }
                 }
 
                 _logger.LogEndGroup();
@@ -114,7 +120,7 @@ public partial class ReleaserApp
         return Math.Round(rate.Rate * 100, 2, MidpointRounding.AwayFromZero).ToString("##.00") + "%";
     }
 
-    private void LoadAndDisplayCoverageResults()
+    private HitCoverage LoadAndDisplayCoverageResults()
     {
         LoadCoverageResults();
 
@@ -153,6 +159,8 @@ public partial class ReleaserApp
         table.Columns[4].Footer = new Text(FormatRate(totalMethodRate));
 
         _logger.InfoMarkup("Coverage Results:", table);
+
+        return totalMethodRate;
     }
 
     private async Task<bool> Build(string projectFile, bool isTestProject)

@@ -11,6 +11,8 @@ public class CoverageConfiguration
     {
         Enable = true;
 
+        BadgeUploadToGist = false;
+        BadgeGistId = "https://gist.github.com";
         Package = "coverlet.collector";
         Version = "6.0.*";
         SingleHit = false;
@@ -35,6 +37,16 @@ public class CoverageConfiguration
     /// Gets or sets the package that will be used for collecting. Default is `coverlet.collector`
     /// </summary>
     public string Package { get; set; }
+
+    /// <summary>
+    /// Gets or sets a boolean indicating if a badge should be uploaded to gist. Default is disabled.
+    /// </summary>
+    public bool BadgeUploadToGist { get; set; }
+
+    /// <summary>
+    /// Gets or sets the gist id
+    /// </summary>
+    public string? BadgeGistId { get; set; }
 
     /// <summary>
     /// Gets or sets the version of the package that will be used for collecting.
