@@ -10,7 +10,7 @@ using MsBuildPipeLogger;
 
 namespace DotNetReleaser.Runners;
 
-public record MSBuildResult(CommandResult CommandResult, string CommandLine, string Output, Dictionary<string, List<ITaskItem>> TargetOutputs) : DotNetResult(CommandResult, CommandLine, Output);
+public record MSBuildResult(CommandResult CommandResult, string CommandLine, string Output, Dictionary<string, List<ITaskItem>> TargetOutputs) : CommandResulExtended(CommandResult, CommandLine, Output);
 
 public class MSBuildRunner : DotNetRunnerBase
 {

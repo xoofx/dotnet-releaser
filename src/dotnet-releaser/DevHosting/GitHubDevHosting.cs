@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using DotNetReleaser.Changelog;
 using DotNetReleaser.Configuration;
 using DotNetReleaser.Logging;
+using DotNetReleaser.Runners;
 using NuGet.Versioning;
 using Octokit;
 
@@ -90,18 +91,87 @@ public class GitHubDevHosting : IDevHosting
                 _log.Info($"No need to update the gist {gistId} as the content is the same.");
                 return;
             }
+
+            // Update the file
+            GistUpdate gistUpdate = new GistUpdate();
+            //gistUpdate.Files.Add();
+            gistUpdate.Files.Add(fileName, new GistFileUpdate() { NewFileName = fileName, Content = content });
+            await _client.Gist.Edit(gistId, gistUpdate);
         }
         else
         {
-            _log.Warn($"Cannot update gist {gistId} as it does not contain the required file {fileName}");
-            return;
-        }
+            if (!gist.GitPushUrl.StartsWith("https://"))
+            {
+                _log.Warn($"The gist URL {gist.GitPushUrl} is not a standard gist URL and cannot be updated.");
+                return;
+            }
 
-        // Update the file
-        GistUpdate gistUpdate = new GistUpdate();
-        //gistUpdate.Files.Add();
-        gistUpdate.Files.Add(fileName, new GistFileUpdate() { NewFileName = fileName, Content = content });
-        await _client.Gist.Edit(gistId, gistUpdate);
+            var uri = new Uri(gist.GitPushUrl);
+            var gitCloneUrl = $"git@{uri.Host}:{uri.PathAndQuery.TrimStart('/')}";
+
+            var gistTempDirectory = Directory.CreateTempSubdirectory("dotnet-releaser-gist");
+            try
+            {
+                var result = await GitRunner.Run("clone", new[] { gitCloneUrl, gistTempDirectory.FullName });
+
+                if (result.HasErrors)
+                {
+                    _log.Error($"Unable to clone the gist {gistId} to {gistTempDirectory.FullName}. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
+                    return;
+                }
+
+                var gistFile = Path.Combine(gistTempDirectory.FullName, fileName);
+                await File.WriteAllTextAsync(gistFile, content);
+
+                result = await GitRunner.Run("config", new[] { "--local", "user.email", "action@github.com" }, gistTempDirectory.FullName);
+                if (result.HasErrors)
+                {
+                    _log.Error($"Unable to set the user.email for the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
+                    return;
+                }
+
+                result = await GitRunner.Run("config", new[] { "--local", "user.name", "GitHub Action" }, gistTempDirectory.FullName);
+                if (result.HasErrors)
+                {
+                    _log.Error($"Unable to set the user.name for the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
+                    return;
+                }
+
+                result = await GitRunner.Run("add", new[] { "." }, gistTempDirectory.FullName);
+                if (result.HasErrors)
+                {
+                    _log.Error($"Unable to add the file {fileName} to the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
+                    return;
+                }
+
+                result = await GitRunner.Run("commit", new[] { "-m", $"Upload new file {fileName}" }, gistTempDirectory.FullName);
+                if (result.HasErrors)
+                {
+                    _log.Error($"Unable to commit the file {fileName} to the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
+                    return;
+                }
+
+                result = await GitRunner.Run("push", Array.Empty<string>(), gistTempDirectory.FullName);
+                if (result.HasErrors)
+                {
+                    _log.Error($"Unable to push the file {fileName} to the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
+                    return;
+                }
+            }
+            finally
+            {
+                try
+                {
+                    gistTempDirectory.Delete(true);
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            _log.Warn($"New file uploaded to gist {gistId}");
+        }
     }
 
     private async Task<List<(RepositoryTag, NuGetVersion)>> GetAllReleaseTagsImpl(string user, string repo, string tagPrefix)

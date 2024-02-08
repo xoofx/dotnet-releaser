@@ -9,7 +9,7 @@ using CliWrap.Builders;
 
 namespace DotNetReleaser.Runners;
 
-public record DotNetResult(CommandResult CommandResult, string CommandLine, string Output)
+public record CommandResulExtended(CommandResult CommandResult, string CommandLine, string Output)
 {
     public bool HasErrors => CommandResult.ExitCode != 0;
 }
@@ -43,7 +43,7 @@ public abstract class DotNetRunnerBase : IDisposable
 
     protected virtual IReadOnlyDictionary<string, object> ComputeProperties() => Properties;
 
-    protected async Task<DotNetResult> RunImpl()
+    protected async Task<CommandResulExtended> RunImpl()
     {
         return await Run(Command, ComputeArguments(), ComputeProperties(), WorkingDirectory);
     }
@@ -83,7 +83,7 @@ public abstract class DotNetRunnerBase : IDisposable
         return value.ToString() ?? string.Empty;
     }
 
-    private async Task<DotNetResult> Run(string command, IEnumerable<string> args, IReadOnlyDictionary<string, object>? properties = null, string? workingDirectory = null)
+    private async Task<CommandResulExtended> Run(string command, IEnumerable<string> args, IReadOnlyDictionary<string, object>? properties = null, string? workingDirectory = null)
     {
         var stdOutAndErrorBuffer = new StringBuilder();
 
@@ -102,7 +102,7 @@ public abstract class DotNetRunnerBase : IDisposable
         RunAfterStart?.Invoke();
 
         var result = await wrap.ConfigureAwait(false);
-        return new DotNetResult(result, $"dotnet {arguments}",stdOutAndErrorBuffer.ToString());
+        return new CommandResulExtended(result, $"dotnet {arguments}",stdOutAndErrorBuffer.ToString());
     }
 
     protected virtual void Dispose(bool disposing)

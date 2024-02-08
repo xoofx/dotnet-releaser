@@ -8,7 +8,7 @@ public class DotNetRunner : DotNetRunnerBase
     {
     }
 
-    public async Task<DotNetResult> Run()
+    public async Task<CommandResulExtended> Run()
     {
         return await RunImpl();
     }
