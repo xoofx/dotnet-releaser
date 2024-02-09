@@ -18,6 +18,7 @@
   - [2.2. MSBuild](#22-msbuild)
   - [2.3. Tests](#23-tests)
   - [2.4. Coverage](#24-coverage)
+    - [Badge coverage to Gist](#badge-coverage-to-gist)
   - [2.5. Coveralls](#25-coveralls)
   - [2.6. GitHub](#26-github)
   - [2.7. Packaging](#27-packaging)
@@ -28,6 +29,8 @@
   - [2.12. Service](#212-service)
     - [2.12.1. Systemd](#2121-systemd)
   - [2.13. Package Dependencies](#213-package-dependencies)
+  - [2.14. About GITHUB\_TOKEN](#214-about-github_token)
+    - [Custom GITHUB\_TOKEN](#custom-github_token)
 - [3. CLI Usage](#3-cli-usage)
   - [3.1. `dotnet-releaser new`](#31-dotnet-releaser-new)
   - [3.2. `dotnet-releaser build`](#32-dotnet-releaser-build)
@@ -130,19 +133,11 @@ The `publish` command allows to build and publish all packages to GitHub and NuG
 dotnet-releaser publish --force --github-token "${{secrets.GITHUB_TOKEN}}" --nuget-token "${{secrets.YOUR_NUGET_SECRET_TOKEN}}"  dotnet-releaser.toml
 ```
 
-> NOTE: When running from a GitHub Action, it is recommended to use the predefined `GITHUB_TOKEN` accessible from your secrets: `${{secrets.GITHUB_TOKEN}}`.
+> NOTE: When running from a GitHub Action, it is recommended to use the predefined `GITHUB_TOKEN` accessible from your secrets: `${{secrets.GITHUB_TOKEN}}`, but you might want to create your own `PAT_GITHUB_TOKEN` to leverage more features of dotnet-releaser. See section later in this document [About GITHUB_TOKEN](#214-about-github_token).
 >
 > It is recommended to use `dotnet-releaser run` instead when running from a GitHub Action, as explained in the following section.
 
-If you want to run this from a command line, you need to a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
-
-You should tick the `public_repo` in the list:
-
-- [x] public_repo
-
-And put an appropriate expiration date.
-
-![GitHub Setup of Personal access token](https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/img/github_new_personal_access_token.png)
+If you want to run this from a command line, you need to a [personal access token](#custom-github_token)
 
 ### 1.2. Adding dotnet-releaser to your CI on GitHub
 
@@ -379,6 +374,8 @@ Coverage will produce artifacts in the output folder.
 | `exclude_by_file`          | `string[]` | Ignore specific source files from code coverage.
 | `include`                  | `string[]` | Explicitly set what to include in code coverage analysis using filter expressions.
 | `include_directory`        | `string[]` | Explicitly set which directories to include in code coverage analysis.
+| `badge_upload_to_gist`     | `bool`     | Enable to publish a [badge for the coverage to a GitHub gist](#badge-coverage-to-gist).
+| `badge_gist_id`            | `string`   | Gist identifier used to publish a [badge for the coverage to a GitHub gist](#badge-coverage-to-gist).
 
 Example to disable coverage:
 
@@ -393,6 +390,28 @@ Example to disable the use of source link:
 [coverage]
 source_link = false
 ```
+
+#### Badge coverage to Gist
+
+`dotnet-releaser` allow to publish a coverage badge directly to a GitHub gist that can then be linked back from your readme. 
+
+Using this feature requires a few setup steps:
+
+- Create a gist with a readme.md that explain that it is a gist used by dotnet-releaser for all your repositories. For example see this gist [here](https://gist.github.com/xoofx/4b1dc8d0fa14dd6a3846e78e5f0eafae)
+- Get the id of the gist: In the URL for example `https://gist.github.com/xoofx/4b1dc8d0fa14dd6a3846e78e5f0eafae` the ID of the gist is `4b1dc8d0fa14dd6a3846e78e5f0eafae`
+- You can then configure the coverage by enabling pushing the badge to the specified gist:
+  ```toml
+  [coverage]
+  badge_upload_to_gist = true
+  badge_gist_id = "4b1dc8d0fa14dd6a3846e78e5f0eafae"
+  ```
+- Then you need to create a [custom GITHUB_TOKEN](#custom-github_token) with the appropriate permissions
+- You need to use this token when passing it to `dotnet-releaser run` 
+- You can then reference the badge with a URL directly to the SVG published. The file created in the gist by dotnet-releaser will be of the form `dotnet-releaser-coverage-badge-{owner}-{repo}.svg`. For example for the project [xoofx/TurboXml](https://github.com/xoofx/TurboXml/) the file created will be `dotnet-releaser-coverage-badge-xoofx-TurboXml.svg`. The link to the SVG would be simply:
+  ```md
+  ![coverage](https://gist.githubusercontent.com/xoofx/4b1dc8d0fa14dd6a3846e78e5f0eafae/raw/dotnet-releaser-coverage-badge-xoofx-TurboXml.svg)
+  ```
+  Notice the gist ID in the URL that you should replace with your own gist ID.
 
 ___
 ### 2.5. Coveralls
@@ -691,6 +710,54 @@ name = ["your-runtime1.0", "your-runtime2.0", "your-runtime3.0"]
 ```
 
 In order to specify dependencies for `rpm`, you can use a similar syntax with `[[rpm.depends]]`.
+
+### 2.14. About GITHUB_TOKEN
+
+By default, GitHub Actions are providing a `GITHUB_TOKEN` for the repository. In order for dotnet-releaser to be able to use this token correctly you need to configure in the settings of your repository:
+
+- Go to the menu `Code and Automation/Actions/General`:
+
+  ![Menu Code and Automation/Actions/General](./GIITHUB_TOKEN_menu_Actions_General.png)
+- At the bottom of the page, under `Workflow permissions`, select `Read and write permissions`:
+
+  ![Workflow permissions](GIITHUB_TOKEN_workflows_permission.png)
+
+
+#### Custom GITHUB_TOKEN
+
+The default `GITHUB_TOKEN` should cover the basic scenarios, but you might want to create your own token to leverage more features of dotnet-releaser:
+
+- Automatic creation of [homebrew](#29-homebrew) repository
+- Publishing [coverage badge on GitHub gist](#badge-coverage-to-gist)
+
+You can create and reuse the same token for all your repositories or you can create a token for each repository more selectively:
+
+First, go to the settings for the tokens https://github.com/settings/tokens
+
+**Standard tokens**
+
+You should tick the `public_repo` in the list:
+
+- [x] public_repo
+
+And put an appropriate expiration date.
+
+![GitHub Setup of Personal access token](https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/img/github_new_personal_access_token.png)
+
+**Fine-grained tokens**
+
+1. Select `Fine-grained tokens (Beta)` and press the button `Generate new token`
+2. Select an expiration date
+3. Select the repository access
+   ![](./GITHUB_TOKEN_custom_repository_access.png)
+4. In the `Repository permissions`, select:
+   - `Actions` ⇒ Access: Read and write
+   - `Administration` ⇒ Access: Read and write
+   - `Contents` ⇒ Access: Read and write
+5. In the `Account permissions`, select:
+   - `Gists` ⇒ Access: Read and write  
+
+You can then create the token and copy it and add it as a secrets environment for your GitHub Action workflows. You can use the name `PAT_GITHUB_TOKEN` with `PAT` for Personal Access Token.
 
 ## 3. CLI Usage
 
