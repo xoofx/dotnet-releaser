@@ -13,7 +13,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task PublishCoverageToGist(IDevHosting devHosting, BuildInformation buildInfo, HitCoverage coverage)
+    private async Task PublishCoverageToGist(IDevHosting devHosting, BuildInformation buildInfo, HitCoverage lineCoverage)
     {
         if (!_config.Coverage.BadgeUploadToGist || !buildInfo.IsPush) return;
 
@@ -24,7 +24,7 @@ public partial class ReleaserApp
             return;
         }
         
-        var rate = (int)Math.Round((double)coverage.Rate * 100);
+        var rate = (int)Math.Round((double)lineCoverage.Rate * 100);
 
         // TODO: We could make many of these things configurable (colors, size of the badge, etc.)
         var color = rate switch

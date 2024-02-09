@@ -81,12 +81,12 @@ public partial class ReleaserApp
             {
                 if (_config.Coverage.Enable)
                 {
-                    var coverageResult = LoadAndDisplayCoverageResults();
+                    var lineCoverageResult = LoadAndDisplayCoverageResults();
 
                     // Publish badge if requested
                     if (devHosting is not null)
                     {
-                        await PublishCoverageToGist(devHosting, buildInfo, coverageResult);
+                        await PublishCoverageToGist(devHosting, buildInfo, lineCoverageResult);
                     }
                 }
 
@@ -160,7 +160,7 @@ public partial class ReleaserApp
 
         _logger.InfoMarkup("Coverage Results:", table);
 
-        return totalMethodRate;
+        return totalLineRate;
     }
 
     private async Task<bool> Build(string projectFile, bool isTestProject)
