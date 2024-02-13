@@ -177,7 +177,7 @@ public class GitHubDevHosting : IDevHosting
     private async Task<List<(RepositoryTag, NuGetVersion)>> GetAllReleaseTagsImpl(string user, string repo, string tagPrefix)
     {
         var tags = await _client.Repository.GetAllTags(user, repo);
-        var regex = new Regex(@$"{tagPrefix}(\d+(\.\d+)+.*)");
+        var regex = new Regex(@$"^{tagPrefix}(\d+(\.\d+)+.*)");
         var versions = new List<(RepositoryTag, NuGetVersion)>();
         foreach (var tag in tags)
         {
