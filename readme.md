@@ -134,4 +134,4 @@ Regular .NET Libraries:
 - [DotNet.Glob](https://github.com/dazinator/DotNet.Glob) used by changelog filtering on files.
 ## Author
 
-Alexandre Mutel aka [xoofx](http://xoofx.com).
+Alexandre Mutel aka [xoofx](https://xoofx.github.io).
