@@ -174,6 +174,11 @@ public partial class ReleaserApp
             return cmd.Option<string>("--github-token-extra <token>", "GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This token has usually more access than the --github-token that is only used for the current repository. ", CommandOptionType.SingleValue);
         }
 
+        CommandOption<string> AddGitHubTokenGist(CommandLineApplication cmd)
+        {
+            return cmd.Option<string>("--github-token-gist <token>", "GitHub Api Token. Required if publishing to a gist used for e.g coverage.", CommandOptionType.SingleValue);
+        }
+
         CommandArgument<string> AddTomlConfigurationArgument(CommandLineApplication cmd, bool forNew)
         {
             var arg = cmd.Argument<string>("dotnet-releaser.toml", forNew ? "TOML configuration file path to create. Default is: dotnet-releaser.toml" : "The input TOML configuration file.");
@@ -185,6 +190,7 @@ public partial class ReleaserApp
         {
             CommandOption<string>? nugetToken = null;
             CommandOption<string>? gitHubTokenExtra = null;
+            CommandOption<string>? gitHubTokenGist = null;
             CommandOption<bool>? skipAppPackagesOption = null;
 
             var githubToken = AddGitHubToken(cmd);
@@ -195,6 +201,7 @@ public partial class ReleaserApp
                 nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
 
                 gitHubTokenExtra = AddGitHubTokenExtra(cmd);
+                gitHubTokenGist = AddGitHubTokenGist(cmd);
             }
             else
             {
@@ -237,7 +244,7 @@ public partial class ReleaserApp
                 {
                     appReleaser._tableBorder = GetTableBorderFromKind(tableKindOption.ParsedValue);
                 }
-                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue, forceUploadOption?.ParsedValue ?? false, publishVersion?.ParsedValue);
+                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, gitHubTokenGist?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue, forceUploadOption?.ParsedValue ?? false, publishVersion?.ParsedValue);
                 return result ? 0 : 1;
             });
         }
@@ -299,7 +306,8 @@ public partial class ReleaserApp
     /// <summary>
     /// Runs the releaser app
     /// </summary>
-    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder, bool forceUpload, string? publishVersion)
+    private async Task<bool> RunImpl(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? gitHubTokenGist, string? nugetApiToken, bool forceArtifactsFolder, bool forceUpload,
+        string? publishVersion)
     {
         BuildInformation? buildInformation = null;
         GitHubDevHostingConfiguration? hostingConfiguration = null;
@@ -310,7 +318,7 @@ public partial class ReleaserApp
         {
             _logger.Info($"dotnet-releaser {Version} - {buildKind.ToString().ToLowerInvariant()}");
             _logger.LogStartGroup($"Configuring");
-            var result = await Configuring(configurationFile, buildKind, githubApiToken, githubApiTokenExtra, nugetApiToken, forceArtifactsFolder, publishVersion);
+            var result = await Configuring(configurationFile, buildKind, githubApiToken, githubApiTokenExtra, gitHubTokenGist, nugetApiToken, forceArtifactsFolder, publishVersion);
             if (result is null) return false;
             buildInformation = result.Value.buildInformation!;
             devHosting = result.Value.devHosting;

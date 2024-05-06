@@ -21,17 +21,21 @@ public class GitHubDevHosting : IDevHosting
     private readonly ISimpleLogger _log;
     private readonly string _url;
     private readonly string _apiToken;
+    private readonly string _gistApiToken;
     private readonly GitHubClient _client;
-    
-    public GitHubDevHosting(ISimpleLogger log, DevHostingConfiguration hostingConfiguration, string apiToken, string apiTokenUsage)
+    private readonly GitHubClient _clientGist;
+
+    public GitHubDevHosting(ISimpleLogger log, DevHostingConfiguration hostingConfiguration, string apiToken, string apiTokenUsage, string? gistApiToken = null)
     {
         Logger = log;
         Configuration = hostingConfiguration;
         _log = log;
         _url = hostingConfiguration.Base;
         _apiToken = apiToken;
+        _gistApiToken = gistApiToken ?? apiToken;
         ApiTokenUsage = apiTokenUsage;
         _client = new GitHubClient(new ProductHeaderValue(nameof(ReleaserApp)), new Uri(hostingConfiguration.Api));
+        _clientGist = new GitHubClient(new ProductHeaderValue(nameof(ReleaserApp)), new Uri(hostingConfiguration.Api));
     }
 
     public ISimpleLogger Logger { get; }
@@ -44,7 +48,7 @@ public class GitHubDevHosting : IDevHosting
 
     public async Task<bool> Connect()
     {
-        var tokenAuth = new Credentials(_apiToken); // NOTE: not real token
+        var tokenAuth = new Credentials(_apiToken);
         _client.Credentials = tokenAuth;
 
         _log.Info($"Connecting to GitHub ({ApiTokenUsage})");
@@ -57,6 +61,13 @@ public class GitHubDevHosting : IDevHosting
             _log.Error($"Unable to connect GitHub ({ApiTokenUsage}). Reason: {ex.Message}");
             return false;
         }
+
+        _clientGist.Credentials = tokenAuth;
+        if (_gistApiToken != _apiToken)
+        {
+            _clientGist.Credentials = new Credentials(_gistApiToken);
+        }
+
         return true;
     }
 
@@ -76,7 +87,17 @@ public class GitHubDevHosting : IDevHosting
     
     public async Task CreateOrUpdateGist(string gistId, string fileName, string content)
     {
-        var gist = await _client.Gist.Get(gistId);
+        Gist gist;
+        try
+        {
+            gist = await _clientGist.Gist.Get(gistId);
+        }
+        catch (Exception ex)
+        {
+            _log.Error($"Unable to get the gist {gistId}. Reason: {ex.Message}");
+            return;
+        }
+
         if (gist is null)
         {
             _log.Error($"The gist {gistId} for code coverage was not found");
@@ -96,81 +117,11 @@ public class GitHubDevHosting : IDevHosting
             GistUpdate gistUpdate = new GistUpdate();
             //gistUpdate.Files.Add();
             gistUpdate.Files.Add(fileName, new GistFileUpdate() { NewFileName = fileName, Content = content });
-            await _client.Gist.Edit(gistId, gistUpdate);
+            await _clientGist.Gist.Edit(gistId, gistUpdate);
         }
         else
         {
-            if (!gist.GitPushUrl.StartsWith("https://"))
-            {
-                _log.Warn($"The gist URL {gist.GitPushUrl} is not a standard gist URL and cannot be updated.");
-                return;
-            }
-
-            var uri = new Uri(gist.GitPushUrl);
-            var gitCloneUrl = $"git@{uri.Host}:{uri.PathAndQuery.TrimStart('/')}";
-
-            var gistTempDirectory = Directory.CreateTempSubdirectory("dotnet-releaser-gist");
-            try
-            {
-                var result = await GitRunner.Run("clone", new[] { gitCloneUrl, gistTempDirectory.FullName });
-
-                if (result.HasErrors)
-                {
-                    _log.Error($"Unable to clone the gist {gistId} to {gistTempDirectory.FullName}. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
-                    return;
-                }
-
-                var gistFile = Path.Combine(gistTempDirectory.FullName, fileName);
-                await File.WriteAllTextAsync(gistFile, content);
-
-                result = await GitRunner.Run("config", new[] { "--local", "user.email", "action@github.com" }, gistTempDirectory.FullName);
-                if (result.HasErrors)
-                {
-                    _log.Error($"Unable to set the user.email for the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
-                    return;
-                }
-
-                result = await GitRunner.Run("config", new[] { "--local", "user.name", "GitHub Action" }, gistTempDirectory.FullName);
-                if (result.HasErrors)
-                {
-                    _log.Error($"Unable to set the user.name for the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
-                    return;
-                }
-
-                result = await GitRunner.Run("add", new[] { "." }, gistTempDirectory.FullName);
-                if (result.HasErrors)
-                {
-                    _log.Error($"Unable to add the file {fileName} to the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
-                    return;
-                }
-
-                result = await GitRunner.Run("commit", new[] { "-m", $"Upload new file {fileName}" }, gistTempDirectory.FullName);
-                if (result.HasErrors)
-                {
-                    _log.Error($"Unable to commit the file {fileName} to the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
-                    return;
-                }
-
-                result = await GitRunner.Run("push", Array.Empty<string>(), gistTempDirectory.FullName);
-                if (result.HasErrors)
-                {
-                    _log.Error($"Unable to push the file {fileName} to the git repository. ExitCode: {result.CommandResult.ExitCode}, Output: {result.Output}");
-                    return;
-                }
-            }
-            finally
-            {
-                try
-                {
-                    gistTempDirectory.Delete(true);
-                }
-                catch
-                {
-                    // ignore
-                }
-            }
-
-            _log.Warn($"New file uploaded to gist {gistId}");
+            _log.Error($"The gist {gistId} does not contain a file {fileName}");
         }
     }
 

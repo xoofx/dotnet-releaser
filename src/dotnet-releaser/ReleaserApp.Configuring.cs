@@ -15,7 +15,8 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra, string? nugetApiToken, bool forceArtifactsFolder, string? publishVersion)
+    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra,
+        string? githubApiTokenGist, string? nugetApiToken, bool forceArtifactsFolder, string? publishVersion)
     {
         // ------------------------------------------------------------------
         // Load Configuration
@@ -53,7 +54,7 @@ public partial class ReleaserApp
         // Connect to GitHub if we have a token
         if (!string.IsNullOrEmpty(githubApiToken))
         {
-            devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken, "For this CI");
+            devHosting = await ConnectToDevHosting(hostingConfiguration, githubApiToken, "For this CI", githubApiTokenGist);
             if (devHosting is null)
             {
                 return null; // return false;
