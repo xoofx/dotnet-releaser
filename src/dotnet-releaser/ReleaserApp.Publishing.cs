@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using DotNetReleaser.Changelog;
 using DotNetReleaser.Configuration;
 
@@ -6,8 +7,8 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task PublishPackagesAndChangelog(string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration,
-        IDevHosting? devHosting, IDevHosting? devHostingExtra, ChangelogResult? changelog, bool forceUpload)
+    private async Task PublishPackages(string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration,
+        IDevHosting? devHosting, IDevHosting? devHostingExtra)
     {
         bool groupStarted = false;
         try
@@ -32,9 +33,6 @@ public partial class ReleaserApp
                 {
                     var appPackagesToPublish = buildPackageInformation.AppPackages;
 
-                    // In the case of a build, we still want to upload a draft release notes
-                    await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, appPackagesToPublish, _config.EnablePublishPackagesInDraft, forceUpload);
-
                     if (!HasErrors && _config.Brew.Publish)
                     {
                         // Log an error if we don't have an extra access for homebrew
@@ -50,7 +48,7 @@ public partial class ReleaserApp
                             await devHostingExtra.UploadHomebrewFormula(hostingConfiguration.User, _config.Brew.Home, packageInfo, brewFormula);
                         }
                     }
-                    
+
                     if (!HasErrors && _config.Scoop.Publish)
                     {
                         // Log an error if we don't have an extra access for homebrew
@@ -67,6 +65,40 @@ public partial class ReleaserApp
                         }
                     }
                 }
+            }
+        }
+        finally
+        {
+            if (groupStarted)
+            {
+                _logger.LogEndGroup();
+            }
+        }
+    }
+
+    private async Task PublishChangelog(BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration,
+        IDevHosting? devHosting, ChangelogResult? changelog, bool forceUpload)
+    {
+        bool groupStarted = false;
+        try
+        {
+            var buildKind = buildInformation.BuildKind;
+            var branchName = buildInformation.GitInformation?.BranchName;
+            var releaseVersion = new ReleaseVersion(buildInformation.Version, IsDraft: buildKind == BuildKind.Build, $"{hostingConfiguration.VersionPrefix}{buildInformation.Version}", branchName is not null ? $"draft-{branchName}" : "draft");
+
+            _logger.LogStartGroup($"Publishing Changelog - {releaseVersion}");
+            groupStarted = true;
+
+            if (!HasErrors && devHosting is not null && buildKind == BuildKind.Publish)
+            {
+                List<AppPackageInfo> appPackagesToPublish = new List<AppPackageInfo>();
+                foreach (var (packageInfo, buildPackageInformation) in buildInformation.BuildPackages)
+                {
+                    appPackagesToPublish.AddRange(buildPackageInformation.AppPackages);
+                }
+
+                // In the case of a build, we still want to upload a draft release notes
+                await devHosting.UpdateChangelogAndUploadPackages(hostingConfiguration.User, hostingConfiguration.Repo, releaseVersion, changelog, appPackagesToPublish, _config.EnablePublishPackagesInDraft, forceUpload);
             }
         }
         finally
