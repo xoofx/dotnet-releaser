@@ -43,8 +43,9 @@ public class GitInformation
         {
             logger.Error($@"Unable to retrieve the current branch from the commit {repository.Head.Tip.Sha}. The current action requires it. Please make sure that:
 1) The current commit is a checkout on a valid branch.
-2) If running on GitHub Action, you are using `actions/checkout@v2` and not v1, but also that the property `fetch-depth: 0` is correctly setup.
+2) If running on GitHub Action, you are using `actions/checkout@v4` and not v1, but also that the property `fetch-depth: 0` is correctly setup.
 3) We have found the following branches containing this commit [{string.Join(",", repository.Branches.Select(x => x.FriendlyName))}]. 
+4) You pushed only tags (`git push --tags`) and forget to push whole branch.h
 ");
             return null;
         }
