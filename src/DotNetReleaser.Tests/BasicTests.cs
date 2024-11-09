@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Formats.Tar;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -108,6 +110,97 @@ kinds = [""tar"", ""deb""]
 
             Directory.Delete(_artifactsFolder, true);
             File.Delete(_configurationFile);
+        }
+
+        [Test]
+        public async Task TestMacOSTarZipAreExecutable()
+        {
+            EnsureTestsFolder();
+
+            File.Delete(_configurationFile);
+
+            await CreateConfiguration();
+
+            var config = await File.ReadAllTextAsync(_configurationFile);
+
+            if (Directory.Exists(_artifactsFolder))
+            {
+                Directory.Delete(_artifactsFolder, true);
+            }
+
+            config = "profile = \"custom\"" + Environment.NewLine + config;
+            config += @"
+            [msbuild.properties]
+SelfContained = false
+PublishSingleFile = false
+PublishTrimmed = false
+            [[pack]]
+rid = ""osx-x64""
+kinds = [""tar"", ""zip""]
+[nuget]
+publish = false
+";
+            config = config.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
+            await File.WriteAllTextAsync(_configurationFile, config);
+
+            var resultBuild = await CliWrap.Cli.Wrap(_releaserExe)
+                .WithArguments("build --force dotnet-releaser.toml")
+                .WithStandardOutputPipe(PipeTarget.ToDelegate(x => Console.Out.WriteLine(x)))
+                .WithStandardErrorPipe(PipeTarget.ToDelegate(x => Console.Error.WriteLine(x)))
+                .WithWorkingDirectory(_helloWorldFolder).ExecuteAsync();
+
+            Assert.True(Directory.Exists(_artifactsFolder));
+
+            var files = Directory.GetFiles(_artifactsFolder).Select(Path.GetFileName).OrderBy(x => x).ToList();
+
+            var expectedFiles = new List<string>()
+            {
+                "HelloWorld.0.1.0.osx-x64.tar.gz",
+                "HelloWorld.0.1.0.osx-x64.zip",
+            }.OrderBy(x => x).ToList();
+
+            foreach (var file in files)
+            {
+                Console.WriteLine($"-> {file}");
+            }
+
+            Assert.AreEqual(expectedFiles, files);
+
+            if (!OperatingSystem.IsWindows())
+            {
+                // ensure files are executable
+                var tar = Path.Combine(_artifactsFolder, "HelloWorld.0.1.0.osx-x64.tar.gz");
+                using FileStream fs = new(tar, FileMode.Open, FileAccess.Read);
+                using var gzip = new GZipStream(fs, CompressionMode.Decompress);
+                using var unzippedStream = new MemoryStream();
+                {
+                    await gzip.CopyToAsync(unzippedStream);
+                    unzippedStream.Seek(0, SeekOrigin.Begin);
+
+                    using var reader = new TarReader(unzippedStream);
+
+                    while (reader.GetNextEntry() is TarEntry entry)
+                    {
+                        if (entry.Name == "./HelloWorld")
+                        {
+                            Assert.IsTrue(entry.Mode.HasFlag(UnixFileMode.GroupExecute));
+                            Assert.IsTrue(entry.Mode.HasFlag(UnixFileMode.OtherExecute));
+                            Assert.IsTrue(entry.Mode.HasFlag(UnixFileMode.UserExecute));
+                            break;
+                        }
+                    }
+                }
+                // extract zip files and check executable
+                var zippath = Path.Combine(_artifactsFolder, "HelloWorld.0.1.0.osx-x64.zip");
+                ZipFile.ExtractToDirectory(zippath, _artifactsFolder);
+                var fileMode = File.GetUnixFileMode(Path.Combine(_artifactsFolder, "HelloWorld"));
+                Assert.IsTrue(fileMode.HasFlag(UnixFileMode.GroupExecute));
+                Assert.IsTrue(fileMode.HasFlag(UnixFileMode.OtherExecute));
+                Assert.IsTrue(fileMode.HasFlag(UnixFileMode.UserExecute));
+            }
+
+           Directory.Delete(_artifactsFolder, true);
+           File.Delete(_configurationFile);
         }
 
         [Test]
