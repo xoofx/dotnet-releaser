@@ -167,6 +167,20 @@ Depending on the kind of GitHub event, the run command will automatically:
 - If it is a `push` with a tag version (e.g `v1.9.6` as configured with `[github]` section in the configuration) it will **perform a full build with publish**
   - For an application, it will publish multiple cross-compiled packages to your release
 
+> **NOTE about the publish process:**
+>
+> The publish process relies on a tag commit being pushed, and the GitHub action being run on that tag commit. If you have set up your GitHub action to only run on specific branches and not on tag pushes, the `dotnet-releaser` publish portion of the process will never run.
+To fix this and still specify specific branches to run your action on, use something like this in your GitHub action:
+>
+> ```yml
+> on:
+>   push:
+>     branches:
+>       - main # Used for stable releases
+>       - develop # Used for preview releases
+>     tags:
+>       - '*' # run on all tags being pushed
+> ```
 #### 1.2.2. Example of a GitHub CI Integration
 
 An example of a setup with GitHub Actions:
