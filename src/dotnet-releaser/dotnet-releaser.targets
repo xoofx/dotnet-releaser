@@ -100,6 +100,7 @@
       <_DotNetReleaserGetPackageInfo Include="$(IsPackable)" Kind="IsNuGetPackable"/>
       <_DotNetReleaserGetPackageInfo Include="$(IsTestProject)" Kind="IsTestProject"/>
       <_DotNetReleaserGetPackageInfo Include="@(ProjectReference)" Kind="ProjectReference"/>
+      <_DotNetReleaserGetPackageInfo Include="$([System.IO.Path]::GetFullPath('$(PublishDir)'))" Kind="PublishDir"/>
     </ItemGroup>
   </Target>
 
@@ -116,14 +117,14 @@
       <_DotNetReleaserPublishAndCreateRpm Include="$(RpmPath)" Kind="RpmPath"/>
     </ItemGroup>
   </Target>
-  <Target Name="DotNetReleaserPublishAndCreateZip" Outputs="@(_DotNetReleaserPublishAndCreateZip)" DependsOnTargets="CreateZip">
+  <Target Name="DotNetReleaserPublishAndCreateZip" Outputs="@(_DotNetReleaserPublishAndCreateZip)" DependsOnTargets="Publish">
     <ItemGroup>
-      <_DotNetReleaserPublishAndCreateZip Include="$(ZipPath)" Kind="ZipPath"/>
+      <_DotNetReleaserPublishAndCreateZip Include="$(PublishDir)" Kind="PublishDir"/>
     </ItemGroup>
   </Target>
-  <Target Name="DotNetReleaserPublishAndCreateTar" Outputs="@(_DotNetReleaserPublishAndCreateTar)" DependsOnTargets="CreateTarball">
+  <Target Name="DotNetReleaserPublishAndCreateTar" Outputs="@(_DotNetReleaserPublishAndCreateTar)" DependsOnTargets="Publish">
     <ItemGroup>
-      <_DotNetReleaserPublishAndCreateTar Include="$(TarballPath)" Kind="TarballPath"/>
+      <_DotNetReleaserPublishAndCreateTar Include="$(PublishDir)" Kind="PublishDir"/>
     </ItemGroup>
   </Target>
 </Project>

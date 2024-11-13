@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using DotNetReleaser.Configuration;
+using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using Spectre.Console;
 
@@ -225,7 +226,28 @@ public partial class ReleaserApp
 
             // Copy the file to the output
             var path = result[0].ItemSpec;
-            path = CopyToArtifacts(path);
+            if (target == ReleaserConstants.DotNetReleaserPublishAndCreateTar)
+            {
+                path = CompressionHelper.MakeTarGz(projectPackageInfo, path, _config.ArtifactsFolder, rid);
+                if (path is null)
+                {
+                    Error("Unable to make tar file with publish directory " + path + "; does the file already exist?");
+                    break;
+                }
+            }
+            else if (target == ReleaserConstants.DotNetReleaserPublishAndCreateZip)
+            {
+                path = CompressionHelper.MakeZip(projectPackageInfo, path, _config.ArtifactsFolder, rid);
+                if (path is null)
+                {
+                    Error("Unable to make zip file with publish directory " + path + "; does the file already exist?");
+                    break;
+                }
+            }
+            else
+            {
+                path = CopyToArtifacts(path);
+            }
 
             var sha256 = string.Join("", SHA256.HashData(await File.ReadAllBytesAsync(path)).Select(x => x.ToString("x2")));
 
