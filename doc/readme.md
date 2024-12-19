@@ -506,6 +506,7 @@ A group of packages in the TOML configuration is defined by:
 | `publish`       | `bool`     | You can disable a particular pack to be build/published. 
 | `rid`           | `string`   | The target OS + CPU by defining its runtime identifier. See [https://docs.microsoft.com/en-us/dotnet/core/rid-catalog](https://docs.microsoft.com/en-us/dotnet/core/rid-catalog) for all the possible values.
 | `kinds`         | `string`   | Defines the kinds of package to create: `zip`, `tar`, `deb` or `rpm`.
+| `renamer`       | `renamer[]` | A regex renamer for the final filename. A renamer is defined by the object `{ pattern = "regex", replace = "replacement" }`. This is useful to replace a string in the package name.
 
 For each `rid` define in a pack, it will create the packages defined by `kinds`.
 
@@ -551,6 +552,15 @@ kinds = ["zip"]
 ```
 
 By default, all packs declared are `publish = true`.
+
+You can also replace the generated filename by using a replacer:
+
+```toml
+[[pack]]
+rid = ["win-x64"]
+kinds = ["zip"]
+renamer = [{ pattern = "win-x64", replace = "windows-amd64" }]
+```
 
 ___
 > `profile = "custom"`

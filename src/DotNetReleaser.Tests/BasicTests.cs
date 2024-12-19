@@ -76,6 +76,7 @@ namespace DotNetReleaser.Tests
             config += @"[[pack]]
 rid = ""win-x64""
 kinds = [""zip""]
+renamer = [ { pattern = ""win-x64"", replace = ""windows-amd64"" } ]
 [[pack]]
 rid = ""linux-x64""
 kinds = [""tar"", ""deb""]
@@ -98,7 +99,7 @@ kinds = [""tar"", ""deb""]
                 "HelloWorld.0.1.0.linux-x64.deb",
                 "HelloWorld.0.1.0.linux-x64.tar.gz",
                 "HelloWorld.0.1.0.nupkg",
-                "HelloWorld.0.1.0.win-x64.zip",
+                "HelloWorld.0.1.0.windows-amd64.zip",
             }.OrderBy(x => x).ToList();
 
             foreach (var file in files)

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DotNetReleaser.Configuration;
 using DotNetReleaser.Helpers;
@@ -72,7 +73,7 @@ public partial class ReleaserApp
                 {
                     foreach (var rid in pack.RuntimeIdentifiers)
                     {
-                        var list = await PackPlatform(packageInfo, pack.Publish, rid, pack.Kinds.ToArray());
+                        var list = await PackPlatform(packageInfo, pack.Publish, rid,  pack.Renamers.ToArray(), pack.Kinds.ToArray());
                         if (HasErrors) goto exitPackOnError; // break on first errors
 
                         if (list is not null && pack.Publish)
@@ -100,7 +101,7 @@ public partial class ReleaserApp
     /// <summary>
     /// This is the part that handles the packaging for tar, zip, deb, rpm
     /// </summary>
-    private async Task<List<AppPackageInfo>?> PackPlatform(ProjectPackageInfo projectPackageInfo, bool publish, string rid, params PackageKind[] kinds)
+    private async Task<List<AppPackageInfo>?> PackPlatform(ProjectPackageInfo projectPackageInfo, bool publish, string rid, RegexReplacer[] renamers, PackageKind[] kinds)
     {
         var properties = new Dictionary<string, object>(_config.MSBuild.Properties)
         {
@@ -247,6 +248,32 @@ public partial class ReleaserApp
             else
             {
                 path = CopyToArtifacts(path);
+            }
+
+            // Give a chance to rename the artifact file
+            var folder = Path.GetDirectoryName(path)!;
+            var oldFilename = Path.GetFileName(path);
+            var filename = oldFilename;
+            string? newPath = null;
+            try
+            {
+
+                foreach (var renamer in renamers)
+                {
+                    filename = renamer.Run(filename);
+                }
+
+                if (filename != oldFilename)
+                {
+                    newPath = Path.Combine(folder, filename);
+                    File.Move(path, newPath);
+                    path = newPath;
+                }
+            }
+            catch (Exception ex)
+            {
+                Error($"Error renaming file {path} to {newPath}: {ex.Message}");
+                break;
             }
 
             var sha256 = string.Join("", SHA256.HashData(await File.ReadAllBytesAsync(path)).Select(x => x.ToString("x2")));

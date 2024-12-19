@@ -19,7 +19,7 @@ public class ChangelogConfiguration : ConfigurationBase
         //ChangeTitleEscape = @"\<*_&@";
         Owners = new List<string>();
         Autolabelers = new List<ChangelogAutolabeler>();
-        Replacers = new List<ChangelogReplacer>();
+        Replacers = new List<RegexReplacer>();
         Include = new ChangelogFilter();
         Exclude = new ChangelogFilter();
         BodyTemplate = @"# Changes
@@ -64,7 +64,7 @@ public class ChangelogConfiguration : ConfigurationBase
     public List<ChangelogAutolabeler> Autolabelers { get; }
 
     [DataMember(Name = "replacer")]
-    public List<ChangelogReplacer> Replacers { get; } // TBD: not implemented yet
+    public List<RegexReplacer> Replacers { get; } // TBD: not implemented yet
     
     [DataMember(Name = "category")]
     public List<ChangelogCategory> Categories { get; }
