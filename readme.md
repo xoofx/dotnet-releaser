@@ -1,4 +1,4 @@
-# dotnet-releaser [![Build Status](https://github.com/xoofx/dotnet-releaser/workflows/ci/badge.svg?branch=main)](https://github.com/xoofx/dotnet-releaser/actions) [![NuGet](https://img.shields.io/nuget/v/dotnet-releaser.svg)](https://www.nuget.org/packages/dotnet-releaser/)
+# dotnet-releaser [![ci](https://github.com/xoofx/dotnet-releaser/actions/workflows/ci.yml/badge.svg)](https://github.com/xoofx/dotnet-releaser/actions/workflows/ci.yml) [![NuGet](https://img.shields.io/nuget/v/dotnet-releaser.svg)](https://www.nuget.org/packages/dotnet-releaser/)
 
 <img align="right" width="160px" height="160px" src="https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/img/dotnet-releaser.png">
 
