@@ -211,7 +211,7 @@ public partial class ReleaserApp
         
         foreach (var msBuildProject in _config.MSBuild.Projects)
         {
-            var basePath = Path.GetDirectoryName(msBuildProject);
+            var basePath = Path.GetDirectoryName(msBuildProject)!;
             var solutionSerializer = Microsoft.VisualStudio.SolutionPersistence.Serializer.SolutionSerializers.GetSerializerByMoniker(msBuildProject);
             if (solutionSerializer is not null)
             {
@@ -221,23 +221,20 @@ public partial class ReleaserApp
                     var solutionFile = await solutionSerializer.OpenAsync(msBuildProject, CancellationToken.None);
                     foreach (var subProject in solutionFile.SolutionProjects)
                     {
-                        if (string.IsNullOrEmpty(subProject.Type))
-                        {
-                            var fullProjectPath = Path.GetFullPath(Path.Combine(basePath, subProject.FilePath));
+                        var fullProjectPath = Path.GetFullPath(Path.Combine(basePath, subProject.FilePath));
 
-                            if (allProjectPaths.Add(fullProjectPath))
+                        if (allProjectPaths.Add(fullProjectPath))
+                        {
+                            if (!solutionToProjects.TryGetValue(msBuildProject, out var listOfProjectsPerSolution))
                             {
-                                if (!solutionToProjects.TryGetValue(msBuildProject, out var listOfProjectsPerSolution))
-                                {
-                                    listOfProjectsPerSolution = new List<string>();
-                                    solutionToProjects[msBuildProject] = listOfProjectsPerSolution;
-                                }
-                                listOfProjectsPerSolution.Add(fullProjectPath);
+                                listOfProjectsPerSolution = new List<string>();
+                                solutionToProjects[msBuildProject] = listOfProjectsPerSolution;
                             }
-                            else
-                            {
-                                Error($"The project `{fullProjectPath}` is duplicated in the list of input projects.");
-                            }
+                            listOfProjectsPerSolution.Add(fullProjectPath);
+                        }
+                        else
+                        {
+                            Error($"The project `{fullProjectPath}` is duplicated in the list of input projects.");
                         }
                     }
                 }

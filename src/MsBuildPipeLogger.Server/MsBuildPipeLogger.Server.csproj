@@ -3,6 +3,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>MsBuildPipeLogger</RootNamespace>
     <Description>A logger for MSBuild that sends event data over anonymous or named pipes.</Description>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Build" Version="17.13.9" ExcludeAssets="runtime" />
