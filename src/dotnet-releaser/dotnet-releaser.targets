@@ -48,7 +48,7 @@
   <Choose>
     <When Condition="'$(ManagePackageVersionsCentrally)' == 'true' AND '$(CentralPackageVersionsFileImported)' == 'true' AND '$(IsTestProject)' == 'true'">
       <ItemGroup>
-        <PackageReference Include="GitHubActionsTestLogger" VersionOverride="2.3.3">
+        <PackageReference Include="GitHubActionsTestLogger" VersionOverride="2.4.1">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
@@ -56,7 +56,7 @@
     </When>
     <When Condition="'$(IsTestProject)' == 'true'">
       <ItemGroup>
-        <PackageReference Include="GitHubActionsTestLogger" Version="2.3.3">
+        <PackageReference Include="GitHubActionsTestLogger" Version="2.4.1">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>

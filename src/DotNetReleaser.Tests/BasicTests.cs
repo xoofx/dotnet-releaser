@@ -251,7 +251,7 @@ name = ""yoyo-runtime""
             if (OperatingSystem.IsWindows())
             {
                 var wrap = await CliWrap.Cli.Wrap("wsl")
-                    .WithArguments(new string[] { "-d", "Ubuntu-20.04", "--", "dpkg", "-x", Path.GetFileName(debArchive), "./tmp" }, true)
+                    .WithArguments(new string[] { "--", "dpkg", "-x", Path.GetFileName(debArchive), "./tmp" }, true)
                     .WithWorkingDirectory(_artifactsFolder)
                     .ExecuteAsync();
             }
@@ -298,7 +298,7 @@ Type = simple
             if (OperatingSystem.IsWindows())
             {
                 var wrap = await CliWrap.Cli.Wrap("wsl")
-                    .WithArguments(new string[] { "-d", "Ubuntu-20.04", "--", "dpkg", "--info", Path.GetFileName(debArchive)}, true)
+                    .WithArguments(new string[] { "--", "dpkg", "--info", Path.GetFileName(debArchive)}, true)
                     .WithWorkingDirectory(_artifactsFolder)
                     .WithStandardOutputPipe(PipeTarget.ToStringBuilder(packageInfoOutput))
                     .ExecuteAsync();

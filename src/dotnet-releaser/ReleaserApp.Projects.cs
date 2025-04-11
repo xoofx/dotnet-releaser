@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,7 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Runners;
-using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using NuGet.Frameworks;
 using Spectre.Console;
@@ -212,17 +211,19 @@ public partial class ReleaserApp
         
         foreach (var msBuildProject in _config.MSBuild.Projects)
         {
-            if (msBuildProject.EndsWith(".sln", StringComparison.OrdinalIgnoreCase))
+            var basePath = Path.GetDirectoryName(msBuildProject);
+            var solutionSerializer = Microsoft.VisualStudio.SolutionPersistence.Serializer.SolutionSerializers.GetSerializerByMoniker(msBuildProject);
+            if (solutionSerializer is not null)
             {
                 // solution file
                 try
                 {
-                    var solutionFile = SolutionFile.Parse(msBuildProject);
-                    foreach (var subProject in solutionFile.ProjectsInOrder)
+                    var solutionFile = await solutionSerializer.OpenAsync(msBuildProject, CancellationToken.None);
+                    foreach (var subProject in solutionFile.SolutionProjects)
                     {
-                        if (subProject.ProjectType == SolutionProjectType.KnownToBeMSBuildFormat)
+                        if (string.IsNullOrEmpty(subProject.Type))
                         {
-                            var fullProjectPath = Path.GetFullPath(subProject.AbsolutePath);
+                            var fullProjectPath = Path.GetFullPath(Path.Combine(basePath, subProject.FilePath));
 
                             if (allProjectPaths.Add(fullProjectPath))
                             {

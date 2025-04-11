@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <RootNamespace>DotNetReleaser</RootNamespace>
     <AssemblyName>dotnet-releaser</AssemblyName>
     <Nullable>enable</Nullable>
@@ -44,41 +44,46 @@
 
   <ItemGroup>
     <PackageReference Include="DotNet.Glob" Version="3.1.3" />
-    <PackageReference Include="LibGit2Sharp" Version="0.27.2" />
-    <PackageReference Include="Lunet.Extensions.Logging.SpectreConsole" Version="1.1.0" />
-    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.0" />
-    <PackageReference Include="Microsoft.Build" Version="17.7.2">
+    <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
+    <PackageReference Include="Lunet.Extensions.Logging.SpectreConsole" Version="1.2.0" />
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1" />
+    <PackageReference Include="Microsoft.Build" Version="17.13.9" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Framework" Version="17.7.2">
+    <PackageReference Include="Microsoft.Build.Framework" Version="17.13.9" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.7.2">
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.9.1" />
+    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.13.9" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.7.2">
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.13.9" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
-    <PackageReference Include="MinVer" Version="4.3.0">
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.4" />
+    <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
+    <PackageReference Include="MinVer" Version="6.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MsBuildPipeLogger.Logger" Version="1.1.6" />
-    <PackageReference Include="MsBuildPipeLogger.Server" Version="1.1.6" />
-    <PackageReference Include="NuGet.Frameworks" Version="6.7.0" />
-    <PackageReference Include="NuGet.Versioning" Version="6.7.0" />
-    <PackageReference Include="Octokit" Version="8.0.1" />
-    <PackageReference Include="Scriban" Version="5.9.0" />
-    <PackageReference Include="Spectre.Console" Version="0.47.0" />
-    <PackageReference Include="Tomlyn" Version="0.16.2" />
-    <PackageReference Include="CliWrap" Version="3.6.4" />
-    <PackageReference Include="Wcwidth.Sources" Version="1.0.0">
+    <PackageReference Include="NuGet.Frameworks" Version="6.13.2" />
+    <PackageReference Include="NuGet.Versioning" Version="6.13.2" />
+    <PackageReference Include="Octokit" Version="14.0.0" />
+    <PackageReference Include="Scriban" Version="6.2.0" />
+    <PackageReference Include="Spectre.Console" Version="0.50.0" />
+    <PackageReference Include="Tomlyn" Version="0.19.0" />
+    <PackageReference Include="CliWrap" Version="3.8.2" />
+    <PackageReference Include="Wcwidth.Sources" Version="2.0.0">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Coverage\Coveralls\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MsBuildPipeLogger.Logger\MsBuildPipeLogger.Logger.csproj" />
+    <ProjectReference Include="..\MsBuildPipeLogger.Server\MsBuildPipeLogger.Server.csproj" />
   </ItemGroup>
 </Project>

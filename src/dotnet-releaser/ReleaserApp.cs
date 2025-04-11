@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,6 +12,7 @@ using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using Lunet.Extensions.Logging.SpectreConsole;
 using McMaster.Extensions.CommandLineUtils;
+using Microsoft.Build.Locator;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Rendering;
@@ -58,6 +59,8 @@ public partial class ReleaserApp
     /// <returns>0 if successful; 1 otherwise.</returns>
     public static async Task<int> Run(string[] args)
     {
+        MSBuildLocator.RegisterDefaults();
+
         Console.OutputEncoding = Encoding.UTF8;
         // Create our log
         var runningOnGitHubAction = GitHubActionHelper.IsRunningOnGitHubAction;

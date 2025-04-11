@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -81,10 +82,13 @@ public class MSBuildRunner : DotNetRunnerBase
         if (string.IsNullOrEmpty(Project)) throw new InvalidOperationException("MSBuildRunner.Project cannot be empty");
 
         // Create the server
-        var reader = new AnonymousPipeLoggerServer();
+        var readerSource = new CancellationTokenSource();
+        var reader = new AnonymousPipeLoggerServer(readerSource.Token);
 
         // Get the pipe handle
         _pipeHandle = reader.GetClientHandle();
+
+        Thread? readerThread = null;
 
         //logger.Info($"MSBuild handle {_pipeHandle}");
 
@@ -120,11 +124,23 @@ public class MSBuildRunner : DotNetRunnerBase
 
             RunAfterStart = () =>
             {
-                //Console.WriteLine($"Start ReadAll {Thread.CurrentThread.ManagedThreadId}");
-                reader.ReadAll();
-                //Console.WriteLine($"End ReadAll {Thread.CurrentThread.ManagedThreadId}");
+                readerThread = new Thread(() =>
+                    {
+                        //Console.WriteLine($"Start ReadAll {Thread.CurrentThread.ManagedThreadId}");
+                        reader.ReadAll();
+                        //Console.WriteLine($"End ReadAll {Thread.CurrentThread.ManagedThreadId}");
+                    }
+                )
+                {
+                    Name = "AnonymousPipeLoggerServer.ReadAll",
+                    IsBackground = true,
+                };
+                readerThread.Start();
+                
             };
             var result = await base.RunImpl();
+
+            readerSource.Cancel();
 
             if (result.CommandResult.ExitCode != 0)
             {
