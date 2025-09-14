@@ -110,8 +110,6 @@ It will create a sub folder `artifacts-dotnet-releaser` (Don't forget to add it 
 
 ```shell
 > ls artifacts-dotnet-releaser
-HelloWorld.1.0.0.linux-arm.deb        
-HelloWorld.1.0.0.linux-arm.tar.gz     
 HelloWorld.1.0.0.linux-arm64.deb      
 HelloWorld.1.0.0.linux-arm64.tar.gz   
 HelloWorld.1.0.0.linux-x64.deb        
@@ -121,7 +119,6 @@ HelloWorld.1.0.0.osx-arm64.tar.gz
 HelloWorld.1.0.0.osx-x64.tar.gz       
 HelloWorld.1.0.0.rhel-x64.rpm         
 HelloWorld.1.0.0.rhel-x64.tar.gz      
-HelloWorld.1.0.0.win-arm.zip          
 HelloWorld.1.0.0.win-arm64.zip        
 HelloWorld.1.0.0.win-x64.zip          
 ```
@@ -515,11 +512,11 @@ For example, the default profile is creating the following packs:
 ```toml
 # Create zip files only for Windows platforms
 [[pack]]
-rid = ["win-x64", "win-arm", "win-arm64"]
+rid = ["win-x64", "win-arm64"]
 kinds = ["zip"]
 # Default targets for Linux/Ubuntu Debian compatible distro with debian and tar packages
 [[pack]]
-rid = ["linux-x64", "linux-arm", "linux-arm64"]
+rid = ["linux-x64", "linux-arm64"]
 kinds = ["deb", "tar"]
 # Default targets for Linux/Redhat compatible distro with rpm and tar packages
 [[pack]]

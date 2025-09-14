@@ -41,8 +41,8 @@ By default, `dotnet-releaser` will:
 - **Create application packages** for any packable application in your project:
   | Platform                                | Packages         |
   |-----------------------------------------|------------------|
-  | `win-x64`, `win-arm`, `win-arm64`       | `zip`
-  | `linux-x64`, `linux-arm`, `linux-arm64` | `deb`, `tar`
+  | `win-x64`, `win-arm64`                  | `zip`
+  | `linux-x64`, `linux-arm64`              | `deb`, `tar`
   | `rhel-x64`                              | `rpm`, `tar`
   | `osx-x64`, `osx-arm64`                  | `tar`
 - **Publish libraries and/or applications to NuGet**

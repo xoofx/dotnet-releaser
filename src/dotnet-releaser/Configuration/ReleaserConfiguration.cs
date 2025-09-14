@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -175,8 +175,8 @@ public class ReleaserConfiguration
         {
             AddPackages(new List<PackagingConfiguration>()
             {
-                new() { RuntimeIdentifiers = { "win-x64", "win-arm", "win-arm64" }, Kinds = { PackageKind.Zip } },
-                new() { RuntimeIdentifiers = { "linux-x64", "linux-arm", "linux-arm64" }, Kinds = { PackageKind.Deb, PackageKind.Tar } },
+                new() { RuntimeIdentifiers = { "win-x64", "win-arm64" }, Kinds = { PackageKind.Zip } },
+                new() { RuntimeIdentifiers = { "linux-x64", "linux-arm64" }, Kinds = { PackageKind.Deb, PackageKind.Tar } },
                 new() { RuntimeIdentifiers = { "rhel-x64" }, Kinds = { PackageKind.Rpm, PackageKind.Tar } },
                 new() { RuntimeIdentifiers = { "osx-x64", "osx-arm64" }, Kinds = { PackageKind.Tar } },
             }, logger);
