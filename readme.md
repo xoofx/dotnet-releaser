@@ -16,6 +16,7 @@ In practice, `dotnet-releaser` will automate the build and publish process of yo
 - [Pretty changelog](https://github.com/xoofx/dotnet-releaser/blob/main/doc/changelog_user_guide.md#11-overview) creation from pull-requests and commits.
 - Create and upload the changelog and all the packages packed to your GitHub repository associated with the release tag.
 - It can publish automatically the coverage results to a badge in a GitHub gist or to https://coveralls.io if your repository is created there.
+- `dotnet-releaser` tool requires .NET 9.0 runtime to be installed.
   
 ![overview](https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/doc/overview.drawio.svg)
 
@@ -77,14 +78,14 @@ By default, `dotnet-releaser` will:
   ```yaml
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Install .NET 7.0
-      uses: actions/setup-dotnet@v3
+    - name: Install .NET 9.0
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '7.0.x'
+        dotnet-version: '9.0.x'
 
     - name: Build, Tests, Cover, Pack and Publish (on push tag)
       shell: bash
