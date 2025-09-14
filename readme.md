@@ -43,8 +43,7 @@ By default, `dotnet-releaser` will:
   | Platform                                | Packages         |
   |-----------------------------------------|------------------|
   | `win-x64`, `win-arm64`                  | `zip`
-  | `linux-x64`, `linux-arm64`              | `deb`, `tar`
-  | `rhel-x64`                              | `rpm`, `tar`
+  | `linux-x64`, `linux-arm64`              | `rpm`, `deb`, `tar`
   | `osx-x64`, `osx-arm64`                  | `tar`
 - **Publish libraries and/or applications to NuGet**
 - **Upload all the package artifacts and your changelog to GitHub** on the tag associated with your package version (e.g your package is `1.0.0`, it will try to find a git tag `v1.0.0` or `1.0.0`).
