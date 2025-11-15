@@ -390,9 +390,9 @@ public partial class ReleaserApp
         // ------------------------------------------------------------------
         if (!HasErrors && devHosting is not null)
         {
-            await PublishCoveralls(devHosting, buildInformation);
+            // TODO: After removing coveralls, check what to do here. The publishing of coverage via gist is done in another place.
         }
-        
+
         return !HasErrors;
     }
 

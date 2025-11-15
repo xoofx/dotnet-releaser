@@ -427,25 +427,7 @@ Using this feature requires a few setup steps:
 ___
 ### 2.5. Coveralls
 
-The coverage results can be uploaded automatically to https://coveralls.io/
-
-`dotnet-releaser` will detect automatically if there is an existing owner/repository by checking the end-point `https://coveralls.io/{owner}/{repository}.json`
-and will skip the upload to coveralls if it is not detected.
-
-In order for the upload to coveralls to work, the `--github-token` passed to must be coming from `${{secrets.GITHUB_TOKEN}}`.
-
-
-| `[coveralls]`              | Type      | Description                |
-|----------------------------|-----------|----------------------------|
-| `publish`                  | `bool`    | Specifies whether or not to publish to coveralls. Default is `true`.
-| `url`                      | `string`  | The coveralls URL endpoint. Default is `https://coveralls.io`
-
-Example to disable the use of source link:
-
-```toml
-[coveralls]
-publish = false
-```
+As the https://coveralls.io/ service is no longer working, its support has been removed in dotnet-releaser 0.14.0+ and later.
 
 ___
 ### 2.6. GitHub

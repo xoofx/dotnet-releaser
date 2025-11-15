@@ -77,10 +77,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Coverage\Coveralls\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\MsBuildPipeLogger.Logger\MsBuildPipeLogger.Logger.csproj" />
     <ProjectReference Include="..\MsBuildPipeLogger.Server\MsBuildPipeLogger.Server.csproj" />
   </ItemGroup>

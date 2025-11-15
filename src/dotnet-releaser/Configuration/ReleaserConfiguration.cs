@@ -19,7 +19,6 @@ public class ReleaserConfiguration
         ArtifactsFolder = "artifacts-dotnet-releaser";
         Packs = new List<PackagingConfiguration>();
         Coverage = new CoverageConfiguration();
-        Coveralls = new CoverallsConfiguration();
         Test = new TestConfiguration();
         MSBuild = new MSBuildConfiguration();
         Changelog = new ChangelogConfiguration();
@@ -42,8 +41,6 @@ public class ReleaserConfiguration
     public bool EnablePublishPackagesInDraft { get; set; }
 
     public CoverageConfiguration Coverage { get; }
-
-    public CoverallsConfiguration Coveralls { get; }
 
     public TestConfiguration Test { get; }
 
