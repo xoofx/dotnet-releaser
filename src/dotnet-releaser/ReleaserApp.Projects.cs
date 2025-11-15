@@ -454,7 +454,7 @@ public partial class ReleaserApp
 
     private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, params string[] arguments)
     {
-        using var program = new MSBuildRunner()
+        using var program = new MSBuildRunner(_config.ArtifactsFolder)
         {
             Project = project,
             Configuration = buildDebug ? _config.MSBuild.ConfigurationDebug : _config.MSBuild.Configuration,

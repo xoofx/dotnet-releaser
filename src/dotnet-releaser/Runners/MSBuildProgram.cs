@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,14 +16,16 @@ public record MSBuildResult(CommandResult CommandResult, string CommandLine, str
 
 public class MSBuildRunner : DotNetRunnerBase
 {
+    private readonly string _artifactFolder;
     private string? _pipeHandle;
 
-    public MSBuildRunner() : base("msbuild")
+    public MSBuildRunner(string artifactFolder) : base("msbuild")
     {
+        _artifactFolder = artifactFolder;
         Arguments.AddRange(new List<string>()
         {
             "-nologo",
-            "-noconlog"
+            "-noconlog",
         });
         Targets = new List<string>();
         Project = string.Empty;
@@ -46,6 +49,14 @@ public class MSBuildRunner : DotNetRunnerBase
     protected override IEnumerable<string> ComputeArguments()
     {
         var arguments = new List<string>(base.ComputeArguments());
+
+        // We always generate a binlog
+        // (For some unknown reasons, it is the only workaround when .NET 10+ is installed to have dotnet-releaser working)
+        var targetText = string.Join("-", Targets);
+        var msbuildLogFolder = Path.Combine(_artifactFolder, "msbuild_logs");
+        Directory.CreateDirectory(msbuildLogFolder);
+        
+        arguments.Add($"-bl:{Path.Combine(msbuildLogFolder, $"msbuild-{Process.GetCurrentProcess().Id}-{Guid.CreateVersion7():N}-{targetText}.binlog")}");
 
         if (_pipeHandle is not null)
         {
