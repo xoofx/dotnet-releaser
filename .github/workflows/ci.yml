@@ -16,14 +16,14 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
-    - name: Install .NET 9.0
-      uses: actions/setup-dotnet@v4
+    - name: Install .NET 10.0
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Build and Test (Debug)
       run: dotnet test src -c Debug
@@ -32,4 +32,4 @@ jobs:
       if: github.event_name == 'push'
       shell: bash
       run: |
-        ./src/dotnet-releaser/bin/Debug/net9.0/dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
+        ./src/dotnet-releaser/bin/Debug/net10.0/dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
