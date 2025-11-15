@@ -47,35 +47,33 @@
     <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
     <PackageReference Include="Lunet.Extensions.Logging.SpectreConsole" Version="1.2.0" />
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="4.1.1" />
-    <PackageReference Include="Microsoft.Build" Version="17.14.8" ExcludeAssets="runtime">
+    <PackageReference Include="Microsoft.Build" Version="18.0.2" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Framework" Version="17.14.8" ExcludeAssets="runtime">
+    <PackageReference Include="Microsoft.Build.Framework" Version="18.0.2" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Locator" Version="1.9.1" />
-    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.14.8" ExcludeAssets="runtime">
+    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.0.2" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.14.8" ExcludeAssets="runtime">
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.0.2" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.10.12" />
     <PackageReference Include="MinVer" Version="6.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NuGet.Frameworks" Version="6.14.0" />
-    <PackageReference Include="NuGet.Versioning" Version="6.14.0" />
+    <PackageReference Include="NuGet.Frameworks" Version="7.0.0" ExcludeAssets="runtime" />
+    <PackageReference Include="NuGet.Versioning" Version="7.0.0" />
     <PackageReference Include="Octokit" Version="14.0.0" />
-    <PackageReference Include="Scriban" Version="6.3.0" />
-    <PackageReference Include="Spectre.Console" Version="0.51.1" />
+    <PackageReference Include="Scriban" Version="6.5.0" />
+    <PackageReference Include="Spectre.Console" Version="0.54.0" />
     <PackageReference Include="Tomlyn" Version="0.19.0" />
     <PackageReference Include="CliWrap" Version="3.9.0" />
-    <PackageReference Include="Wcwidth.Sources" Version="2.0.0">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <PackageReference Include="Wcwidth" Version="4.0.1" />
   </ItemGroup>
 
   <ItemGroup>
