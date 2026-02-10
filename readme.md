@@ -57,7 +57,7 @@ By default, `dotnet-releaser` will:
   ```
   dotnet tool install --global dotnet-releaser
   ```
-- Go to a folder where you have your solution `.sln` file or your project file (`.csproj`, `.fsproj`, `.vbproj`) and run:
+- Go to a folder where you have your solution `.sln`/`.slnx` file or your project file (`.csproj`, `.fsproj`, `.vbproj`) and run:
   ```
   dotnet releaser new
   ```

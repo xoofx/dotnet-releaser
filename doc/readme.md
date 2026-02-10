@@ -320,7 +320,7 @@ PublishReadyToRun = false # Disable PublishReadyToRun
 
 | `[msbuild]`      | Type       | Description                |
 |------------------|------------|----------------------------|
-| `project`        | `string[]` | Specifies a list of the path to the project (e.g `csproj`) or solution `*.sln` files to compile with MSBuild. If this path uses a relative path, it will be relative to the location of your TOML configuration file.
+| `project`        | `string[]` | Specifies a list of the path to the project (e.g `csproj`) or solution `*.sln` / `*.slnx` files to compile with MSBuild. If this path uses a relative path, it will be relative to the location of your TOML configuration file.
 | `configuration`  | `string`  | Specifies the MSBuild `Configuration` property. By default this is set to `Release`.
 | `configuration_debug`  | `string`  | Specifies the MSBuild `Configuration` property for a debug build. By default this is set to `Debug`.
 | `properties`     | `map<string, string>`  | Allows to defines properties that will be pass by MSBuild.
@@ -796,7 +796,7 @@ Arguments:
   dotnet-releaser.toml      TOML configuration file path to create. Default is: dotnet-releaser.toml
 
 Options:
-  --project <project_file>  A - relative - path to a solution file (.sln) or project file (.csproj, .fsproj, .vbproj). By default, it will try to find a solution file where this command is run or where the output dotnet-releaser.toml file
+  --project <project_file>  A - relative - path to a solution file (.sln, .slnx) or project file (.csproj, .fsproj, .vbproj). By default, it will try to find a solution file where this command is run or where the output dotnet-releaser.toml file
                             is specified.
   --user <GitHub_user/org>  The GitHub user/org where the packages will be published. If not specified, it will try to detect automatically if there is a git repository configured from the folder (and parents) of the TOML configuration
                             file, and extract any git remote that could give this information.
