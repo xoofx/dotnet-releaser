@@ -28,7 +28,8 @@ public partial class ReleaserApp
         var folder = Path.GetFullPath(Path.GetDirectoryName(destinationFilePath)!);
         if (projectFile is null)
         {
-            projectFile = Directory.GetFiles(folder).FirstOrDefault(x => x.EndsWith(".sln"));
+            projectFile = Directory.GetFiles(folder).FirstOrDefault(x => x.EndsWith(".slnx"))
+                       ?? Directory.GetFiles(folder).FirstOrDefault(x => x.EndsWith(".sln"));
             string kind = "Solution";
             if (projectFile is null)
             {
@@ -36,7 +37,7 @@ public partial class ReleaserApp
                 kind = "Project";
                 if (projectFile is null)
                 {
-                    Error($"Unable to find a solution file (.sln) or project files (.csproj, .fsproj, .vbproj) in the current folder `{folder}`");
+                    Error($"Unable to find a solution file (.sln, .slnx) or project files (.csproj, .fsproj, .vbproj) in the current folder `{folder}`");
                     return false;
                 }
             }
