@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -45,8 +45,8 @@
   <ItemGroup>
     <PackageReference Include="DotNet.Glob" />
     <PackageReference Include="LibGit2Sharp" />
-    <PackageReference Include="Lunet.Extensions.Logging.SpectreConsole" />
-    <PackageReference Include="McMaster.Extensions.CommandLineUtils" />
+    <PackageReference Include="XenoAtom.CommandLine" />
+    <PackageReference Include="XenoAtom.CommandLine.Terminal" />
     <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
@@ -59,7 +59,8 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime">
       <NoWarn>NU1608</NoWarn>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="XenoAtom.Logging" />
+    <PackageReference Include="XenoAtom.Logging.Terminal" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" />
     <PackageReference Include="Microsoft.Build.Locator" />
     <PackageReference Include="MinVer">
@@ -70,7 +71,6 @@
     <PackageReference Include="NuGet.Versioning" />
     <PackageReference Include="Octokit" />
     <PackageReference Include="Scriban" />
-    <PackageReference Include="Spectre.Console" />
     <PackageReference Include="Tomlyn" />
     <PackageReference Include="CliWrap" />
     <PackageReference Include="Wcwidth" />

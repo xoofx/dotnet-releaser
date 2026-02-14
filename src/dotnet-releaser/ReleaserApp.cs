@@ -10,12 +10,14 @@ using DotNetReleaser.Configuration;
 using DotNetReleaser.Coverage;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
-using Lunet.Extensions.Logging.SpectreConsole;
-using McMaster.Extensions.CommandLineUtils;
 using Microsoft.Build.Locator;
-using Microsoft.Extensions.Logging;
-using Spectre.Console;
-using Spectre.Console.Rendering;
+using XenoAtom.CommandLine;
+using XenoAtom.CommandLine.Terminal;
+using XenoAtom.Logging;
+using XenoAtom.Logging.Writers;
+using XenoAtom.Terminal;
+using XenoAtom.Terminal.UI;
+using XenoAtom.Terminal.UI.Styling;
 
 namespace DotNetReleaser;
 
@@ -35,7 +37,7 @@ public partial class ReleaserApp
     
     private readonly ISimpleLogger _logger;
     private ReleaserConfiguration _config;
-    private TableBorder _tableBorder;
+    private TableStyle _tableBorder;
     private bool _skipAppPackagesForBuildOnly;
 
     private ReleaserApp(ISimpleLogger logger)
@@ -44,7 +46,7 @@ public partial class ReleaserApp
         _logger = logger;
         _config = new ReleaserConfiguration();
         _assemblyCoverages = new List<AssemblyCoverage>();
-        _tableBorder = TableBorder.Square;
+        _tableBorder = TableStyle.Default;
         Version = typeof(ReleaserApp).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?.?.?";
     }
 
@@ -62,234 +64,224 @@ public partial class ReleaserApp
         MSBuildLocator.RegisterDefaults();
 
         Console.OutputEncoding = Encoding.UTF8;
-        // Create our log
         var runningOnGitHubAction = GitHubActionHelper.IsRunningOnGitHubAction;
-        using var factory = LoggerFactory.Create(configure =>
-        {
-            IAnsiConsoleOutput consoleOut = new AnsiConsoleOutput(Console.Out);
-            if (runningOnGitHubAction)
-            {
-                consoleOut = new AnsiConsoleOutputOverride(consoleOut)
-                {
-                    Width = 256,
-                    Height = 128,
-                };
-            }
-            
-            configure.AddSpectreConsole(new SpectreConsoleLoggerOptions()
-            {
-                ConsoleSettings = runningOnGitHubAction ? new AnsiConsoleSettings()
-                {
-                    Ansi = AnsiSupport.No,
-                    Out = consoleOut
-                } : new AnsiConsoleSettings()
-                {
-                    Out = consoleOut
-                },
-                IndentAfterNewLine = false,
-                IncludeTimestamp = true,
-                IncludeNewLineBeforeMessage = false,
-                IncludeCategory = false
-            });
-        });
         var exeName = "dotnet-releaser";
-        var logger = SimpleLogger.CreateConsoleLogger(factory, exeName);
-        var appReleaser = new ReleaserApp(logger);
 
-        // -----------------------------------------------------------------
-        // Workaround with a PowerShell limitation that is stripping empty arguments "" from passing them to dotnet-releaser
-        // See issue https://github.com/PowerShell/PowerShell/issues/1995
-        // In order to protect against such error, we emit a more detailed error for the obvious cases with some guidance.
-        // -----------------------------------------------------------------
-        var previousArg = string.Empty;
-        var protectedArgs = new[] { "--github-token", "--nuget-token", "--github-token-extra" };
-        foreach (var arg in args)
+        if (LogManager.IsInitialized)
         {
-            if (protectedArgs.Contains(previousArg) && (protectedArgs.Contains(arg) || arg.EndsWith(".toml", StringComparison.OrdinalIgnoreCase)))
-            {
-                appReleaser.Error($"Invalid argument passed `{previousArg} {arg}` (All arguments: {string.Join(" ", args)}). Check that you are not passing an empty string to the argument `{previousArg}`. If you are using PowerShell running on GitHub Action, please use bash instead to avoid such limitation.");
-                break;
-            }
-            previousArg = arg;
+            LogManager.Shutdown();
         }
 
-        // Early exit
-        if (appReleaser.HasErrors)
+        var terminalWriter = new TerminalLogWriter();
+        LogManager.Initialize(new LogManagerConfig
         {
-            return 1;
-        }
-
-        // -----------------------------------------------------------------
-        // Declare command line arguments
-        // -----------------------------------------------------------------
-        var app = new CommandLineApplication
-        {
-            Name = exeName,
-        };
-
-        app.VersionOption("--version", $"{app.Name} {appReleaser.Version} - {DateTime.Now.Year} (c) Copyright Alexandre Mutel", appReleaser.Version);
-        app.HelpOption(inherited: true);
-        app.Command("publish", AddPublishOrBuildArgs);
-        app.Command("build", AddPublishOrBuildArgs);
-        app.Command("run", AddPublishOrBuildArgs);
-
-        app.Command("new", newCommand =>
+            RootLogger =
             {
-                newCommand.Description = "Create a dotnet-releaser TOML configuration file for a specified project.";
-                var configurationFileArg = AddTomlConfigurationArgument(newCommand, true);
-                var projectOption = newCommand.Option<string>("--project <project_file>", "A - relative - path to a solution file (.sln, .slnx) or project file (.csproj, .fsproj, .vbproj). By default, it will try to find a solution file where this command is run or where the output dotnet-releaser.toml file is specified.", CommandOptionType.SingleValue);
-                var userOption = newCommand.Option<string>("--user <GitHub_user/org>", "The GitHub user/org where the packages will be published. If not specified, it will try to detect automatically if there is a git repository configured from the folder (and parents) of the TOML configuration file, and extract any git remote that could give this information.", CommandOptionType.SingleValue);
-                var repoOption = newCommand.Option<string>("--repo <GitHub_repo>", "The GitHub repo name where the packages will be published. If not specified, it will try to detect automatically if there is a git repository configured from the folder (and parents) of the TOML configuration file, and extract any git remote that could give this information.", CommandOptionType.SingleValue);
-                var forceOption = newCommand.Option<bool>("--force", "Force overwriting the existing TOML configuration file.", CommandOptionType.NoValue);
-
-                newCommand.OnExecuteAsync(async token =>
-                    {
-                        var result = await appReleaser.CreateConfigurationFile(configurationFileArg.ParsedValue, projectOption.ParsedValue, userOption.ParsedValue, repoOption.ParsedValue, forceOption.ParsedValue);
-                        return result ? 0 : 1;
-                    }
-                );
-            }
-        );
-
-        app.Command("changelog", changelogCommand =>
-        {
-            changelogCommand.Description = "Generate changelog for the specified GitHub owner/repository and optionally upload them back.";
-
-            var configurationFileArg = AddTomlConfigurationArgument(changelogCommand, false);
-            var versionArgument = changelogCommand.Argument("version", "An optional version to generate the changelog for. If it is not defined, it will fetch all existing tags and generate the logs for them.");
-            var updateOption = changelogCommand.Option<bool>("--update", "Update the changelog on GitHub for the specified version or all versions if no versions are specified.", CommandOptionType.NoValue);
-            var githubToken = AddGitHubToken(changelogCommand).IsRequired();
-
-            changelogCommand.OnExecuteAsync(async (token) =>
-            {
-                var result = await appReleaser.ListOrUpdateChangelog(configurationFileArg.ParsedValue, githubToken.ParsedValue, versionArgument.Value ?? string.Empty, updateOption.ParsedValue);
-                return result ? 0 : 1;
-            });
-        });
-
-        CommandOption<string> AddGitHubToken(CommandLineApplication cmd)
-        {
-            return cmd.Option<string>("--github-token <token>", "GitHub Api Token. Required if publish to GitHub is true in the config file", CommandOptionType.SingleValue);
-        }
-
-        CommandOption<string> AddGitHubTokenExtra(CommandLineApplication cmd)
-        {
-            return cmd.Option<string>("--github-token-extra <token>", "GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This token has usually more access than the --github-token that is only used for the current repository. ", CommandOptionType.SingleValue);
-        }
-
-        CommandOption<string> AddGitHubTokenGist(CommandLineApplication cmd)
-        {
-            return cmd.Option<string>("--github-token-gist <token>", "GitHub Api Token. Required if publishing to a gist used for e.g coverage.", CommandOptionType.SingleValue);
-        }
-
-        CommandArgument<string> AddTomlConfigurationArgument(CommandLineApplication cmd, bool forNew)
-        {
-            var arg = cmd.Argument<string>("dotnet-releaser.toml", forNew ? "TOML configuration file path to create. Default is: dotnet-releaser.toml" : "The input TOML configuration file.");
-            if (!forNew) arg = arg.IsRequired();
-            return arg;
-        }
-
-        void AddPublishOrBuildArgs(CommandLineApplication cmd)
-        {
-            CommandOption<string>? nugetToken = null;
-            CommandOption<string>? gitHubTokenExtra = null;
-            CommandOption<string>? gitHubTokenGist = null;
-            CommandOption<bool>? skipAppPackagesOption = null;
-
-            var githubToken = AddGitHubToken(cmd);
-
-            if (cmd.Name == "publish" || cmd.Name == "run")
-            {
-                cmd.Description = cmd.Name == "run" ? "Automatically build and publish a project when running from a GitHub Action based on which branch is active, if there is a tag (for publish), and if the change is a `push`." : "Build and publish the project.";
-                nugetToken = cmd.Option<string>("--nuget-token <token>", "NuGet Api Token. Required if publish to NuGet is true in the config file", CommandOptionType.SingleValue);
-
-                gitHubTokenExtra = AddGitHubTokenExtra(cmd);
-                gitHubTokenGist = AddGitHubTokenGist(cmd);
-            }
-            else
-            {
-                cmd.Description = "Build only the project.";
-            }
-
-            if (cmd.Name == "run" || cmd.Name == "build")
-            {
-                skipAppPackagesOption = cmd.Option<bool>("--skip-app-packages-for-build-only",
-                    "Skip building application packages (e.g tar) when building only (but not publishing). This is useful when running on a CI and you want to build app packages only when publishing.", CommandOptionType.NoValue);
-            }
-
-            var tableKindOption = cmd.Option<TableBorderKind>("--table", "Specifies the rendering of the tables. Default is square.", CommandOptionType.SingleValue);
-            tableKindOption.DefaultValue = TableBorderKind.Square;
-
-            var forceOption = cmd.Option<bool>("--force", "Force deleting and recreating the artifacts folder.", CommandOptionType.NoValue);
-
-            CommandOption<bool>? forceUploadOption = null;
-            CommandOption<string>? publishVersion = null;
-            if (cmd.Name == "publish")
-            {
-                publishVersion = cmd.Option<string>("--version <version>", "Tag version used when publishing the changelog and creating the release tag.", CommandOptionType.SingleValue);
-                forceUploadOption = cmd.Option<bool>("--force-upload", "Force uploading the release assets.", CommandOptionType.NoValue);
-            }
-
-            var configurationFileArg = AddTomlConfigurationArgument(cmd, false);
-
-            cmd.OnExecuteAsync(async (token) =>
-            {
-                // Check configuration file
-                var configurationFilePath = configurationFileArg.ParsedValue;
-                var buildKind = cmd.Name switch
+                MinimumLevel = LogLevel.Info,
+                Writers =
                 {
-                    "run" => BuildKind.Run,
-                    "publish" => BuildKind.Publish,
-                    _ => BuildKind.Build
-                };
-                appReleaser._skipAppPackagesForBuildOnly = skipAppPackagesOption?.ParsedValue ?? false;
-                if (tableKindOption.HasValue())
-                {
-                    appReleaser._tableBorder = GetTableBorderFromKind(tableKindOption.ParsedValue);
+                    terminalWriter
                 }
-                var result = await appReleaser.RunImpl(configurationFilePath, buildKind, githubToken.ParsedValue, gitHubTokenExtra?.ParsedValue, gitHubTokenGist?.ParsedValue, nugetToken?.ParsedValue, forceOption.ParsedValue, forceUploadOption?.ParsedValue ?? false, publishVersion?.ParsedValue);
-                return result ? 0 : 1;
-            });
-        }
-
-        app.OnExecute(() =>
-        {
-            Console.WriteLine("Specify a sub-command");
-            app.ShowHelp();
-            return 1;
+            }
         });
-
-        int result = 0;
         try
         {
-            result = await app.ExecuteAsync(args);
-        }
-        catch (Exception exception)
-        {
-            var backColor = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Red;
+            var logger = SimpleLogger.CreateConsoleLogger(LogManager.GetLogger(exeName), exeName);
+            var appReleaser = new ReleaserApp(logger);
 
-            if (exception is UnrecognizedCommandParsingException unrecognizedCommandParsingException)
+            // -----------------------------------------------------------------
+            // Workaround with a PowerShell limitation that is stripping empty arguments "" from passing them to dotnet-releaser
+            // See issue https://github.com/PowerShell/PowerShell/issues/1995
+            // In order to protect against such error, we emit a more detailed error for the obvious cases with some guidance.
+            // -----------------------------------------------------------------
+            var previousArg = string.Empty;
+            var protectedArgs = new[] { "--github-token", "--nuget-token", "--github-token-extra" };
+            foreach (var arg in args)
             {
-                await Console.Out.WriteLineAsync($"{unrecognizedCommandParsingException.Message} for command {unrecognizedCommandParsingException.Command.Name}");
+                if (protectedArgs.Contains(previousArg) && (protectedArgs.Contains(arg) || arg.EndsWith(".toml", StringComparison.OrdinalIgnoreCase)))
+                {
+                    appReleaser.Error($"Invalid argument passed `{previousArg} {arg}` (All arguments: {string.Join(" ", args)}). Check that you are not passing an empty string to the argument `{previousArg}`. If you are using PowerShell running on GitHub Action, please use bash instead to avoid such limitation.");
+                    break;
+                }
+                previousArg = arg;
             }
-            else
+
+            if (appReleaser.HasErrors)
             {
-                await Console.Out.WriteLineAsync($"Unexpected error {exception.Message}");
+                return 1;
             }
-            Console.ForegroundColor = backColor;
-            result = 1;
-        }
 
-        // Try to mitigate issue with structured logs
-        if (runningOnGitHubAction)
+            var app = new CommandApp(exeName, config: new CommandConfig
+            {
+                OutputFactory = _ => new TerminalMarkupCommandOutput(new TerminalMarkupOutputOptions
+                {
+                    UseTerminalWindowWidth = !runningOnGitHubAction
+                })
+            });
+
+            app.Add(new VersionOption($"{exeName} {appReleaser.Version} - {DateTime.Now.Year} (c) Copyright Alexandre Mutel", "version"));
+            app.Add(new HelpOption());
+            app.Add(CreatePublishOrBuildCommand("publish"));
+            app.Add(CreatePublishOrBuildCommand("build"));
+            app.Add(CreatePublishOrBuildCommand("run"));
+            app.Add(CreateNewCommand());
+            app.Add(CreateChangelogCommand());
+            app.Add((ctx, _) =>
+            {
+                ctx.Out.WriteLine("Specify a sub-command");
+                app.ShowHelp(ctx.RunConfig);
+                return ValueTask.FromResult(1);
+            });
+
+            int result;
+            try
+            {
+                result = runningOnGitHubAction
+                    ? await app.RunAsync(args, new CommandRunConfig(Width: 256, OptionWidth: 29)).ConfigureAwait(false)
+                    : await app.RunAsync(args).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                Terminal.WriteMarkupLine($"[red]Unexpected error {exception.Message}[/]");
+                result = 1;
+            }
+
+            if (runningOnGitHubAction)
+            {
+                await Task.Delay(16).ConfigureAwait(false);
+                await Terminal.Out.FlushAsync().ConfigureAwait(false);
+            }
+
+            return result;
+
+            Command CreateNewCommand()
+            {
+                string? configurationFilePath = null;
+                string? projectFilePath = null;
+                string? gitHubUser = null;
+                string? gitHubRepo = null;
+                var forceOverwrite = false;
+
+                var command = new Command("new", "Create a dotnet-releaser TOML configuration file for a specified project.");
+                command.Add(new HelpOption());
+                command.Add("<dotnet-releaser.toml>?", "TOML configuration file path to create. Default is: dotnet-releaser.toml", value => configurationFilePath = value);
+                command.Add("project=", "A - relative - path to a solution file (.sln, .slnx) or project file (.csproj, .fsproj, .vbproj). By default, it will try to find a solution file where this command is run or where the output dotnet-releaser.toml file is specified.", value => projectFilePath = value);
+                command.Add("user=", "The GitHub user/org where the packages will be published. If not specified, it will try to detect automatically if there is a git repository configured from the folder (and parents) of the TOML configuration file, and extract any git remote that could give this information.", value => gitHubUser = value);
+                command.Add("repo=", "The GitHub repo name where the packages will be published. If not specified, it will try to detect automatically if there is a git repository configured from the folder (and parents) of the TOML configuration file, and extract any git remote that could give this information.", value => gitHubRepo = value);
+                command.Add("force", "Force overwriting the existing TOML configuration file.", value => forceOverwrite = value is not null);
+                command.Add(async (_, _) =>
+                {
+                    var result = await appReleaser.CreateConfigurationFile(configurationFilePath, projectFilePath, gitHubUser, gitHubRepo, forceOverwrite).ConfigureAwait(false);
+                    return result ? 0 : 1;
+                });
+                return command;
+            }
+
+            Command CreateChangelogCommand()
+            {
+                string? configurationFilePath = null;
+                string? version = null;
+                string? gitHubToken = null;
+                var updateChangelog = false;
+
+                var command = new Command("changelog", "Generate changelog for the specified GitHub owner/repository and optionally upload them back.");
+                command.Add(new HelpOption());
+                command.Add("<dotnet-releaser.toml>", "The input TOML configuration file.", value => configurationFilePath = value);
+                command.Add("<version>?", "An optional version to generate the changelog for. If it is not defined, it will fetch all existing tags and generate the logs for them.", value => version = value);
+                command.Add("update", "Update the changelog on GitHub for the specified version or all versions if no versions are specified.", value => updateChangelog = value is not null);
+                command.Add("github-token=", "GitHub Api Token. Required if publish to GitHub is true in the config file", value => gitHubToken = value);
+                command.Add(async (_, _) =>
+                {
+                    if (string.IsNullOrWhiteSpace(gitHubToken))
+                    {
+                        appReleaser.Error("Missing required option `--github-token`.");
+                        return 1;
+                    }
+
+                    var result = await appReleaser.ListOrUpdateChangelog(configurationFilePath ?? string.Empty, gitHubToken, version ?? string.Empty, updateChangelog).ConfigureAwait(false);
+                    return result ? 0 : 1;
+                });
+                return command;
+            }
+
+            Command CreatePublishOrBuildCommand(string commandName)
+            {
+                string? configurationFilePath = null;
+                string? gitHubToken = null;
+                string? nugetToken = null;
+                string? gitHubTokenExtra = null;
+                string? gitHubTokenGist = null;
+                string? publishVersion = null;
+                var skipAppPackagesForBuildOnly = false;
+                var forceArtifactsFolder = false;
+                var forceUpload = false;
+                var hasTableOption = false;
+                EnumWrapper<TableBorderKind> tableKind = TableBorderKind.Square;
+
+                var description = commandName switch
+                {
+                    "run" => "Automatically build and publish a project when running from a GitHub Action based on which branch is active, if there is a tag (for publish), and if the change is a `push`.",
+                    "publish" => "Build and publish the project.",
+                    _ => "Build only the project."
+                };
+
+                var command = new Command(commandName, description);
+                command.Add(new HelpOption());
+                command.Add("<dotnet-releaser.toml>", "The input TOML configuration file.", value => configurationFilePath = value);
+                command.Add("github-token=", "GitHub Api Token. Required if publish to GitHub is true in the config file", value => gitHubToken = value);
+
+                if (commandName is "publish" or "run")
+                {
+                    command.Add("nuget-token=", "NuGet Api Token. Required if publish to NuGet is true in the config file", value => nugetToken = value);
+                    command.Add("github-token-extra=", "GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This token has usually more access than the --github-token that is only used for the current repository. ", value => gitHubTokenExtra = value);
+                    command.Add("github-token-gist=", "GitHub Api Token. Required if publishing to a gist used for e.g coverage.", value => gitHubTokenGist = value);
+                }
+
+                if (commandName is "run" or "build")
+                {
+                    command.Add("skip-app-packages-for-build-only", "Skip building application packages (e.g tar) when building only (but not publishing). This is useful when running on a CI and you want to build app packages only when publishing.", value => skipAppPackagesForBuildOnly = value is not null);
+                }
+
+                command.Add("table=", "Specifies the rendering of the tables. Default is square.", (EnumWrapper<TableBorderKind> value) =>
+                {
+                    tableKind = value;
+                    hasTableOption = true;
+                });
+
+                command.Add("force", "Force deleting and recreating the artifacts folder.", value => forceArtifactsFolder = value is not null);
+
+                if (commandName == "publish")
+                {
+                    command.Add("version=", "Tag version used when publishing the changelog and creating the release tag.", value => publishVersion = value);
+                    command.Add("force-upload", "Force uploading the release assets.", value => forceUpload = value is not null);
+                }
+
+                command.Add(async (_, _) =>
+                {
+                    var buildKind = commandName switch
+                    {
+                        "run" => BuildKind.Run,
+                        "publish" => BuildKind.Publish,
+                        _ => BuildKind.Build
+                    };
+
+                    appReleaser._skipAppPackagesForBuildOnly = skipAppPackagesForBuildOnly;
+                    if (hasTableOption)
+                    {
+                        appReleaser._tableBorder = GetTableBorderFromKind(tableKind);
+                    }
+
+                    var result = await appReleaser.RunImpl(configurationFilePath ?? string.Empty, buildKind, gitHubToken ?? string.Empty, gitHubTokenExtra, gitHubTokenGist, nugetToken, forceArtifactsFolder, forceUpload, publishVersion).ConfigureAwait(false);
+                    return result ? 0 : 1;
+                });
+
+                return command;
+            }
+        }
+        finally
         {
-            // Wait for a small amount of time to make sure that output is completely flushed
-            await Task.Delay(16);
-            await Console.Out.FlushAsync();
+            LogManager.Shutdown();
         }
-
-        return result;
     }
 
     private async Task<bool> LoadConfiguration(string configurationFile)
@@ -403,7 +395,7 @@ public partial class ReleaserApp
         _logger.Info(message);
     }
 
-    public void Info(string message, IRenderable renderable)
+    public void Info(string message, Visual renderable)
     {
         _logger.InfoMarkup(message, renderable);
     }
@@ -425,29 +417,25 @@ public partial class ReleaserApp
         }
     }
 
-    private static TableBorder GetTableBorderFromKind(TableBorderKind tableBorderKind)
+    private static TableStyle GetTableBorderFromKind(TableBorderKind tableBorderKind)
     {
         return tableBorderKind switch
         {
-            TableBorderKind.None => TableBorder.None,
-            TableBorderKind.Ascii => TableBorder.Ascii,
-            TableBorderKind.Ascii2 => TableBorder.Ascii2,
-            TableBorderKind.AsciiDoubleHead => TableBorder.AsciiDoubleHead,
-            TableBorderKind.Square => TableBorder.Square,
-            TableBorderKind.Rounded => TableBorder.Rounded,
-            TableBorderKind.Minimal => TableBorder.Minimal,
-            TableBorderKind.MinimalHeavyHead => TableBorder.MinimalHeavyHead,
-            TableBorderKind.MinimalDoubleHead => TableBorder.MinimalDoubleHead,
-            TableBorderKind.Simple => TableBorder.Simple,
-            TableBorderKind.SimpleHeavy => TableBorder.SimpleHeavy,
-            TableBorderKind.Horizontal => TableBorder.Horizontal,
-            TableBorderKind.Heavy => TableBorder.Heavy,
-            TableBorderKind.HeavyEdge => TableBorder.HeavyEdge,
-            TableBorderKind.HeavyHead => TableBorder.HeavyHead,
-            TableBorderKind.Double => TableBorder.Double,
-            TableBorderKind.DoubleEdge => TableBorder.DoubleEdge,
-            TableBorderKind.Markdown => TableBorder.Markdown,
-            _ => throw new ArgumentOutOfRangeException(nameof(tableBorderKind), tableBorderKind, null)
+            TableBorderKind.None => TableStyle.Default,
+            TableBorderKind.Rounded => TableStyle.RoundedGrid,
+            TableBorderKind.Minimal => TableStyle.Minimal,
+            TableBorderKind.MinimalHeavyHead => TableStyle.Minimal,
+            TableBorderKind.MinimalDoubleHead => TableStyle.Minimal,
+            TableBorderKind.Simple => TableStyle.Minimal,
+            TableBorderKind.SimpleHeavy => TableStyle.Minimal,
+            TableBorderKind.Horizontal => TableStyle.Minimal,
+            TableBorderKind.Heavy => TableStyle.DoubleGrid,
+            TableBorderKind.HeavyEdge => TableStyle.DoubleGrid,
+            TableBorderKind.HeavyHead => TableStyle.DoubleGrid,
+            TableBorderKind.Double => TableStyle.DoubleGrid,
+            TableBorderKind.DoubleEdge => TableStyle.DoubleGrid,
+            TableBorderKind.Markdown => TableStyle.Minimal,
+            _ => TableStyle.Default
         };
     }
 }

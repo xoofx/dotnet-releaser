@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Mime;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
@@ -12,8 +13,8 @@ using DotNetReleaser.Helpers;
 using DotNetReleaser.Runners;
 using Microsoft.Build.Framework;
 using NuGet.Frameworks;
-using Spectre.Console;
-using Spectre.Console.Rendering;
+using XenoAtom.Terminal.UI;
+using XenoAtom.Terminal.UI.Controls;
 
 namespace DotNetReleaser;
 
@@ -390,36 +391,34 @@ public partial class ReleaserApp
     private void DisplayAllProjects(List<ProjectPackageInfoCollection> projectPackageInfoCollections)
     {
         var table = new Table();
-        table.AddColumn("Project");
-        table.AddColumn("Kind");
-        table.AddColumn("Version");
-        table.AddColumn("TargetFramework(s)");
-        table.AddColumn("License");
-        table.AddColumn(new TableColumn("Packable?").Centered());
-        table.AddColumn(new TableColumn("Test?").Centered());
-        table.Border = _tableBorder;
+        table.AddHeader("Project");
+        table.AddHeader("Kind");
+        table.AddHeader("Version");
+        table.AddHeader("TargetFramework(s)");
+        table.AddHeader("License");
+        table.AddHeader(new TextBlock("Packable?").TextAlignment(TextAlignment.Center));
+        table.AddHeader(new TextBlock("Test?").TextAlignment(TextAlignment.Center));
+        table.Style(_tableBorder);
 
         var row = new List<object>();
-        row.AddRange(Enumerable.Repeat(string.Empty, table.Columns.Count));
+        row.AddRange(Enumerable.Repeat(string.Empty, table.HeaderCells.Count));
         
         string? previousSolution = null;
         foreach (var projectPackageInfoCollection in projectPackageInfoCollections)
         {
             if (!string.IsNullOrEmpty(projectPackageInfoCollection.SolutionFile) || previousSolution != projectPackageInfoCollection.SolutionFile)
             {
-                if (projectPackageInfoCollection.SolutionFile is null)
+                if (string.IsNullOrEmpty(projectPackageInfoCollection.SolutionFile))
                 {
                     // We don't need to add a separator if we only have projects without solutions
                     if (projectPackageInfoCollections.Any(x => x.SolutionFile is not null))
                     {
-                        table.AddRow(new Text("Direct Projects"));
+                        table.AddRow(new Border("Direct Projects"));
                     }
                 }
                 else
                 {
-                    var subTable = new Table();
-                    subTable.AddColumn(projectPackageInfoCollection.SolutionFile);
-                    table.AddRow(subTable);
+                    table.AddRow(new Border(projectPackageInfoCollection.SolutionFile));
                 }
             }
             previousSolution = projectPackageInfoCollection.SolutionFile;
@@ -433,9 +432,9 @@ public partial class ReleaserApp
                 row[c++] = string.Join("\n", project.TargetFrameworkInfo.TargetFrameworks);
                 if (project.IsPackable)
                 {
-                    row[c++] = LicenseHelper.IsKnownLicense(project.License) ? new Text(project.License, new Style(Color.Green, Color.Black)) :
-                        LicenseHelper.IsLicenseDefined(project.License) ? new Text(project.License, new Style(Color.Black, Color.Red)) :
-                        new Text(project.License, new Style(Color.Yellow, Color.Black));
+                    row[c++] = LicenseHelper.IsKnownLicense(project.License) ? new Markup($"[green on black]{project.License}[/]") :
+                        LicenseHelper.IsLicenseDefined(project.License) ? new Markup($"[black on red]{project.License}[/]") :
+                        new Markup($"[yellow on black]{project.License}[/]");
                 }
                 else
                 {
@@ -446,7 +445,7 @@ public partial class ReleaserApp
                 row[c] = project.IsTestProject ? "x" : string.Empty;
 
                 //table.AddRow(row.Select(Markup.Escape).ToArray());
-                table.AddRow(row.Select(x => x is IRenderable renderable ? renderable : new Text(x.ToString() ?? string.Empty)).ToArray());
+                table.AddRow(row.Select(x => x is Visual renderable ? renderable : new TextBlock(x.ToString() ?? string.Empty)).ToArray());
             }
         }
 

@@ -9,7 +9,8 @@ using CliWrap;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
 using LibGit2Sharp;
-using Spectre.Console;
+using XenoAtom.Ansi;
+using XenoAtom.Terminal.UI.Controls;
 
 namespace DotNetReleaser;
 
@@ -113,20 +114,20 @@ public partial class ReleaserApp
                 if (match.Success)
                 {
                     buildInformation.Version = match.Groups[1].Value;
-                    _logger.InfoMarkup($"The tag `{Markup.Escape(gitHubInfo.RefName)}` is identified as a release tag with version `{buildInformation.Version}`. [green on black]Publish mode[/] selected.");
+                    _logger.InfoMarkup($"The tag `{AnsiMarkup.Escape(gitHubInfo.RefName)}` is identified as a release tag with version `{buildInformation.Version}`. [green on black]Publish mode[/] selected.");
                     buildKind = BuildKind.Publish;
                 }
                 else
                 {
-                    _logger.WarnMarkup($"The tag {Markup.Escape(gitHubInfo.RefName)} is not identified as a release tag. [green on black]Build only mode[/] selected.");
+                    _logger.WarnMarkup($"The tag {AnsiMarkup.Escape(gitHubInfo.RefName)} is not identified as a release tag. [green on black]Build only mode[/] selected.");
                     buildKind = BuildKind.Build;
                 }
             }
             else
             {
                 _logger.InfoMarkup(gitHubInfo.EventName == "push"
-                    ? $"The trigger event is `{Markup.Escape(gitHubInfo.EventName)}` and the branch `{Markup.Escape(gitHubInfo.RefName)}`. [green on black]Build only mode[/] selected."
-                    : $"The trigger event is `{Markup.Escape(gitHubInfo.EventName)}`. [green on black]Build only mode[/] selected.");
+                    ? $"The trigger event is `{AnsiMarkup.Escape(gitHubInfo.EventName)}` and the branch `{AnsiMarkup.Escape(gitHubInfo.RefName)}`. [green on black]Build only mode[/] selected."
+                    : $"The trigger event is `{AnsiMarkup.Escape(gitHubInfo.EventName)}`. [green on black]Build only mode[/] selected.");
                 buildKind = BuildKind.Build;
             }
         }

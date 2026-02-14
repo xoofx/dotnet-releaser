@@ -122,8 +122,8 @@ Regular .NET Libraries:
 `dotnet-releaser` is a wrapper around many amazing OSS libraries:
 
 - [dotnet-packaging](https://github.com/quamotion/dotnet-packaging) by using their NuGet [Packaging.Targets](https://www.nuget.org/packages/Packaging.Targets) to hook package creation into MSBuild user's project.
-- [CommandLineUtils](https://github.com/natemcmaster/CommandLineUtils) for handling parsing command line arguments
-- [Microsoft.Extensions.Logging](https://github.com/dotnet/runtime/) for logging to the console.
+- [XenoAtom.CommandLine](https://github.com/XenoAtom/XenoAtom.CommandLine) for handling parsing command line arguments.
+- [XenoAtom.Logging](https://github.com/XenoAtom/XenoAtom.Logging) for logging to the console.
 - [MsBuildPipeLogger](https://github.com/daveaglick/MsBuildPipeLogger) for interacting with MSBuild structured output.
 - [Octokit.NET](https://github.com/octokit/octokit.net) for interacting with GitHub.
 - [Tomlyn](https://github.com/xoofx/Tomlyn) for parsing the TOML configuration file.

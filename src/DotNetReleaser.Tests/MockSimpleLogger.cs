@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Text;
 using DotNetReleaser.Logging;
-using Microsoft.Extensions.Logging;
+using XenoAtom.Logging;
+using XenoAtom.Terminal.UI;
 
 namespace DotNetReleaser.Tests;
 
@@ -15,6 +16,7 @@ public class MockSimpleLogger : ISimpleLogger
     public StringBuilder Output { get; }
 
     public bool HasErrors { get; private set; }
+
     public void LogStartGroup(string name)
     {
     }
@@ -23,17 +25,22 @@ public class MockSimpleLogger : ISimpleLogger
     {
     }
 
-    public void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params object?[] args)
+    public void LogSimple(LogLevel level, Exception? exception, string? message, bool markup, params Visual?[] args)
     {
-        if (level == LogLevel.Error) HasErrors = true;
+        if (level == LogLevel.Error)
+        {
+            HasErrors = true;
+        }
+
         var prefix = level switch
         {
+            LogLevel.All => "all",
             LogLevel.Trace => "trace",
             LogLevel.Debug => "debug",
-            LogLevel.Information => "info",
-            LogLevel.Warning => "warn",
+            LogLevel.Info => "info",
+            LogLevel.Warn => "warn",
             LogLevel.Error => "error",
-            LogLevel.Critical => "critical",
+            LogLevel.Fatal => "fatal",
             LogLevel.None => "none",
             _ => throw new ArgumentOutOfRangeException(nameof(level), level, null)
         };

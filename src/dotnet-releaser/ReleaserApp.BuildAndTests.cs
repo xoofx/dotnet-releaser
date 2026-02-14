@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Mime;
 using System.Threading.Tasks;
 using DotNetReleaser.Coverage;
 using DotNetReleaser.Logging;
 using DotNetReleaser.Runners;
-using Spectre.Console;
-using Spectre.Console.Rendering;
+using XenoAtom.Terminal.UI;
+using XenoAtom.Terminal.UI.Controls;
 
 namespace DotNetReleaser;
 
@@ -128,15 +129,15 @@ public partial class ReleaserApp
             return null;
         }
 
-        var table = new Table();
-        table.AddColumn(" ");
-        table.AddColumn("Project");
-        table.AddColumn("Line");
-        table.AddColumn("Branch");
-        table.AddColumn("Method");
-        table.Border = _tableBorder;
+        var table = new Table()
+            .AddHeader(" ")
+            .AddHeader("Project")
+            .AddHeader("Line")
+            .AddHeader("Branch")
+            .AddHeader("Method");
+        table.Style(_tableBorder);
 
-        var rows = Enumerable.Repeat((object)string.Empty, table.Columns.Count).ToList();
+        var rows = Enumerable.Repeat((object)string.Empty, table.HeaderCells.Count).ToList();
         HitCoverage totalLineRate = default;
         HitCoverage totalBranchRate = default;
         HitCoverage totalMethodRate = default;
@@ -152,16 +153,10 @@ public partial class ReleaserApp
             rows[2] = lineRate;
             rows[3] = branchRate;
             rows[4] = methodRate;
-            table.AddRow(rows.Select(x => x is IRenderable r ? r : new Text(x.ToString() ?? string.Empty)));
+            table.AddRow(rows.Select(x => x is Visual r ? r : new TextBlock(x.ToString() ?? string.Empty)).ToArray());
         }
 
-        table.ShowFooters = true;
-        table.Columns[0].Footer = new Text("Total");
-        table.Columns[1].Footer = new Text(" ");
-        table.Columns[2].Footer = new Text(FormatRate(totalLineRate));
-        table.Columns[3].Footer = new Text(FormatRate(totalBranchRate));
-        table.Columns[4].Footer = new Text(FormatRate(totalMethodRate));
-
+        table.AddRow(["Total", " ", FormatRate(totalLineRate), FormatRate(totalBranchRate), FormatRate(totalMethodRate)]);
         _logger.InfoMarkup("Coverage Results:", table);
 
         return totalLineRate;

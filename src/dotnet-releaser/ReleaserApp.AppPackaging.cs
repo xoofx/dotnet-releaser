@@ -4,12 +4,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DotNetReleaser.Configuration;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
-using Spectre.Console;
+using XenoAtom.Terminal.UI;
+using XenoAtom.Terminal.UI.Controls;
+using XenoAtom.Terminal.UI.Styling;
 
 namespace DotNetReleaser;
 
@@ -46,11 +47,11 @@ public partial class ReleaserApp
 
         _logger.LogStartGroup($"App Packaging {packageInfo.Name} - {packageInfo.Version}");
 
-        var table = new Table();
-        table.AddColumn("Platform");
-        table.AddColumn("Packages");
-        table.AddColumn(new TableColumn("Publish?").Centered());
-        table.Border = _tableBorder;
+        var table = new Table()
+            .AddHeader("Platform")
+            .AddHeader("Packages")
+            .AddHeader(new TextBlock("Publish?").TextAlignment(TextAlignment.Center))
+            .Style(TableStyle.RoundedGrid);
 
         foreach (var pack in _config.Packs)
         {
