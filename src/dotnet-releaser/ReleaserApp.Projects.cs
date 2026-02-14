@@ -177,6 +177,7 @@ public partial class ReleaserApp
             var packageProjectUrl = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageProjectUrl)?.ItemSpec ?? $"{_config.GitHub.GetUrl()}";
             var isNuGetPackable = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsNuGetPackable)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
             var isTestProject = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestProject)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+            var isTestingPlatformApplication = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestingPlatformApplication)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
 
             var builder = new StringBuilder();
             var currentProjectDirectory = Path.GetDirectoryName(projectFullFilePath)!;
@@ -194,7 +195,7 @@ public partial class ReleaserApp
                 return null;
             }
 
-            return new ProjectPackageInfo(projectFullFilePath, packageId, assemblyName, result, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject, projectReferences.ToArray(), targetFrameworkInfo);
+            return new ProjectPackageInfo(projectFullFilePath, packageId, assemblyName, result, packageVersion, packageDescription ?? "No description found", packageLicenseExpression ?? "No license found", packageProjectUrl, isNuGetPackable, isTestProject, isTestingPlatformApplication, projectReferences.ToArray(), targetFrameworkInfo);
         }
         catch (Exception ex)
         {

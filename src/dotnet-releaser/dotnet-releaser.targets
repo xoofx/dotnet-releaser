@@ -48,18 +48,12 @@
   <Choose>
     <When Condition="'$(ManagePackageVersionsCentrally)' == 'true' AND '$(CentralPackageVersionsFileImported)' == 'true' AND '$(IsTestProject)' == 'true'">
       <ItemGroup>
-        <PackageReference Include="GitHubActionsTestLogger" VersionOverride="2.4.1">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="GitHubActionsTestLogger" VersionOverride="3.0.1"/>
       </ItemGroup>
     </When>
     <When Condition="'$(IsTestProject)' == 'true'">
       <ItemGroup>
-        <PackageReference Include="GitHubActionsTestLogger" Version="2.4.1">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="GitHubActionsTestLogger" Version="3.0.1"/>
       </ItemGroup>
     </When>
   </Choose>
@@ -99,6 +93,7 @@
       <_DotNetReleaserGetPackageInfo Include="$(PackageProjectUrl)" Kind="PackageProjectUrl"/>
       <_DotNetReleaserGetPackageInfo Include="$(IsPackable)" Kind="IsNuGetPackable"/>
       <_DotNetReleaserGetPackageInfo Include="$(IsTestProject)" Kind="IsTestProject"/>
+      <_DotNetReleaserGetPackageInfo Include="$(IsTestingPlatformApplication)" Kind="IsTestingPlatformApplication"/>
       <_DotNetReleaserGetPackageInfo Include="@(ProjectReference)" Kind="ProjectReference"/>
       <_DotNetReleaserGetPackageInfo Include="$([System.IO.Path]::GetFullPath('$(PublishDir)'))" Kind="PublishDir"/>
     </ItemGroup>

@@ -70,7 +70,7 @@ public partial class ReleaserApp
                         _logger.LogStartGroup("Testing");
                         groupLogged = true;
                     }
-                    if (!await Test(projectPackageInfo.ProjectFullPath))
+                    if (!await Test(projectPackageInfo))
                     {
                         return false;
                     }
@@ -84,9 +84,9 @@ public partial class ReleaserApp
                     var lineCoverageResult = LoadAndDisplayCoverageResults();
 
                     // Publish badge if requested
-                    if (devHosting is not null)
+                    if (devHosting is not null && lineCoverageResult.HasValue)
                     {
-                        await PublishCoverageToGist(devHosting, buildInfo, lineCoverageResult);
+                        await PublishCoverageToGist(devHosting, buildInfo, lineCoverageResult.Value);
                     }
                 }
 
@@ -120,9 +120,13 @@ public partial class ReleaserApp
         return Math.Round(rate.Rate * 100, 2, MidpointRounding.AwayFromZero).ToString("##.00") + "%";
     }
 
-    private HitCoverage LoadAndDisplayCoverageResults()
+    private HitCoverage? LoadAndDisplayCoverageResults()
     {
         LoadCoverageResults();
+        if (_assemblyCoverages.Count == 0)
+        {
+            return null;
+        }
 
         var table = new Table();
         table.AddColumn(" ");
@@ -195,18 +199,18 @@ public partial class ReleaserApp
         return true;
     }
 
-    private async Task<bool> Test(string projectFile)
+    private async Task<bool> Test(ProjectPackageInfo packageInfo)
     {
         if (_config.MSBuild.BuildDebug && _config.Test.RunTestsForDebug)
         {
-            Info($"Running Tests for `{projectFile}` - Configuration = {_config.MSBuild.ConfigurationDebug}");
-            if (!await RunTest(projectFile, _config.MSBuild.ConfigurationDebug)) return false;
+            Info($"Running Tests for `{packageInfo.ProjectFullPath}` - Configuration = {_config.MSBuild.ConfigurationDebug}");
+            if (!await RunTest(packageInfo, _config.MSBuild.ConfigurationDebug)) return false;
         }
 
         if (_config.Test.RunTests)
         {
-            Info($"Running Tests for `{projectFile}` - Configuration = {_config.MSBuild.Configuration}");
-            if (!await RunTest(projectFile, _config.MSBuild.Configuration)) return false;
+            Info($"Running Tests for `{packageInfo.ProjectFullPath}` - Configuration = {_config.MSBuild.Configuration}");
+            if (!await RunTest(packageInfo, _config.MSBuild.Configuration)) return false;
         }
 
         return true;
@@ -228,40 +232,59 @@ public partial class ReleaserApp
         return coverageFolder;
     }
 
-    private async Task<bool> RunTest(string projectFile, string configuration)
+    private async Task<bool> RunTest(ProjectPackageInfo packageInfo, string configuration)
     {
         var runner = new DotNetRunner("test");
         runner.Arguments.Add("--no-restore"); // Because we ran it just before
         runner.Arguments.Add("--no-build"); // Because we ran it just before
-        runner.Arguments.Add("--logger");
-        runner.Arguments.Add("GitHubActions");
+
+        // GitHubActionsTestLogger is automatic on MTP
+        if (!packageInfo.IsTestingPlatformApplication)
+        {
+            runner.Arguments.Add("--logger");
+            runner.Arguments.Add("GitHubActions");
+        }
+
         runner.Arguments.Add("--configuration");
         runner.Arguments.Add($"{configuration}");
-        runner.Arguments.Add(projectFile);
+
+        if (packageInfo.IsTestingPlatformApplication)
+        {
+            runner.Arguments.Add("--project");
+        }
+
+        runner.Arguments.Add(packageInfo.ProjectFullPath);
 
         if (_config.Coverage.Enable)
         {
-            runner.Arguments.Add("--results-directory");
             var coverageFolder = EnsureCoverageFolder();
-            runner.Arguments.Add(coverageFolder);
-            runner.Arguments.Add("--collect");
-            runner.Arguments.Add($"XPlat Code Coverage");
-            // TBD doesn't work
-            //runner.Arguments.Add("--test-adapter-path");
-            //runner.Arguments.Add(@"C:\Users\alexa\.nuget\packages\coverlet.collector\3.1.2\build\netstandard1.0");
+            if (packageInfo.IsTestingPlatformApplication)
+            {
+                Warn($"Code coverage is not yet supported for Testing Platform Application projects. Skipping coverage for `{packageInfo.ProjectFullPath}`.");
+            }
+            else
+            {
+                runner.Arguments.Add("--results-directory");
+                runner.Arguments.Add(coverageFolder);
+                runner.Arguments.Add("--collect");
+                runner.Arguments.Add($"XPlat Code Coverage");
+                // TBD doesn't work
+                //runner.Arguments.Add("--test-adapter-path");
+                //runner.Arguments.Add(@"C:\Users\alexa\.nuget\packages\coverlet.collector\3.1.2\build\netstandard1.0");
 
-            runner.Arguments.Add("--");
-            AddCoverageSetting(runner.Arguments, "Format", _config.Coverage.Format);
-            AddCoverageSetting(runner.Arguments, "Include", _config.Coverage.Include);
-            AddCoverageSetting(runner.Arguments, "IncludeDirectory", _config.Coverage.IncludeDirectory);
-            AddCoverageSetting(runner.Arguments, "Exclude", _config.Coverage.Exclude);
-            AddCoverageSetting(runner.Arguments, "ExcludeByFile", _config.Coverage.ExcludeByFile);
-            AddCoverageSetting(runner.Arguments, "DeterministicReport", _config.Coverage.DeterministicReport);
-            AddCoverageSetting(runner.Arguments, "SingleHit", _config.Coverage.SingleHit);
-            AddCoverageSetting(runner.Arguments, "DoesNotReturnAttribute", _config.Coverage.DoesNotReturnAttribute);
-            AddCoverageSetting(runner.Arguments, "IncludeTestAssembly", _config.Coverage.IncludeTestAssembly);
-            AddCoverageSetting(runner.Arguments, "SkipAutoProps", _config.Coverage.SkipAutoProps);
-            AddCoverageSetting(runner.Arguments, "SourceLink", _config.Coverage.SourceLink);
+                runner.Arguments.Add("--");
+                AddCoverageSetting(runner.Arguments, "Format", _config.Coverage.Format);
+                AddCoverageSetting(runner.Arguments, "Include", _config.Coverage.Include);
+                AddCoverageSetting(runner.Arguments, "IncludeDirectory", _config.Coverage.IncludeDirectory);
+                AddCoverageSetting(runner.Arguments, "Exclude", _config.Coverage.Exclude);
+                AddCoverageSetting(runner.Arguments, "ExcludeByFile", _config.Coverage.ExcludeByFile);
+                AddCoverageSetting(runner.Arguments, "DeterministicReport", _config.Coverage.DeterministicReport);
+                AddCoverageSetting(runner.Arguments, "SingleHit", _config.Coverage.SingleHit);
+                AddCoverageSetting(runner.Arguments, "DoesNotReturnAttribute", _config.Coverage.DoesNotReturnAttribute);
+                AddCoverageSetting(runner.Arguments, "IncludeTestAssembly", _config.Coverage.IncludeTestAssembly);
+                AddCoverageSetting(runner.Arguments, "SkipAutoProps", _config.Coverage.SkipAutoProps);
+                AddCoverageSetting(runner.Arguments, "SourceLink", _config.Coverage.SourceLink);
+            }
         }
 
         runner.LogStandardOutput = Info;
