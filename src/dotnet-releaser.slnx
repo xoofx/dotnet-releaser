@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/Documentation/">
+    <File Path="../doc/changelog_user_guide.md" />
+    <File Path="../doc/readme.md" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="../.github/workflows/ci.yml" />
+    <File Path="../.gitignore" />
+    <File Path="../changelog.md" />
+    <File Path="../license.txt" />
+    <File Path="../readme.md" />
+    <File Path="Directory.Packages.props" />
+    <File Path="dotnet-releaser.toml" />
+    <File Path="global.json" />
+  </Folder>
+  <Project Path="dotnet-releaser/dotnet-releaser.csproj" />
+  <Project Path="DotNetReleaser.Tests/DotNetReleaser.Tests.csproj" />
+  <Project Path="MsBuildPipeLogger.Logger/MsBuildPipeLogger.Logger.csproj" />
+  <Project Path="MsBuildPipeLogger.Server/MsBuildPipeLogger.Server.csproj" />
+</Solution>
