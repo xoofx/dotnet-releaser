@@ -74,6 +74,8 @@
     <PackageReference Include="Tomlyn" />
     <PackageReference Include="CliWrap" />
     <PackageReference Include="Wcwidth" />
+    <PackageReference Include="XenoAtom.Terminal" />
+    <PackageReference Include="XenoAtom.Terminal.UI" />
   </ItemGroup>
 
   <ItemGroup>
