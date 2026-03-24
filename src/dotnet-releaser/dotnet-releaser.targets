@@ -8,7 +8,7 @@
   <Choose>
     <When Condition="'$(ManagePackageVersionsCentrally)' == 'true' AND '$(CentralPackageVersionsFileImported)' == 'true'">
       <ItemGroup>
-        <PackageReference Include="Packaging.Targets" VersionOverride="0.1.220">
+        <PackageReference Include="Packaging.Targets" VersionOverride="0.1.232">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>compile;build</IncludeAssets>
           <ExcludeAssets>runtime;contentFiles;native</ExcludeAssets>
@@ -17,7 +17,7 @@
     </When>
     <Otherwise>
       <ItemGroup>
-        <PackageReference Include="Packaging.Targets" Version="0.1.220">
+        <PackageReference Include="Packaging.Targets" Version="0.1.232">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>compile;build</IncludeAssets>
           <ExcludeAssets>runtime;contentFiles;native</ExcludeAssets>
