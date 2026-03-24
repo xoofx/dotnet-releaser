@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using Tomlyn.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -10,6 +12,7 @@ public class PackageDependency
         Names = new List<string>();
     }
 
-    [DataMember(Name = "name")]
+    [JsonPropertyName("name")]
+    [TomlSingleOrArray]
     public List<string> Names { get; }
 }

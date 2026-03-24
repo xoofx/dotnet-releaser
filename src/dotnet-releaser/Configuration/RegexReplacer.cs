@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace DotNetReleaser.Configuration;
@@ -11,10 +12,10 @@ public class RegexReplacer
         Replace = string.Empty;
     }
 
-    [DataMember(Name = "pattern")]
+    [JsonPropertyName("pattern")]
     public string Pattern { get; set; }
 
-    [DataMember(Name = "replace")]
+    [JsonPropertyName("replace")]
     public string Replace { get; set; }
     
     internal string Run(string input) => Regex.Replace(input, Pattern, Replace);

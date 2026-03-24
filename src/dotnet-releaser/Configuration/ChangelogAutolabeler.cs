@@ -5,6 +5,7 @@ using DotNet.Globbing;
 using DotNetReleaser.Changelog;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
+using Tomlyn.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -25,12 +26,16 @@ public class ChangelogAutolabeler
     
     public string Label { get; set; }
 
+    [TomlSingleOrArray]
     public List<string> Title { get; }
 
+    [TomlSingleOrArray]
     public List<string> Body { get; }
     
+    [TomlSingleOrArray]
     public List<string> Files { get; }
 
+    [TomlSingleOrArray]
     public List<string> Branch { get; }
 
     public ChangelogAutolabeler AppendTitle(params string[] title)

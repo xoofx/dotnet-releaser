@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -60,13 +61,13 @@ public class ChangelogConfiguration : ConfigurationBase
 
     public ChangelogFilter Exclude { get; }
 
-    [DataMember(Name = "autolabeler")]
+    [JsonPropertyName("autolabeler")]
     public List<ChangelogAutolabeler> Autolabelers { get; }
 
-    [DataMember(Name = "replacer")]
+    [JsonPropertyName("replacer")]
     public List<RegexReplacer> Replacers { get; } // TBD: not implemented yet
     
-    [DataMember(Name = "category")]
+    [JsonPropertyName("category")]
     public List<ChangelogCategory> Categories { get; }
 
     public Dictionary<string, object> TemplateProperties { get; }

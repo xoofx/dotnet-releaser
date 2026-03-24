@@ -1,11 +1,12 @@
-﻿using System;
+﻿using DotNetReleaser.Configuration;
+using DotNetReleaser.Logging;
+using Scriban;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using DotNetReleaser.Configuration;
-using DotNetReleaser.Logging;
-using Scriban;
+using System.Text.Json;
 using Tomlyn;
 
 namespace DotNetReleaser.Changelog;
@@ -282,8 +283,7 @@ public sealed class ChangelogTemplatizer
                 var propertyInfo = typeof(ChangelogConfiguration).GetProperty(context);
                 if (propertyInfo != null)
                 {
-                    var tomlModelOptions = new TomlModelOptions();
-                    context = tomlModelOptions.GetPropertyName(propertyInfo) ?? "unknown";
+                    context = JsonNamingPolicy.SnakeCaseLower.ConvertName(propertyInfo.Name);
                 }
             }
 

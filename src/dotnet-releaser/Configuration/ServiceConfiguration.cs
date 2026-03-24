@@ -24,12 +24,7 @@ public class ServiceConfiguration : ConfigurationBase
                 { "Install", new Dictionary<string, object?>() },
             };
 
-            // Defaults for restarting
-            Sections["Unit"]["StartLimitIntervalSec"] = 60; // Tries during 60s to restart the service
-            Sections["Unit"]["StartLimitBurst"] = 4; // Maximum of 4 retries in 60s
-            Sections["Service"]["Restart"] = "always"; // Always tries to restart the service
-            Sections["Service"]["RestartSec"] = 1; // 1s
-            Sections["Install"]["WantedBy"] = "multi-user.target";
+            AddDefaults();
         }
 
         public string Arguments { get; set; }
@@ -39,5 +34,32 @@ public class ServiceConfiguration : ConfigurationBase
         public bool CreateUser { get; set; }
 
         public Dictionary<string, IDictionary<string, object?>> Sections { get; }
+
+        public void AddDefaults()
+        {
+            if (!Sections.TryGetValue("Unit", out var unitSection))
+            {
+                unitSection = new Dictionary<string, object?>();
+                Sections["Unit"] = unitSection;
+            }
+
+            if (!Sections.TryGetValue("Service", out var serviceSection))
+            {
+                serviceSection = new Dictionary<string, object?>();
+                Sections["Service"] = serviceSection;
+            }
+
+            if (!Sections.TryGetValue("Install", out var installSection))
+            {
+                installSection = new Dictionary<string, object?>();
+                Sections["Install"] = installSection;
+            }
+
+            unitSection.TryAdd("StartLimitIntervalSec", 60); // Tries during 60s to restart the service
+            unitSection.TryAdd("StartLimitBurst", 4); // Maximum of 4 retries in 60s
+            serviceSection.TryAdd("Restart", "always"); // Always tries to restart the service
+            serviceSection.TryAdd("RestartSec", 1); // 1s
+            installSection.TryAdd("WantedBy", "multi-user.target");
+        }
     }
 }

@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using Tomlyn.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -30,7 +32,8 @@ public class MSBuildConfiguration : ConfigurationBase
     /// <summary>
     /// Gets or sets the path to the project that contains the app to build.
     /// </summary>
-    [DataMember(Name = "project")]
+    [JsonPropertyName("project")]
+    [TomlSingleOrArray]
     public List<string> Projects { get; }
 
     /// <summary>

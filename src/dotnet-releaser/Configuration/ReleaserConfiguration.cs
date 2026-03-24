@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using DotNetReleaser.Logging;
 using Tomlyn;
@@ -44,14 +46,15 @@ public class ReleaserConfiguration
 
     public TestConfiguration Test { get; }
 
+    [JsonPropertyName("msbuild")]
     public MSBuildConfiguration MSBuild { get; }
 
-    [DataMember(Name="github")]
+    [JsonPropertyName("github")]
     public GitHubDevHostingConfiguration GitHub { get; }
 
     public ChangelogConfiguration Changelog { get; }
 
-    [DataMember(Name = "nuget")]
+    [JsonPropertyName("nuget")]
     public NuGetPublisher NuGet { get; }
 
     public BrewPublisher Brew { get; }
@@ -66,7 +69,7 @@ public class ReleaserConfiguration
     /// <summary>
     /// Debian configuration
     /// </summary>
-    [DataMember(Name = "deb")]
+    [JsonPropertyName("deb")]
     public DebianConfiguration Debian { get; }
     
     /// <summary>
@@ -77,7 +80,7 @@ public class ReleaserConfiguration
     /// <summary>
     /// Configuration for packs
     /// </summary>
-    [DataMember(Name = "pack")]
+    [JsonPropertyName("pack")]
     public List<PackagingConfiguration> Packs { get; }
 
     public static async Task<ReleaserConfiguration?> From(string filePath, ISimpleLogger logger)
@@ -94,29 +97,21 @@ public class ReleaserConfiguration
             logger.Info($"Loading configuration from {filePath}");
             var content = await File.ReadAllTextAsync(filePath);
 
-            if (Toml.TryToModel(content, out ReleaserConfiguration? configuration, out var diagnostics, filePath))
+            var configuration = TomlSerializer.Deserialize<ReleaserConfiguration>(content, new TomlSerializerOptions()
             {
-                if (!configuration.Initialize(Path.GetDirectoryName(filePath) ?? Environment.CurrentDirectory, logger))
-                {
-                    return null;
-                }
-
-                configuration.ConfigurationFilePath = filePath;
-                return configuration;
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate,
+                SourceName = filePath
+            });
+            if (configuration is null) return null;
+            
+            if (!configuration.Initialize(Path.GetDirectoryName(filePath) ?? Environment.CurrentDirectory, logger))
+            {
+                return null;
             }
 
-            // Log any messages
-            foreach (var message in diagnostics!)
-            {
-                if (message.Kind == DiagnosticMessageKind.Error)
-                {
-                    logger.Error(message.ToString());
-                }
-                else if (message.Kind == DiagnosticMessageKind.Warning)
-                {
-                    logger.Warn(message.ToString());
-                }
-            }
+            configuration.ConfigurationFilePath = filePath;
+            return configuration;
         }
         catch (Exception ex)
         {
