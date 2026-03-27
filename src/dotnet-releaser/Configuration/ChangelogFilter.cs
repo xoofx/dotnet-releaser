@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Tomlyn.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -10,7 +11,9 @@ public class ChangelogFilter
         Contributors = new List<string>();
     }
 
+    [TomlSingleOrArray]
     public List<string> Labels { get; }
 
+    [TomlSingleOrArray]
     public List<string> Contributors { get; }
 }

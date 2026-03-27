@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Tomlyn.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -45,6 +46,7 @@ public class ChangelogConfiguration : ConfigurationBase
 
     public bool Defaults { get; set; }
 
+    [TomlSingleOrArray]
     public List<string> Owners { get; set; }
 
     public string OwnersCommitChangeTemplate { get; set; }

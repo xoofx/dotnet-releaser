@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Tomlyn.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -22,7 +23,8 @@ public class ChangelogCategory
     public int Order { get; set; }
 
     public string Title { get; set; }
-    
+
+    [TomlSingleOrArray]
     public List<string> Labels { get; }
 
     public ChangelogFilter Exclude { get; }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Tomlyn.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -53,6 +54,7 @@ public class CoverageConfiguration
     /// </summary>
     public string Version { get; set; }
 
+    [TomlSingleOrArray]
     public List<string> Format { get; set; }
 
     public bool SingleHit { get; set; }
@@ -67,12 +69,16 @@ public class CoverageConfiguration
 
     public bool DeterministicReport { get; set; }
 
+    [TomlSingleOrArray]
     public List<string> Exclude { get; }
 
+    [TomlSingleOrArray]
     public List<string> ExcludeByFile { get; }
 
+    [TomlSingleOrArray]
     public List<string> Include { get; }
 
+    [TomlSingleOrArray]
     public List<string> IncludeDirectory { get; }
 
     public void AddDefaults()

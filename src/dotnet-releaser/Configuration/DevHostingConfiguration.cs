@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Tomlyn.Serialization;
 
 namespace DotNetReleaser.Configuration;
 
@@ -29,6 +30,7 @@ public abstract class DevHostingConfiguration : ConfigurationBase
 
     public string VersionPrefix { get; set; }
 
+    [TomlSingleOrArray]
     public List<string> Branches { get; }
 
     public string GetUrl() => $"{Base.Trim('/')}/{User}/{Repo}";
