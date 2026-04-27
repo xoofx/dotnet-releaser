@@ -142,7 +142,7 @@ public partial class ReleaserApp
             }
             catch (Exception exception)
             {
-                Terminal.WriteMarkupLine($"[red]Unexpected error {exception.Message}[/]");
+                Terminal.WriteMarkupLine($"[red]Unexpected error {exception}[/]");
                 result = 1;
             }
 
