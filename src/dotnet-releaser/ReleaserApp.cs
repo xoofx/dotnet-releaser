@@ -347,6 +347,11 @@ public partial class ReleaserApp
                     Warn("No changelog found or configured.");
                 }
             }
+            catch (Exception ex)
+            {
+                // We try to not fail in case GitHub has trouble with fetching issues (2024/04/27: Incidents on GitHub are pretty bad these days, can't release because of them without this)
+                Warn($"Unable to create changelog: {ex}");
+            }
             finally
             {
                 _logger.LogEndGroup();
