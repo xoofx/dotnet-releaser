@@ -3,6 +3,8 @@
 profile = "custom"
 [msbuild]
 project = "dotnet-releaser.slnx"
+[changelog]
+publish = false
 [github]
 user = "xoofx"
 repo = "dotnet-releaser"
