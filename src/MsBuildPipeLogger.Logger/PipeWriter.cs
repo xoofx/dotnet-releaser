@@ -4,7 +4,6 @@ using System.IO;
 using System.IO.Pipes;
 using System.Threading;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Logging;
 
 namespace MsBuildPipeLogger
 {
@@ -17,7 +16,7 @@ namespace MsBuildPipeLogger
 
         private readonly PipeStream _pipeStream;
         private readonly BinaryWriter _binaryWriter;
-        private readonly BuildEventArgsWriter _argsWriter;
+        private readonly BuildEventArgsWriterProxy _argsWriter;
 
         // Buffer writes through a memory stream since the args writer does a bunch of small writes
         private readonly MemoryStream _memoryStream = new MemoryStream();
@@ -26,7 +25,7 @@ namespace MsBuildPipeLogger
         {
             _pipeStream = pipeStream ?? throw new ArgumentNullException(nameof(pipeStream));
             _binaryWriter = new BinaryWriter(_memoryStream);
-            _argsWriter = new BuildEventArgsWriter(_binaryWriter);
+            _argsWriter = new BuildEventArgsWriterProxy(_binaryWriter);
 
             Thread writerThread = new Thread(() =>
             {

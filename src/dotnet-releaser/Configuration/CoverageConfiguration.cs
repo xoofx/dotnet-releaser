@@ -15,7 +15,7 @@ public class CoverageConfiguration
         BadgeUploadToGist = false;
         BadgeGistId = "https://gist.github.com";
         Package = "coverlet.collector";
-        Version = "8.0.*";
+        Version = "10.0.*";
         SingleHit = false;
         SourceLink = true;
         IncludeTestAssembly = true;

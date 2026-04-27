@@ -48,12 +48,12 @@
   <Choose>
     <When Condition="'$(ManagePackageVersionsCentrally)' == 'true' AND '$(CentralPackageVersionsFileImported)' == 'true' AND '$(IsTestProject)' == 'true'">
       <ItemGroup>
-        <PackageReference Include="GitHubActionsTestLogger" VersionOverride="3.0.1"/>
+        <PackageReference Include="GitHubActionsTestLogger" VersionOverride="3.0.3"/>
       </ItemGroup>
     </When>
     <When Condition="'$(IsTestProject)' == 'true'">
       <ItemGroup>
-        <PackageReference Include="GitHubActionsTestLogger" Version="3.0.1"/>
+        <PackageReference Include="GitHubActionsTestLogger" Version="3.0.3"/>
       </ItemGroup>
     </When>
   </Choose>

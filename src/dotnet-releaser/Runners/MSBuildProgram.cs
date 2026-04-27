@@ -60,7 +60,7 @@ public class MSBuildRunner : DotNetRunnerBase
 
         if (_pipeHandle is not null)
         {
-            arguments.Add($"-logger:MsBuildPipeLogger.PipeLogger,{typeof(AnonymousPipeWriter).Assembly.Location};{_pipeHandle}");
+            arguments.Add($"-logger:{Path.Combine(AppContext.BaseDirectory,"MsBuildLogger", "MsBuildPipeLogger.Logger.dll")};{_pipeHandle}");
         }
 
         foreach (var target in Targets)

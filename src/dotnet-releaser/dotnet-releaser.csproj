@@ -30,6 +30,9 @@
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)../../img/$(AssemblyName).png" Pack="true" PackagePath="/" />
     <None Include="$(MSBuildThisFileDirectory)../../readme.md" Pack="true" PackagePath="/" />
+    <Content Include="..\MsBuildPipeLogger.Logger\bin\$(Configuration)\netstandard2.0\MsBuildPipeLogger.Logger.dll" Link="MsBuildLogger\MsBuildPipeLogger.Logger.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
 
     <InternalsVisibleTo Include="DotNetReleaser.Tests" />
   </ItemGroup>
@@ -81,5 +84,9 @@
   <ItemGroup>
     <ProjectReference Include="..\MsBuildPipeLogger.Logger\MsBuildPipeLogger.Logger.csproj" />
     <ProjectReference Include="..\MsBuildPipeLogger.Server\MsBuildPipeLogger.Server.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="MsBuildLogger\" />
   </ItemGroup>
 </Project>
