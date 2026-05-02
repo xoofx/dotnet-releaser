@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using Microsoft.Build.Framework;
@@ -17,7 +18,7 @@ namespace MsBuildPipeLogger
         where TPipeStream : PipeStream
     {
         private readonly BinaryReader _binaryReader;
-        private readonly BuildEventArgsReaderProxy _buildEventArgsReader;
+        private readonly BuildEventArgsReader _buildEventArgsReader;
 
         internal PipeBuffer Buffer { get; } = new PipeBuffer();
 
@@ -43,7 +44,7 @@ namespace MsBuildPipeLogger
         {
             PipeStream = pipeStream;
             _binaryReader = new BinaryReader(Buffer);
-            _buildEventArgsReader = new BuildEventArgsReaderProxy(_binaryReader);
+            _buildEventArgsReader = new BuildEventArgsReader(_binaryReader, GetBinaryLoggerFileFormatVersion());
             CancellationToken = cancellationToken;
 
             Thread readerThread = new Thread(() =>
@@ -77,6 +78,26 @@ namespace MsBuildPipeLogger
         }
 
         protected abstract void Connect();
+
+        private static int GetBinaryLoggerFileFormatVersion()
+        {
+            FieldInfo fileFormatVersionField = typeof(BinaryLogger).GetField(
+                "FileFormatVersion",
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            if (fileFormatVersionField == null)
+            {
+                throw new MissingFieldException(typeof(BinaryLogger).FullName, "FileFormatVersion");
+            }
+
+            object fileFormatVersion = fileFormatVersionField.GetValue(null);
+            if (!(fileFormatVersion is int))
+            {
+                throw new InvalidOperationException(
+                    $"Field '{typeof(BinaryLogger).FullName}.FileFormatVersion' must be an integer.");
+            }
+
+            return (int)fileFormatVersion;
+        }
 
         /// <inheritdoc/>
         public BuildEventArgs Read()
@@ -120,6 +141,7 @@ namespace MsBuildPipeLogger
         /// <inheritdoc/>
         public void Dispose()
         {
+            _buildEventArgsReader.Dispose();
             _binaryReader.Dispose();
             Buffer.Dispose();
             PipeStream.Dispose();
