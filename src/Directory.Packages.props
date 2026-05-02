@@ -17,7 +17,7 @@
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="18.4.0" />
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="18.4.0" />
     <PackageVersion Include="Microsoft.Build" Version="18.4.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageVersion Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
     <PackageVersion Include="NuGet.Frameworks" Version="7.3.1" />
@@ -30,7 +30,7 @@
     <PackageVersion Include="System.Threading.Thread" Version="4.3.0" />
     <PackageVersion Include="Tomlyn" Version="2.3.2" />
     <PackageVersion Include="Wcwidth" Version="4.0.1" />
-    <PackageVersion Include="XenoAtom.Terminal" Version="2.0.1" />
-    <PackageVersion Include="XenoAtom.Terminal.UI" Version="2.9.4" />
+    <PackageVersion Include="XenoAtom.Terminal" Version="2.1.0" />
+    <PackageVersion Include="XenoAtom.Terminal.UI" Version="3.1.0" />
   </ItemGroup>
 </Project>
