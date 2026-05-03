@@ -15,6 +15,4 @@
   </Folder>
   <Project Path="dotnet-releaser/dotnet-releaser.csproj" />
   <Project Path="DotNetReleaser.Tests/DotNetReleaser.Tests.csproj" />
-  <Project Path="MsBuildPipeLogger.Logger/MsBuildPipeLogger.Logger.csproj" />
-  <Project Path="MsBuildPipeLogger.Server/MsBuildPipeLogger.Server.csproj" />
 </Solution>

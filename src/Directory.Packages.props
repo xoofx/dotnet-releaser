@@ -30,6 +30,7 @@
     <PackageVersion Include="System.Threading.Thread" Version="4.3.0" />
     <PackageVersion Include="Tomlyn" Version="2.3.2" />
     <PackageVersion Include="Wcwidth" Version="4.0.1" />
+    <PackageVersion Include="XenoAtom.MsBuildPipeLogger" Version="1.0.0" />
     <PackageVersion Include="XenoAtom.Terminal" Version="2.1.0" />
     <PackageVersion Include="XenoAtom.Terminal.UI" Version="3.1.0" />
   </ItemGroup>

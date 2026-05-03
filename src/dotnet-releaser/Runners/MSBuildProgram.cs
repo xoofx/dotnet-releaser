@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using CliWrap;
 using DotNetReleaser.Logging;
 using Microsoft.Build.Framework;
-using MsBuildPipeLogger;
+using XenoAtom.MsBuildPipeLogger;
 
 namespace DotNetReleaser.Runners;
 
@@ -60,7 +60,7 @@ public class MSBuildRunner : DotNetRunnerBase
 
         if (_pipeHandle is not null)
         {
-            arguments.Add($"-logger:{Path.Combine(AppContext.BaseDirectory,"MsBuildLogger", "MsBuildPipeLogger.Logger.dll")};{_pipeHandle}");
+            arguments.Add($"-logger:{PipeLoggerServer.GetLoggerSpecification(_pipeHandle)}");
         }
 
         foreach (var target in Targets)
