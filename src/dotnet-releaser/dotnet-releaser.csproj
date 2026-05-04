@@ -44,6 +44,7 @@
   <ItemGroup>
     <PackageReference Include="DotNet.Glob" />
     <PackageReference Include="LibGit2Sharp" />
+    <PackageReference Include="System.Security.Cryptography.Xml" />
     <PackageReference Include="XenoAtom.CommandLine" />
     <PackageReference Include="XenoAtom.CommandLine.Terminal" />
     <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime">
