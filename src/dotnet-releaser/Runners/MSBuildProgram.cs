@@ -16,6 +16,8 @@ public record MSBuildResult(CommandResult CommandResult, string CommandLine, str
 
 public class MSBuildRunner : DotNetRunnerBase
 {
+    private static readonly TimeSpan PipeLoggerReaderCompletionTimeout = TimeSpan.FromSeconds(5);
+
     private readonly string _artifactFolder;
     private string? _pipeHandle;
 
@@ -151,7 +153,11 @@ public class MSBuildRunner : DotNetRunnerBase
             };
             var result = await base.RunImpl();
 
-            readerSource.Cancel();
+            if (!WaitForReaderThread(readerThread))
+            {
+                logger.Warn("Timed out waiting for the MSBuild pipe logger reader to finish. Some target outputs may be unavailable.");
+                readerSource.Cancel();
+            }
 
             if (result.CommandResult.ExitCode != 0)
             {
@@ -163,11 +169,8 @@ public class MSBuildRunner : DotNetRunnerBase
         }
         finally
         {
-            // Make the disposing non blocking
-            // we still have a case where the Dispose is stuck while trying to dispose the underlying socket
-            // I haven't found a discussion about this problem, so I don't know if it is a bug in the code in MsBuildPipeLogger
-            // or an a problem in .NET socket/pipe implementation on Linux for this particular case.
-            // We don't use thread pooling to avoid filling it with zombie threads that would block it later.
+            // Keep disposal off the thread pool so a blocked pipe transport cannot block this command
+            // or leave thread-pool workers occupied by zombie shutdown work.
             var disposeReader = new Thread(() =>
             {
                 try
@@ -185,5 +188,15 @@ public class MSBuildRunner : DotNetRunnerBase
             RunAfterStart = null;
         }
 
+    }
+
+    private static bool WaitForReaderThread(Thread? readerThread)
+    {
+        if (readerThread is null)
+        {
+            return true;
+        }
+
+        return readerThread.Join(PipeLoggerReaderCompletionTimeout);
     }
 }
