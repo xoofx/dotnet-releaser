@@ -68,35 +68,93 @@ public partial class ReleaserApp
 
         // Copy to artifacts
         var list = new List<string>();
-        var files = outputs.Select(x => x.ItemSpec).ToArray();
-        for (var i = 0; i < files.Length; i++)
+        var files = CollectNuGetPackageOutputs(outputs.Select(x => x.ItemSpec), projectPackageInfo);
+        for (var i = 0; i < files.Count; i++)
         {
             var output = files[i];
-            foreach (var nugetPackageExtension in new[] { ".nupkg", ".snupkg" })
-            {
-                if (output.EndsWith(nugetPackageExtension, StringComparison.OrdinalIgnoreCase))
-                {
-                    // Workaround for https://github.com/adamralph/minver/issues/675
-                    if (!File.Exists(output))
-                    {
-                        var trailingVersion = $".1.0.0{nugetPackageExtension}";
-                        if (output.EndsWith(trailingVersion, StringComparison.OrdinalIgnoreCase))
-                        {
-                            var expectedOutput = $"{output.Substring(0, output.Length - trailingVersion.Length)}.{projectPackageInfo.Version}{nugetPackageExtension}";
-                            if (File.Exists(expectedOutput))
-                            {
-                                output = expectedOutput;
-                            }
-                        }
-                    }
+            var dest = CopyToArtifacts(output);
+            list.Add(dest);
+        }
 
-                    var dest = CopyToArtifacts(output);
-                    list.Add(dest);
+        return list.Count == 0 ? null : list;
+    }
+
+    internal static List<string> CollectNuGetPackageOutputs(IEnumerable<string> outputs, ProjectPackageInfo projectPackageInfo)
+    {
+        var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var packages = new List<string>();
+        var packageDirectories = new HashSet<string>(pathComparer);
+
+        foreach (var output in outputs)
+        {
+            if (!TryGetNuGetPackageOutput(output, projectPackageInfo, out var nugetPackage))
+            {
+                continue;
+            }
+
+            packages.Add(nugetPackage);
+
+            var directory = Path.GetDirectoryName(nugetPackage);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                packageDirectories.Add(directory);
+            }
+        }
+
+        foreach (var packageDirectory in packageDirectories)
+        {
+            if (!Directory.Exists(packageDirectory))
+            {
+                continue;
+            }
+
+            foreach (var packageExtension in new[] { ".nupkg", ".snupkg" })
+            {
+                foreach (var pattern in GetNuGetPackageSearchPatterns(projectPackageInfo, packageExtension))
+                {
+                    packages.AddRange(Directory.EnumerateFiles(packageDirectory, pattern));
                 }
             }
         }
 
-        return list.Count == 0 ? null : list;
+        return packages.Distinct(pathComparer).ToList();
+    }
+
+    private static bool TryGetNuGetPackageOutput(string output, ProjectPackageInfo projectPackageInfo, out string nugetPackage)
+    {
+        foreach (var nugetPackageExtension in new[] { ".nupkg", ".snupkg" })
+        {
+            if (!output.EndsWith(nugetPackageExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            // Workaround for https://github.com/adamralph/minver/issues/675
+            if (!File.Exists(output))
+            {
+                var trailingVersion = $".1.0.0{nugetPackageExtension}";
+                if (output.EndsWith(trailingVersion, StringComparison.OrdinalIgnoreCase))
+                {
+                    var expectedOutput = $"{output.Substring(0, output.Length - trailingVersion.Length)}.{projectPackageInfo.Version}{nugetPackageExtension}";
+                    if (File.Exists(expectedOutput))
+                    {
+                        output = expectedOutput;
+                    }
+                }
+            }
+
+            nugetPackage = output;
+            return true;
+        }
+
+        nugetPackage = string.Empty;
+        return false;
+    }
+
+    private static IEnumerable<string> GetNuGetPackageSearchPatterns(ProjectPackageInfo projectPackageInfo, string packageExtension)
+    {
+        yield return $"{projectPackageInfo.Name}.{projectPackageInfo.Version}{packageExtension}";
+        yield return $"{projectPackageInfo.Name}.*.{projectPackageInfo.Version}{packageExtension}";
     }
 
     private async Task PublishNuGet(List<string> nugetPackages, string nugetSecretKey)
