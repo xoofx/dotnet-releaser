@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,7 +16,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra,
+    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra, string? nugetApiToken)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra,
         string? githubApiTokenGist, string? nugetApiToken, bool forceArtifactsFolder, string? publishVersion)
     {
         // ------------------------------------------------------------------
@@ -30,6 +30,12 @@ public partial class ReleaserApp
 
         
         if (!await LoadConfiguration(configurationFile)) return null; // return false;
+
+        if (buildKind == BuildKind.Publish && _config.NuGet.Publish && string.IsNullOrEmpty(nugetApiToken))
+        {
+            nugetApiToken = await TryGetNuGetTrustedPublishingApiKey();
+            if (string.IsNullOrEmpty(nugetApiToken)) return null;
+        }
 
         if (!EnsureArtifactsFolders(forceArtifactsFolder)) return null; // return false;
 
@@ -150,12 +156,6 @@ public partial class ReleaserApp
         // We publish to NuGet if there is a PublishPerCommit configured or we are actually publishing
         if (originalBuildKind == BuildKind.Run && _config.NuGet.PublishDraft || buildKind == BuildKind.Publish)
         {
-            if (_config.NuGet.Publish && string.IsNullOrEmpty(nugetApiToken))
-            {
-                Error("Publishing to NuGet requires to pass --nuget-token");
-                return null; // return false;
-            }
-
             // Allow to publish a draft NuGet package only authorized branches
             if (_config.NuGet.PublishDraft && buildKind == BuildKind.Build)
             {
@@ -176,6 +176,12 @@ public partial class ReleaserApp
             else
             {
                 buildInformation.PublishNuGet = true;
+            }
+
+            if (_config.NuGet.Publish && buildInformation.PublishNuGet && string.IsNullOrEmpty(nugetApiToken))
+            {
+                nugetApiToken = await TryGetNuGetTrustedPublishingApiKey();
+                if (string.IsNullOrEmpty(nugetApiToken)) return null;
             }
         }
 
@@ -203,6 +209,6 @@ public partial class ReleaserApp
         // Store the build kind
         buildInformation.BuildKind = buildKind;
 
-        return (buildInformation, devHosting, devHostingExtra);
+        return (buildInformation, devHosting, devHostingExtra, nugetApiToken);
     }
 }

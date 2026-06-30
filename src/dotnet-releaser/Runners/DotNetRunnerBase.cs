@@ -21,6 +21,7 @@ public abstract class DotNetRunnerBase : IDisposable
     {
         Command = command ?? throw new ArgumentNullException(nameof(command));
         Arguments = new List<string>();
+        EnvironmentVariables = new Dictionary<string, string?>();
         Properties = new Dictionary<string, object>();
         WorkingDirectory = Environment.CurrentDirectory;
     }
@@ -28,6 +29,8 @@ public abstract class DotNetRunnerBase : IDisposable
     public string Command { get; }
 
     public List<string> Arguments { get; }
+
+    public Dictionary<string, string?> EnvironmentVariables { get; }
 
     public Dictionary<string, object> Properties { get; }
 
@@ -91,12 +94,19 @@ public abstract class DotNetRunnerBase : IDisposable
 
         //Console.WriteLine($"dotnet {arguments}");
 
-        var wrap = Cli.Wrap("dotnet")
+        var commandLine = Cli.Wrap("dotnet")
             .WithArguments(arguments)
             .WithWorkingDirectory(workingDirectory ?? Environment.CurrentDirectory)
             .WithStandardOutputPipe(LogStandardOutput is not null ? PipeTarget.ToDelegate(LogStandardOutput): PipeTarget.ToStringBuilder(stdOutAndErrorBuffer))
             .WithStandardErrorPipe(LogStandardError is not null ? PipeTarget.ToDelegate(LogStandardError) : PipeTarget.ToStringBuilder(stdOutAndErrorBuffer))
-            .WithValidation(CommandResultValidation.None)
+            .WithValidation(CommandResultValidation.None);
+
+        if (EnvironmentVariables.Count > 0)
+        {
+            commandLine = commandLine.WithEnvironmentVariables(EnvironmentVariables);
+        }
+
+        var wrap = commandLine
             .ExecuteAsync();
         
         RunAfterStart?.Invoke();

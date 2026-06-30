@@ -9,6 +9,22 @@ namespace DotNetReleaser.Tests;
 public class NuGetPackageTests
 {
     [Test]
+    public void BuildOidcTokenUrlAppendsAudienceToGitHubUrl()
+    {
+        var tokenUrl = NuGetTrustedPublishingClient.BuildOidcTokenUrl("https://token.actions.githubusercontent.com?id=123", "https://www.nuget.org");
+
+        Assert.AreEqual("https://token.actions.githubusercontent.com?id=123&audience=https%3A%2F%2Fwww.nuget.org", tokenUrl);
+    }
+
+    [Test]
+    public void BuildOidcTokenUrlAddsQueryWhenMissing()
+    {
+        var tokenUrl = NuGetTrustedPublishingClient.BuildOidcTokenUrl("https://token.actions.githubusercontent.com", "https://www.nuget.org");
+
+        Assert.AreEqual("https://token.actions.githubusercontent.com?audience=https%3A%2F%2Fwww.nuget.org", tokenUrl);
+    }
+
+    [Test]
     public async Task CollectNuGetPackageOutputsIncludesRidSpecificToolPackages()
     {
         var packageDirectory = Path.Combine(Path.GetTempPath(), $"dotnet-releaser-{Guid.NewGuid():N}");

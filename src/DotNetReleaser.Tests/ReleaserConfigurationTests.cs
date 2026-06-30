@@ -108,6 +108,10 @@ contributors = ["doc-bot"]
 publish = false
 publish_draft = true
 source = "https://nuget.example.test/v3/index.json"
+trusted_publishing = true
+user = "nuget-user"
+trusted_publishing_token_service_url = "https://nuget.example.test/api/v2/token"
+trusted_publishing_audience = "https://nuget.example.test"
 
 [brew]
 publish = false
@@ -237,6 +241,10 @@ kinds = ["tar", "deb", "rpm"]
             Assert.That(configuration.NuGet.Publish, Is.False);
             Assert.That(configuration.NuGet.PublishDraft, Is.True);
             Assert.That(configuration.NuGet.Source, Is.EqualTo("https://nuget.example.test/v3/index.json"));
+            Assert.That(configuration.NuGet.TrustedPublishing, Is.True);
+            Assert.That(configuration.NuGet.User, Is.EqualTo("nuget-user"));
+            Assert.That(configuration.NuGet.TrustedPublishingTokenServiceUrl, Is.EqualTo("https://nuget.example.test/api/v2/token"));
+            Assert.That(configuration.NuGet.TrustedPublishingAudience, Is.EqualTo("https://nuget.example.test"));
 
             Assert.That(configuration.Brew.Publish, Is.False);
             Assert.That(configuration.Brew.Home, Is.EqualTo("homebrew-tools"));

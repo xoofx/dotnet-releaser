@@ -127,8 +127,10 @@ HelloWorld.1.0.0.win-x64.zip
 The `publish` command allows to build and publish all packages to GitHub and NuGet.
 
 ```shell
-dotnet-releaser publish --force --github-token "${{secrets.GITHUB_TOKEN}}" --nuget-token "${{secrets.YOUR_NUGET_SECRET_TOKEN}}"  dotnet-releaser.toml
+dotnet-releaser publish --force --github-token "${{secrets.GITHUB_TOKEN}}" dotnet-releaser.toml
 ```
+
+This example assumes `[nuget] trusted_publishing = true` and `user = "your-nuget-user"` in `dotnet-releaser.toml`. If you use a classic NuGet API key instead, keep passing it with `--nuget-token "${{secrets.YOUR_NUGET_SECRET_TOKEN}}"`.
 
 > NOTE: When running from a GitHub Action, it is recommended to use the predefined `GITHUB_TOKEN` accessible from your secrets: `${{secrets.GITHUB_TOKEN}}`, but you might want to create your own `PAT_GITHUB_TOKEN` to leverage more features of dotnet-releaser. See section later in this document [About GITHUB_TOKEN](#214-about-github_token).
 >
@@ -146,16 +148,16 @@ In order to use `dotnet-releaser` on your GitHub CI, you need:
 
 1. Checkout your repository with the correct settings with [actions/checkout](https://github.com/actions/checkout) 
    - Verify that you are using `v2` and by setting the property `fetch-depth: 0` to get all previous tags. See example below.
-2. To install `dotnet 6.0`
+2. To install `dotnet 10.0`
 3. To install the global tool `dotnet-releaser`
   ```sh
   dotnet tool install --global dotnet-releaser
   ```
-4. To run the dotnet-releaser command assuming that you have added all the secret tokens to your GitHub repository
+4. To run the dotnet-releaser command. With NuGet trusted publishing configured, no NuGet API key secret is required:
   ```sh
-  dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
+  dotnet-releaser run --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
   ```
-  It is recommended to use `shell: bash` on GitHub Action so that if a secrets token is empty, bash won't remove the quotes, [unlike pwsh](https://github.com/PowerShell/PowerShell/issues/1995).
+  If you use a classic NuGet API key instead, pass it with `--nuget-token "${{secrets.NUGET_TOKEN}}"`. It is recommended to use `shell: bash` on GitHub Action so that if a secrets token is empty, bash won't remove the quotes, [unlike pwsh](https://github.com/PowerShell/PowerShell/issues/1995).
 
 Depending on the kind of GitHub event, the run command will automatically:
 
@@ -183,32 +185,37 @@ To fix this and still specify specific branches to run your action on, use somet
 An example of a setup with GitHub Actions:
 
 ```yaml
+    permissions:
+      contents: write
+      id-token: write
+
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Install .NET 6.0
-      uses: actions/setup-dotnet@v1
+    - name: Install .NET 10.0
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Build, Tests, Cover, Pack and Publish (on push tag)
       shell: bash
       run: |
         dotnet tool install --global dotnet-releaser
-        dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
+        dotnet-releaser run --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
 ```
 
 > **NOTE about tokens:**
 >
 > It is recommended to use `shell: bash` on GitHub Action so that if a secrets token is empty, bash won't remove the quotes, [unlike pwsh](https://github.com/PowerShell/PowerShell/issues/1995).
 >
-> In order to publish changelogs, NuGet and app packages to NuGet and GitHub, you need to specify secrets tokens:
+> In order to publish changelogs, NuGet and app packages to NuGet and GitHub:
 > 
 > - `${{secrets.GITHUB_TOKEN}}` is available by default on GitHub Action and allow to interact directly with your repository. Nothing to create here. Unless you are going to publish an application to a separate Homebrew repository, and in that case you need to create an extra token. See [Homebrew documentation](#29-homebrew) for more details.
-> - `${{secrets.NUGET_TOKEN}}` needs to be created in your repository settings and add a secrets with the key `NUGET_TOKEN` by generating the token directly on your NuGet account [here](https://www.nuget.org/account/apikeys).
+> - For NuGet trusted publishing, grant the workflow `id-token: write` and configure `[nuget] trusted_publishing = true` with the NuGet `user` that created the trusted publishing policy. No NuGet secret is required.
+> - If you are not using trusted publishing, `${{secrets.NUGET_TOKEN}}` needs to be created in your repository settings with the key `NUGET_TOKEN` by generating the token directly on your NuGet account [here](https://www.nuget.org/account/apikeys), then passed with `--nuget-token`.
 
 > `dotnet-releaser` is currently not available as a GitHub Action, as it requires anyway `dotnet` to be installed (in order to compile the projects). As you can see, the integration is very straightforward with .NET global tools.
 
@@ -555,19 +562,27 @@ But you can also extend the default profile by just defining this rid. It's up t
 
 Allow to publish to a NuGet registry. By default it is on and publishing to the official NuGet public registry.
 
-| `[nuget]`       | Type       | Description                |
-|-----------------|------------|----------------------------|
-| `publish`       | `bool`     | Allow to disable publishing to NuGet.
-| `source`        | `string`   | Allow to override the default publish NuGet registry (`https://api.nuget.org/v3/index.json`) when publishing to NuGet.
-| `publish_draft` | `bool`     | Allow to publish NuGet draft packages with `dotnet-releaser run`. Default is `false`. When this option is `true`, even if there is no release tag on the current commit, the NuGet package will still be pushed if the current branch is listed in the main branches in `github.branches`. This option is useful when you want to push draft/pre-release NuGet packages per commit.
+| `[nuget]`                               | Type     | Description                |
+|-----------------------------------------|----------|----------------------------|
+| `publish`                               | `bool`   | Allow to disable publishing to NuGet.
+| `source`                                | `string` | Allow to override the default publish NuGet registry (`https://api.nuget.org/v3/index.json`) when publishing to NuGet.
+| `publish_draft`                         | `bool`   | Allow to publish NuGet draft packages with `dotnet-releaser run`. Default is `false`. When this option is `true`, even if there is no release tag on the current commit, the NuGet package will still be pushed if the current branch is listed in the main branches in `github.branches`. This option is useful when you want to push draft/pre-release NuGet packages per commit.
+| `trusted_publishing`                    | `bool`   | Use GitHub OIDC trusted publishing to exchange a short-lived NuGet API key when `--nuget-token` is not supplied. Requires GitHub Actions `id-token: write` permission. Default is `false`.
+| `user`                                  | `string` | NuGet username used for trusted publishing. This must be the user that created the NuGet trusted publishing policy.
+| `trusted_publishing_token_service_url`  | `string` | Token exchange endpoint. Default is `https://www.nuget.org/api/v2/token`.
+| `trusted_publishing_audience`           | `string` | GitHub OIDC audience. Default is `https://www.nuget.org`.
 
 For example:
 
 ```toml
 [nuget]
-source = "https://my.special.registry.nuget.org/v3/index.json"
+trusted_publishing = true
+user = "your-nuget-user"
+# source = "https://api.nuget.org/v3/index.json"
 # publish = false
 ```
+
+When trusted publishing is enabled, `dotnet-releaser` exchanges the GitHub OIDC token for a short-lived NuGet API key only when it needs to publish to NuGet. The key is passed to `dotnet nuget push` through environment variables, not as a command-line argument. Passing `--nuget-token` remains supported and takes precedence over trusted publishing.
 
 ### 2.9. Homebrew
 
@@ -855,7 +870,7 @@ Arguments:
 
 Options:
   --github-token <token>        GitHub Api Token. Required if publish to GitHub is true in the config file
-  --nuget-token <token>         NuGet Api Token. Required if publish to NuGet is true in the config file
+  --nuget-token <token>         NuGet Api Token. Required if publishing to NuGet and trusted publishing is not configured
   --github-token-extra <token>  GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This token has
                                 usually more access than the --github-token that is only used for the current repository.
   --table                       Specifies the rendering of the tables. Default is square.
@@ -884,7 +899,7 @@ Arguments:
 
 Options:
   --github-token <token>              GitHub Api Token. Required if publish to GitHub is true in the config file
-  --nuget-token <token>               NuGet Api Token. Required if publish to NuGet is true in the config file
+  --nuget-token <token>               NuGet Api Token. Required if publishing to NuGet and trusted publishing is not configured
   --github-token-extra <token>        GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This
                                       token has usually more access than the --github-token that is only used for the current repository.
   --skip-app-packages-for-build-only  Skip building application packages (e.g tar) when building only (but not publishing). This is useful when running on a CI and you want to build app packages only when publishing.

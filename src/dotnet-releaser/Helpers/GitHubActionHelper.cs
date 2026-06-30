@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
@@ -49,6 +49,16 @@ public static class GitHubActionHelper
         }
 
         return new GitHubActionInfo(owner, repo, eventName, refName, refType, eventJson);
+    }
+
+    public static void MaskSecret(string? value)
+    {
+        if (!IsRunningOnGitHubAction || string.IsNullOrEmpty(value))
+        {
+            return;
+        }
+
+        Console.WriteLine($"::add-mask::{value}");
     }
 }
 

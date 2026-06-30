@@ -74,24 +74,28 @@ By default, `dotnet-releaser` will:
   ```
 - If you want to integrate it to GitHub Action, use the `dotnet-releaser run` command. More details in the doc _[Adding dotnet-releaser to your CI on GitHub](https://github.com/xoofx/dotnet-releaser/tree/main/doc#12-adding-dotnet-releaser-to-your-ci-on-github)_. It is no more complicated than adding the following lines in your GitHub workflow file:
   ```yaml
+    permissions:
+      contents: write
+      id-token: write
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Install .NET 9.0
+    - name: Install .NET 10.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Build, Tests, Cover, Pack and Publish (on push tag)
       shell: bash
       run: |
         dotnet tool install --global dotnet-releaser
-        dotnet-releaser run --nuget-token "${{secrets.NUGET_TOKEN}}" --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
+        dotnet-releaser run --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
   ```
-  Notice the recommended usage of `shell: bash` so that if a secrets token is empty, bash won't remove the quotes, [unlike pwsh](https://github.com/PowerShell/PowerShell/issues/1995).
+  This example assumes `[nuget] trusted_publishing = true` and `user = "your-nuget-user"` in `dotnet-releaser.toml`; you can still pass `--nuget-token "${{secrets.NUGET_TOKEN}}"` if you use a classic NuGet API key.
 
 See the user guide below for further details on how to use `dotnet-releaser`.
 

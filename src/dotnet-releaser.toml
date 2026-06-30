@@ -6,3 +6,6 @@ project = "dotnet-releaser.slnx"
 [github]
 user = "xoofx"
 repo = "dotnet-releaser"
+[nuget]
+user = "xoofx"
+trusted_publishing = true

@@ -232,7 +232,7 @@ public partial class ReleaserApp
 
                 if (commandName is "publish" or "run")
                 {
-                    command.Add("nuget-token=", "NuGet Api Token. Required if publish to NuGet is true in the config file", value => nugetToken = value);
+                    command.Add("nuget-token=", "NuGet Api Token. Required if publishing to NuGet and trusted publishing is not configured.", value => nugetToken = value);
                     command.Add("github-token-extra=", "GitHub Api Token. Required if publish homebrew to GitHub is true in the config file. In that case dotnet-releaser needs a personal access GitHub token which can create the homebrew repository. This token has usually more access than the --github-token that is only used for the current repository. ", value => gitHubTokenExtra = value);
                     command.Add("github-token-gist=", "GitHub Api Token. Required if publishing to a gist used for e.g coverage.", value => gitHubTokenGist = value);
                 }
@@ -318,6 +318,7 @@ public partial class ReleaserApp
             buildInformation = result.Value.buildInformation!;
             devHosting = result.Value.devHosting;
             devHostingExtra = result.Value.devHostingExtra;
+            nugetApiToken = result.Value.nugetApiToken;
             hostingConfiguration = _config.GitHub;
         }
         finally

@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
+using DotNetReleaser.Helpers;
 using DotNetReleaser.Runners;
 
 namespace DotNetReleaser;
@@ -157,9 +159,35 @@ public partial class ReleaserApp
         yield return $"{projectPackageInfo.Name}.*.{projectPackageInfo.Version}{packageExtension}";
     }
 
+    private async Task<string?> TryGetNuGetTrustedPublishingApiKey()
+    {
+        if (!_config.NuGet.TrustedPublishing)
+        {
+            Error("Publishing to NuGet requires to pass --nuget-token, or configure `nuget.trusted_publishing = true` with `nuget.user`.");
+            return null;
+        }
+
+        try
+        {
+            Info("Authenticating to NuGet with trusted publishing");
+            using var httpClient = new HttpClient();
+            var client = new NuGetTrustedPublishingClient(httpClient);
+            var apiKey = await client.ExchangeForApiKeyAsync(_config.NuGet, "dotnet-releaser").ConfigureAwait(false);
+            Info("Successfully exchanged GitHub OIDC token for a NuGet API key.");
+            return apiKey;
+        }
+        catch (Exception ex)
+        {
+            Error($"Failed to authenticate to NuGet with trusted publishing. Reason: {ex.Message}");
+            return null;
+        }
+    }
+
     private async Task PublishNuGet(List<string> nugetPackages, string nugetSecretKey)
     {
         if (!_config.NuGet.Publish) return;
+
+        GitHubActionHelper.MaskSecret(nugetSecretKey);
 
         foreach (var nugetPackage in nugetPackages)
         {
@@ -175,19 +203,20 @@ public partial class ReleaserApp
                         "push",
                         fileName,
                         $"-s", _config.NuGet.Source,
-                        $"-k", nugetSecretKey,
                         "--skip-duplicate"
                     },
                     WorkingDirectory = _config.ArtifactsFolder
                 };
+                program.EnvironmentVariables["NUGET_API_KEY"] = nugetSecretKey;
+                program.EnvironmentVariables["NUGET_SYMBOL_API_KEY"] = nugetSecretKey;
                 var result = await program.Run();
                 if (result.HasErrors)
                 {
-                    Error(result.Output);
+                    Error(result.Output.Replace(nugetSecretKey, "**********"));
                 }
                 else
                 {
-                    Info(result.Output);
+                    Info(result.Output.Replace(nugetSecretKey, "**********"));
                 }
             }
             catch (Exception ex)
