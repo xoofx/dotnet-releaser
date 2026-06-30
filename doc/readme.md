@@ -159,6 +159,28 @@ In order to use `dotnet-releaser` on your GitHub CI, you need:
   ```
   If you use a classic NuGet API key instead, pass it with `--nuget-token "${{secrets.NUGET_TOKEN}}"`. It is recommended to use `shell: bash` on GitHub Action so that if a secrets token is empty, bash won't remove the quotes, [unlike pwsh](https://github.com/PowerShell/PowerShell/issues/1995).
 
+Configure the workflow or job `permissions` explicitly. For the usual `dotnet-releaser run` setup that publishes to NuGet with trusted publishing and also publishes GitHub releases/changelogs/assets with `GITHUB_TOKEN`, use:
+
+```yaml
+permissions:
+  id-token: write # Required by NuGet trusted publishing (GitHub OIDC)
+  contents: write # Required to create/update GitHub releases, tags, release notes and assets
+```
+
+If dotnet-releaser only publishes to NuGet and does not publish anything back to GitHub, `contents: read` is enough for checkout. `actions: write` is not required by dotnet-releaser or NuGet trusted publishing; add it only if your own wrapper workflow/action needs to call the GitHub Actions API.
+
+For a reusable workflow, grant these permissions on the caller job because the called workflow cannot elevate `GITHUB_TOKEN` permissions beyond what the caller allows:
+
+```yaml
+jobs:
+  release:
+    permissions:
+      id-token: write
+      contents: write
+    uses: xoofx/.github/.github/workflows/dotnet-releaser.yml@main
+    secrets: inherit
+```
+
 Depending on the kind of GitHub event, the run command will automatically:
 
 - If it is a pull-request or a push to a non release branch, it will **perform a full build**. 
@@ -186,7 +208,10 @@ An example of a setup with GitHub Actions:
 
 ```yaml
     permissions:
+      # Required to create/update GitHub releases, tags, release notes and assets with GITHUB_TOKEN.
+      # Use contents: read only if you do not publish anything back to GitHub.
       contents: write
+      # Required by NuGet trusted publishing (`nuget.trusted_publishing = true`).
       id-token: write
 
     steps:
@@ -214,7 +239,7 @@ An example of a setup with GitHub Actions:
 > In order to publish changelogs, NuGet and app packages to NuGet and GitHub:
 > 
 > - `${{secrets.GITHUB_TOKEN}}` is available by default on GitHub Action and allow to interact directly with your repository. Nothing to create here. Unless you are going to publish an application to a separate Homebrew repository, and in that case you need to create an extra token. See [Homebrew documentation](#29-homebrew) for more details.
-> - For NuGet trusted publishing, grant the workflow `id-token: write` and configure `[nuget] trusted_publishing = true` with the NuGet `user` that created the trusted publishing policy. No NuGet secret is required.
+> - For NuGet trusted publishing, grant the workflow `id-token: write` and configure `[nuget] trusted_publishing = true` with the NuGet `user` that created the trusted publishing policy. No NuGet secret is required. If this is a NuGet-only workflow, `contents: read` is enough; if dotnet-releaser also publishes GitHub releases/changelogs/assets, use `contents: write`.
 > - If you are not using trusted publishing, `${{secrets.NUGET_TOKEN}}` needs to be created in your repository settings with the key `NUGET_TOKEN` by generating the token directly on your NuGet account [here](https://www.nuget.org/account/apikeys), then passed with `--nuget-token`.
 
 > `dotnet-releaser` is currently not available as a GitHub Action, as it requires anyway `dotnet` to be installed (in order to compile the projects). As you can see, the integration is very straightforward with .NET global tools.
@@ -567,7 +592,7 @@ Allow to publish to a NuGet registry. By default it is on and publishing to the 
 | `publish`                               | `bool`   | Allow to disable publishing to NuGet.
 | `source`                                | `string` | Allow to override the default publish NuGet registry (`https://api.nuget.org/v3/index.json`) when publishing to NuGet.
 | `publish_draft`                         | `bool`   | Allow to publish NuGet draft packages with `dotnet-releaser run`. Default is `false`. When this option is `true`, even if there is no release tag on the current commit, the NuGet package will still be pushed if the current branch is listed in the main branches in `github.branches`. This option is useful when you want to push draft/pre-release NuGet packages per commit.
-| `trusted_publishing`                    | `bool`   | Use GitHub OIDC trusted publishing to exchange a short-lived NuGet API key when `--nuget-token` is not supplied. Requires GitHub Actions `id-token: write` permission. Default is `false`.
+| `trusted_publishing`                    | `bool`   | Use GitHub OIDC trusted publishing to exchange a short-lived NuGet API key when `--nuget-token` is not supplied. Requires GitHub Actions `id-token: write` permission (`contents: read` is enough for NuGet-only publishing). Default is `false`.
 | `user`                                  | `string` | NuGet username used for trusted publishing. This must be the user that created the NuGet trusted publishing policy.
 | `trusted_publishing_token_service_url`  | `string` | Token exchange endpoint. Default is `https://www.nuget.org/api/v2/token`.
 | `trusted_publishing_audience`           | `string` | GitHub OIDC audience. Default is `https://www.nuget.org`.
@@ -583,6 +608,16 @@ user = "your-nuget-user"
 ```
 
 When trusted publishing is enabled, `dotnet-releaser` exchanges the GitHub OIDC token for a short-lived NuGet API key only when it needs to publish to NuGet. The key is passed to `dotnet nuget push` through environment variables, not as a command-line argument. Passing `--nuget-token` remains supported and takes precedence over trusted publishing.
+
+The GitHub workflow/job must grant OIDC token access:
+
+```yaml
+permissions:
+  id-token: write
+  contents: read
+```
+
+Use `contents: write` instead of `contents: read` when the same dotnet-releaser run also publishes GitHub releases, release notes, tags or assets with `--github-token "${{secrets.GITHUB_TOKEN}}"`.
 
 ### 2.9. Homebrew
 
@@ -739,6 +774,18 @@ By default, GitHub Actions are providing a `GITHUB_TOKEN` for the repository. In
 - At the bottom of the page, under `Workflow permissions`, select `Read and write permissions`:
 
   ![Workflow permissions](GIITHUB_TOKEN_workflows_permission.png)
+
+It is also recommended to declare the required token permissions directly in your workflow. For the common case where dotnet-releaser publishes GitHub releases/changelogs/assets and uses NuGet trusted publishing, use:
+
+```yaml
+permissions:
+  id-token: write
+  contents: write
+```
+
+Use `contents: read` instead when dotnet-releaser only needs checkout/read access and is not publishing anything back to GitHub. The `actions: write` permission is not required by dotnet-releaser itself; keep it disabled unless another step in your workflow needs to manage workflow runs or artifacts through the GitHub Actions API.
+
+When calling dotnet-releaser from a reusable workflow, the caller must grant these permissions on the `jobs.<job>.uses` job. A called reusable workflow cannot request broader `GITHUB_TOKEN` permissions than the caller allowed.
 
 
 #### Custom GITHUB_TOKEN

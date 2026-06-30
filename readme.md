@@ -75,7 +75,10 @@ By default, `dotnet-releaser` will:
 - If you want to integrate it to GitHub Action, use the `dotnet-releaser run` command. More details in the doc _[Adding dotnet-releaser to your CI on GitHub](https://github.com/xoofx/dotnet-releaser/tree/main/doc#12-adding-dotnet-releaser-to-your-ci-on-github)_. It is no more complicated than adding the following lines in your GitHub workflow file:
   ```yaml
     permissions:
+      # Required to create/update GitHub releases, tags, release notes and assets with GITHUB_TOKEN.
+      # Use contents: read only if you do not publish anything back to GitHub.
       contents: write
+      # Required by NuGet trusted publishing (`nuget.trusted_publishing = true`).
       id-token: write
 
     steps:
@@ -96,6 +99,7 @@ By default, `dotnet-releaser` will:
         dotnet-releaser run --github-token "${{secrets.GITHUB_TOKEN}}" src/dotnet-releaser.toml
   ```
   This example assumes `[nuget] trusted_publishing = true` and `user = "your-nuget-user"` in `dotnet-releaser.toml`; you can still pass `--nuget-token "${{secrets.NUGET_TOKEN}}"` if you use a classic NuGet API key.
+  If you call dotnet-releaser from a reusable workflow, grant these permissions on the caller job. `actions: write` is not required by dotnet-releaser itself unless another step in your workflow needs the GitHub Actions API.
 
 See the user guide below for further details on how to use `dotnet-releaser`.
 
