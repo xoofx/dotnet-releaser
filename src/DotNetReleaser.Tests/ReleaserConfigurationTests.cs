@@ -42,6 +42,7 @@ enable = false
 run_tests = false
 run_tests_for_debug = true
 [[test.runs]]
+name = "JIT without tiering"
 config = "Debug"
 settings = "tests.runsettings"
 args = ["--filter", "Category=JitTests"]
@@ -196,6 +197,7 @@ kinds = ["tar", "deb", "rpm"]
             Assert.That(configuration.Test.RunTests, Is.False);
             Assert.That(configuration.Test.RunTestsForDebug, Is.True);
             Assert.That(configuration.Test.Runs.Count, Is.EqualTo(1));
+            Assert.That(configuration.Test.Runs[0].Name, Is.EqualTo("JIT without tiering"));
             Assert.That(configuration.Test.Runs[0].Configuration, Is.EqualTo("Debug"));
             Assert.That(configuration.Test.Runs[0].Settings, Is.EqualTo(Path.Combine(fixture.ConfigurationDirectory, "tests.runsettings")));
             Assert.That(configuration.Test.Runs[0].Arguments, Is.EqualTo(new[] { "--filter", "Category=JitTests" }));
@@ -315,6 +317,17 @@ kinds = ["tar", "deb", "rpm"]
             Assert.That(runner.Properties["TestTfmsInParallel"], Is.EqualTo(false));
             Assert.That(runner.EnvironmentVariables["DOTNET_TieredCompilation"], Is.EqualTo("0"));
         });
+    }
+
+    [Test]
+    public void GetTestRunDisplayName_UsesConfiguredNameOrRunNumber()
+    {
+        var run = new TestRunConfiguration { Name = "  JIT without tiering  " };
+
+        Assert.That(ReleaserApp.GetTestRunDisplayName(run, 0), Is.EqualTo("JIT without tiering"));
+
+        run.Name = string.Empty;
+        Assert.That(ReleaserApp.GetTestRunDisplayName(run, 2), Is.EqualTo("Custom run #3"));
     }
 
     [TestCaseSource(nameof(GetDocumentationTomlSnippets))]

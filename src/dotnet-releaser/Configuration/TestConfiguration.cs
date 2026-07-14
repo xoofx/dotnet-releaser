@@ -44,10 +44,16 @@ public sealed class TestRunConfiguration
 {
     public TestRunConfiguration()
     {
+        Name = string.Empty;
         Arguments = new List<string>();
         Properties = new Dictionary<string, object>();
         EnvironmentVariables = new Dictionary<string, string?>();
     }
+
+    /// <summary>
+    /// Gets or sets a descriptive name displayed in the log for this test run.
+    /// </summary>
+    public string Name { get; set; }
 
     /// <summary>
     /// Gets or sets the build configuration to test. When omitted, the release configuration from

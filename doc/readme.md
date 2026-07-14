@@ -395,6 +395,7 @@ Additional test variations can be configured with `[[test.runs]]`. These runs ar
 run_tests = false
 
 [[test.runs]]
+name = "JIT tests without tiered compilation"
 config = "Release" # Defaults to the release configuration from [msbuild] when omitted.
 settings = "tests.runsettings" # Relative to this configuration file.
 args = ["--filter", "Category=JitTests"] # Each item is passed as one argument to dotnet test.
@@ -406,6 +407,7 @@ TestTfmsInParallel = false
 DOTNET_TieredCompilation = "0"
 
 [[test.runs]]
+name = "Remaining tests in Debug"
 config = "Debug"
 args = ["--filter", "Category!=JitTests"]
 ```
@@ -414,6 +416,7 @@ The available fields for each `[[test.runs]]` entry are:
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `name` | `string` | Descriptive name included in the test run log. Unnamed runs are identified by their position, such as `Custom run #1`. |
 | `config` | `string` | Build configuration to test. Defaults to `[msbuild].configuration`. Configurations not already built by `[msbuild]` are built automatically. |
 | `settings` | `string` | Optional `.runsettings` file. Relative paths are resolved from the dotnet-releaser configuration file. |
 | `args` | `string[]` | Additional arguments passed to `dotnet test`. |

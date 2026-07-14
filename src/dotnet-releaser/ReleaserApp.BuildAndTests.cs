@@ -234,14 +234,21 @@ public partial class ReleaserApp
             if (!await RunTest(packageInfo, _config.MSBuild.Configuration)) return false;
         }
 
-        foreach (var run in _config.Test.Runs)
+        for (var index = 0; index < _config.Test.Runs.Count; index++)
         {
+            var run = _config.Test.Runs[index];
             var configuration = GetTestConfiguration(run);
-            Info($"Running Tests for `{packageInfo.ProjectFullPath}` - Configuration = {configuration}");
+            var name = GetTestRunDisplayName(run, index);
+            Info($"Running Tests for `{packageInfo.ProjectFullPath}` - Run = {name} - Configuration = {configuration}");
             if (!await RunTest(packageInfo, configuration, run)) return false;
         }
 
         return true;
+    }
+
+    internal static string GetTestRunDisplayName(TestRunConfiguration run, int index)
+    {
+        return string.IsNullOrWhiteSpace(run.Name) ? $"Custom run #{index + 1}" : run.Name.Trim();
     }
 
     private string GetTestConfiguration(TestRunConfiguration run)
