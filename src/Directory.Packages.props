@@ -29,7 +29,7 @@
     <PackageVersion Include="Scriban" Version="7.2.5" />
     <PackageVersion Include="System.IO.Pipes" Version="4.3.0" />
     <PackageVersion Include="System.Threading.Thread" Version="4.3.0" />
-    <PackageVersion Include="Tomlyn" Version="2.9.0" />
+    <PackageVersion Include="Tomlyn" Version="2.10.1" />
     <PackageVersion Include="Wcwidth" Version="4.0.1" />
     <PackageVersion Include="XenoAtom.MsBuildPipeLogger" Version="1.0.1" />
     <PackageVersion Include="XenoAtom.Terminal" Version="2.2.0" />
