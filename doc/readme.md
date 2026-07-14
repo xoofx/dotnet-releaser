@@ -379,6 +379,7 @@ ___
 | `enable`        | `bool`   | Specifies whether or not to run tests if the projects contain any tests. Default is `true`.
 | `run_tests`     | `bool`  | Run tests with the release Configuration specified in `[msbuild]`. Default is `true`.
 | `run_tests_for_debug`     | `bool`  | Run tests with the debug Configuration specified in `[msbuild]`. Default is `false`.
+| `runs`          | `test run[]` | Additional test runs with custom configurations, settings, arguments, MSBuild properties, or environment variables.
 
 Example:
 
@@ -386,6 +387,38 @@ Example:
 [test]
 run_tests_for_debug = true   # Run the tests in debug. By default this is false.
 ``` 
+
+Additional test variations can be configured with `[[test.runs]]`. These runs are performed in addition to the runs enabled by `run_tests` and `run_tests_for_debug`. Set those options to `false` when the array should define all test runs. Every run contributes to the merged coverage result.
+
+```toml
+[test]
+run_tests = false
+
+[[test.runs]]
+config = "Release" # Defaults to the release configuration from [msbuild] when omitted.
+settings = "tests.runsettings" # Relative to this configuration file.
+args = ["--filter", "Category=JitTests"] # Each item is passed as one argument to dotnet test.
+
+[test.runs.properties]
+TestTfmsInParallel = false
+
+[test.runs.envs]
+DOTNET_TieredCompilation = "0"
+
+[[test.runs]]
+config = "Debug"
+args = ["--filter", "Category!=JitTests"]
+```
+
+The available fields for each `[[test.runs]]` entry are:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `config` | `string` | Build configuration to test. Defaults to `[msbuild].configuration`. Configurations not already built by `[msbuild]` are built automatically. |
+| `settings` | `string` | Optional `.runsettings` file. Relative paths are resolved from the dotnet-releaser configuration file. |
+| `args` | `string[]` | Additional arguments passed to `dotnet test`. |
+| `properties` | `map<string, value>` | Additional MSBuild properties passed to `dotnet test`. |
+| `envs` | `map<string, string>` | Environment variables set for `dotnet test` and its test process. |
 
 ___
 ### 2.4. Coverage

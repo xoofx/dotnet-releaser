@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Mime;
 using System.Threading.Tasks;
+using DotNetReleaser.Configuration;
 using DotNetReleaser.Coverage;
 using DotNetReleaser.Logging;
 using DotNetReleaser.Runners;
@@ -31,7 +32,7 @@ public partial class ReleaserApp
                     return false;
                 }
 
-                if (coverage)
+                if (coverage || (_config.Test.Enable && _config.Test.Runs.Count > 0))
                 {
                     foreach (var projectPackageInfo in
                              projectPackageInfoCollection.Packages.Where(x => x.IsTestProject))
@@ -190,6 +191,31 @@ public partial class ReleaserApp
         Info($"Building{context} `{projectFile}` - Configuration = {_config.MSBuild.Configuration}");
         results = await RunMSBuild(projectFile, "Build", properties);
         if (results is null) return false;
+
+        if (isTestProject && _config.Test.Enable && _config.Test.Runs.Count > 0)
+        {
+            var builtConfigurations = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                _config.MSBuild.Configuration
+            };
+            if (_config.MSBuild.BuildDebug)
+            {
+                builtConfigurations.Add(_config.MSBuild.ConfigurationDebug);
+            }
+
+            foreach (var run in _config.Test.Runs)
+            {
+                var configuration = GetTestConfiguration(run);
+                if (!builtConfigurations.Add(configuration))
+                {
+                    continue;
+                }
+
+                Info($"Building{context} `{projectFile}` - Configuration = {configuration}");
+                results = await RunMSBuild(projectFile, "Build", properties, configuration: configuration);
+                if (results is null) return false;
+            }
+        }
         
         return true;
     }
@@ -208,7 +234,19 @@ public partial class ReleaserApp
             if (!await RunTest(packageInfo, _config.MSBuild.Configuration)) return false;
         }
 
+        foreach (var run in _config.Test.Runs)
+        {
+            var configuration = GetTestConfiguration(run);
+            Info($"Running Tests for `{packageInfo.ProjectFullPath}` - Configuration = {configuration}");
+            if (!await RunTest(packageInfo, configuration, run)) return false;
+        }
+
         return true;
+    }
+
+    private string GetTestConfiguration(TestRunConfiguration run)
+    {
+        return string.IsNullOrWhiteSpace(run.Configuration) ? _config.MSBuild.Configuration : run.Configuration;
     }
 
     private string GetCoverageFolder()
@@ -227,7 +265,7 @@ public partial class ReleaserApp
         return coverageFolder;
     }
 
-    private async Task<bool> RunTest(ProjectPackageInfo packageInfo, string configuration)
+    private async Task<bool> RunTest(ProjectPackageInfo packageInfo, string configuration, TestRunConfiguration? run = null)
     {
         var runner = new DotNetRunner("test");
         runner.Arguments.Add("--no-restore"); // Because we ran it just before
@@ -249,6 +287,11 @@ public partial class ReleaserApp
         }
 
         runner.Arguments.Add(packageInfo.ProjectFullPath);
+
+        if (run is not null)
+        {
+            ApplyTestRunConfiguration(runner, run);
+        }
 
         if (_config.Coverage.Enable)
         {
@@ -287,6 +330,27 @@ public partial class ReleaserApp
         
         var result = await runner.Run();
         return !result.HasErrors;
+    }
+
+    internal static void ApplyTestRunConfiguration(DotNetRunner runner, TestRunConfiguration run)
+    {
+        if (!string.IsNullOrWhiteSpace(run.Settings))
+        {
+            runner.Arguments.Add("--settings");
+            runner.Arguments.Add(run.Settings);
+        }
+
+        runner.Arguments.AddRange(run.Arguments);
+
+        foreach (var property in run.Properties)
+        {
+            runner.Properties[property.Key] = property.Value;
+        }
+
+        foreach (var environmentVariable in run.EnvironmentVariables)
+        {
+            runner.EnvironmentVariables[environmentVariable.Key] = environmentVariable.Value;
+        }
     }
 
     const string CoveragePropertyPrefix = "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.";

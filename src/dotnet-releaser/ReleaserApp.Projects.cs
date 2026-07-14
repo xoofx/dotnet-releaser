@@ -452,12 +452,12 @@ public partial class ReleaserApp
         Info($"Packages and Projects", table);
     }
 
-    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, params string[] arguments)
+    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, string? configuration = null, params string[] arguments)
     {
         using var program = new MSBuildRunner(_config.ArtifactsFolder)
         {
             Project = project,
-            Configuration = buildDebug ? _config.MSBuild.ConfigurationDebug : _config.MSBuild.Configuration,
+            Configuration = configuration ?? (buildDebug ? _config.MSBuild.ConfigurationDebug : _config.MSBuild.Configuration),
             Targets =
             {
                 target

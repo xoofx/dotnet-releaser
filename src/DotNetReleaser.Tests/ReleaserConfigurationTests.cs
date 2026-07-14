@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DotNetReleaser.Configuration;
+using DotNetReleaser.Runners;
 
 namespace DotNetReleaser.Tests;
 
@@ -40,6 +41,14 @@ include_directory = ["generated"]
 enable = false
 run_tests = false
 run_tests_for_debug = true
+[[test.runs]]
+config = "Debug"
+settings = "tests.runsettings"
+args = ["--filter", "Category=JitTests"]
+[test.runs.properties]
+TestTfmsInParallel = false
+[test.runs.envs]
+DOTNET_TieredCompilation = "0"
 
 [msbuild]
 publish = false
@@ -186,6 +195,12 @@ kinds = ["tar", "deb", "rpm"]
             Assert.That(configuration.Test.Enable, Is.False);
             Assert.That(configuration.Test.RunTests, Is.False);
             Assert.That(configuration.Test.RunTestsForDebug, Is.True);
+            Assert.That(configuration.Test.Runs.Count, Is.EqualTo(1));
+            Assert.That(configuration.Test.Runs[0].Configuration, Is.EqualTo("Debug"));
+            Assert.That(configuration.Test.Runs[0].Settings, Is.EqualTo(Path.Combine(fixture.ConfigurationDirectory, "tests.runsettings")));
+            Assert.That(configuration.Test.Runs[0].Arguments, Is.EqualTo(new[] { "--filter", "Category=JitTests" }));
+            Assert.That(configuration.Test.Runs[0].Properties["TestTfmsInParallel"], Is.EqualTo(false));
+            Assert.That(configuration.Test.Runs[0].EnvironmentVariables["DOTNET_TieredCompilation"], Is.EqualTo("0"));
 
             Assert.That(configuration.MSBuild.Publish, Is.False);
             CollectionAssert.AreEqual(new[] { "TestProject.csproj", "AnotherProject.csproj" }, configuration.MSBuild.Projects);
@@ -277,6 +292,28 @@ kinds = ["tar", "deb", "rpm"]
             Assert.That(configuration.Packs[0].Renamers[0].Replace, Is.EqualTo("windows-amd64"));
             Assert.That(configuration.Packs[1].RuntimeIdentifiers, Is.EqualTo(new[] { "linux-x64", "linux-arm64" }));
             Assert.That(configuration.Packs[1].Kinds, Is.EqualTo(new[] { PackageKind.Tar, PackageKind.Deb, PackageKind.Rpm }));
+        });
+    }
+
+    [Test]
+    public void ApplyTestRunConfiguration_ConfiguresRunner()
+    {
+        var run = new TestRunConfiguration
+        {
+            Settings = "tests.runsettings",
+            Arguments = { "--filter", "Category=JitTests" },
+            Properties = { ["TestTfmsInParallel"] = false },
+            EnvironmentVariables = { ["DOTNET_TieredCompilation"] = "0" }
+        };
+        using var runner = new DotNetRunner("test");
+
+        ReleaserApp.ApplyTestRunConfiguration(runner, run);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(runner.Arguments, Is.EqualTo(new[] { "--settings", "tests.runsettings", "--filter", "Category=JitTests" }));
+            Assert.That(runner.Properties["TestTfmsInParallel"], Is.EqualTo(false));
+            Assert.That(runner.EnvironmentVariables["DOTNET_TieredCompilation"], Is.EqualTo("0"));
         });
     }
 
@@ -385,6 +422,7 @@ kinds = ["tar", "deb", "rpm"]
             File.WriteAllText(Path.Combine(ConfigurationDirectory, "TestProject.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
             File.WriteAllText(Path.Combine(ConfigurationDirectory, "AnotherProject.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
             File.WriteAllText(Path.Combine(ConfigurationDirectory, "HelloWorld.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+            File.WriteAllText(Path.Combine(ConfigurationDirectory, "tests.runsettings"), "<RunSettings />");
             File.WriteAllText(Path.Combine(RootDirectory, "Path", "To", "My", "Project.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
             File.WriteAllText(Path.Combine(RootDirectory, "changelog.md"), "# Changelog");
         }

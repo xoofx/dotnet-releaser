@@ -162,6 +162,21 @@ public class ReleaserConfiguration
         {
             Coverage.AddDefaults();
         }
+
+        foreach (var run in Test.Runs)
+        {
+            if (string.IsNullOrWhiteSpace(run.Settings))
+            {
+                continue;
+            }
+
+            run.Settings = Path.GetFullPath(Path.Combine(configurationDirectory, run.Settings));
+            if (!File.Exists(run.Settings))
+            {
+                logger.Error($"The test settings file `{run.Settings}` was not found.");
+                return false;
+            }
+        }
         
         if (Profile == PackagingProfileKind.Default)
         {
