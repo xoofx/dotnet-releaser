@@ -643,7 +643,7 @@ user = "your-nuget-user"
 # publish = false
 ```
 
-When trusted publishing is enabled, `dotnet-releaser` exchanges the GitHub OIDC token for a short-lived NuGet API key only when it needs to publish to NuGet. The key is passed to `dotnet nuget push` through environment variables, not as a command-line argument. Passing `--nuget-token` remains supported and takes precedence over trusted publishing.
+When trusted publishing is enabled, `dotnet-releaser` exchanges the GitHub OIDC token for a short-lived NuGet API key only when it needs to publish to NuGet. The key is valid for about one hour, so it is renewed automatically (every 20 minutes) while packages are being pushed, however long the build, tests or publication take. The key is passed to `dotnet nuget push` through environment variables, not as a command-line argument. Passing `--nuget-token` remains supported and takes precedence over trusted publishing.
 
 The GitHub workflow/job must grant OIDC token access:
 

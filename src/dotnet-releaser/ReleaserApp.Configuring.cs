@@ -16,7 +16,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra, string? nugetApiToken)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra,
+    private async Task<(BuildInformation? buildInformation, IDevHosting? devHosting, IDevHosting? devHostingExtra, NuGetApiKeyProvider? nugetApiKeyProvider)?> Configuring(string configurationFile, BuildKind buildKind, string githubApiToken, string? githubApiTokenExtra,
         string? githubApiTokenGist, string? nugetApiToken, bool forceArtifactsFolder, string? publishVersion)
     {
         // ------------------------------------------------------------------
@@ -31,10 +31,16 @@ public partial class ReleaserApp
         
         if (!await LoadConfiguration(configurationFile)) return null; // return false;
 
-        if (buildKind == BuildKind.Publish && _config.NuGet.Publish && string.IsNullOrEmpty(nugetApiToken))
+        NuGetApiKeyProvider? nugetApiKeyProvider = null;
+        if (!string.IsNullOrEmpty(nugetApiToken))
         {
-            nugetApiToken = await TryGetNuGetTrustedPublishingApiKey();
-            if (string.IsNullOrEmpty(nugetApiToken)) return null;
+            nugetApiKeyProvider = NuGetApiKeyProvider.FromStaticKey(nugetApiToken);
+        }
+
+        if (buildKind == BuildKind.Publish && _config.NuGet.Publish && nugetApiKeyProvider is null)
+        {
+            nugetApiKeyProvider = await CreateNuGetTrustedPublishingApiKeyProvider();
+            if (nugetApiKeyProvider is null) return null;
         }
 
         if (!EnsureArtifactsFolders(forceArtifactsFolder)) return null; // return false;
@@ -178,10 +184,10 @@ public partial class ReleaserApp
                 buildInformation.PublishNuGet = true;
             }
 
-            if (_config.NuGet.Publish && buildInformation.PublishNuGet && string.IsNullOrEmpty(nugetApiToken))
+            if (_config.NuGet.Publish && buildInformation.PublishNuGet && nugetApiKeyProvider is null)
             {
-                nugetApiToken = await TryGetNuGetTrustedPublishingApiKey();
-                if (string.IsNullOrEmpty(nugetApiToken)) return null;
+                nugetApiKeyProvider = await CreateNuGetTrustedPublishingApiKeyProvider();
+                if (nugetApiKeyProvider is null) return null;
             }
         }
 
@@ -209,6 +215,6 @@ public partial class ReleaserApp
         // Store the build kind
         buildInformation.BuildKind = buildKind;
 
-        return (buildInformation, devHosting, devHostingExtra, nugetApiToken);
+        return (buildInformation, devHosting, devHostingExtra, nugetApiKeyProvider);
     }
 }

@@ -159,7 +159,7 @@ public partial class ReleaserApp
         yield return $"{projectPackageInfo.Name}.*.{projectPackageInfo.Version}{packageExtension}";
     }
 
-    private async Task<string?> TryGetNuGetTrustedPublishingApiKey()
+    private async Task<NuGetApiKeyProvider?> CreateNuGetTrustedPublishingApiKeyProvider()
     {
         if (!_config.NuGet.TrustedPublishing)
         {
@@ -167,6 +167,15 @@ public partial class ReleaserApp
             return null;
         }
 
+        // The key is short-lived (1 hour) and the build, tests and packaging can take a long time before we publish.
+        // The provider renews it when it gets old, right before pushing a package. Acquire a first one now to fail fast
+        // if trusted publishing is not correctly configured.
+        var provider = NuGetApiKeyProvider.FromAcquire(TryGetNuGetTrustedPublishingApiKey, NuGetApiKeyProvider.DefaultMaxKeyAge);
+        return await provider.GetApiKeyAsync().ConfigureAwait(false) is null ? null : provider;
+    }
+
+    private async Task<string?> TryGetNuGetTrustedPublishingApiKey()
+    {
         try
         {
             Info("Authenticating to NuGet with trusted publishing");
@@ -183,15 +192,23 @@ public partial class ReleaserApp
         }
     }
 
-    private async Task PublishNuGet(List<string> nugetPackages, string nugetSecretKey)
+    private async Task PublishNuGet(List<string> nugetPackages, NuGetApiKeyProvider nugetApiKeyProvider)
     {
         if (!_config.NuGet.Publish) return;
-
-        GitHubActionHelper.MaskSecret(nugetSecretKey);
 
         foreach (var nugetPackage in nugetPackages)
         {
             var fileName = Path.GetFileName(nugetPackage);
+
+            // Get the key for each push so that a short-lived key is renewed during a long publication
+            var nugetSecretKey = await nugetApiKeyProvider.GetApiKeyAsync().ConfigureAwait(false);
+            if (string.IsNullOrEmpty(nugetSecretKey))
+            {
+                Error($"Unable to get a NuGet API key to push {fileName}.");
+                return;
+            }
+
+            GitHubActionHelper.MaskSecret(nugetSecretKey);
 
             Info($"Publishing NuGet {fileName}");
             try

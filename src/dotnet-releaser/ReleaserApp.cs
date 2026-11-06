@@ -309,6 +309,7 @@ public partial class ReleaserApp
         IDevHosting? devHosting = null;
         IDevHosting? devHostingExtra = null;
         ChangelogResult? changelog = null;
+        NuGetApiKeyProvider? nugetApiKeyProvider = null;
         try
         {
             _logger.Info($"dotnet-releaser {Version} - {buildKind.ToString().ToLowerInvariant()}");
@@ -318,7 +319,7 @@ public partial class ReleaserApp
             buildInformation = result.Value.buildInformation!;
             devHosting = result.Value.devHosting;
             devHostingExtra = result.Value.devHostingExtra;
-            nugetApiToken = result.Value.nugetApiToken;
+            nugetApiKeyProvider = result.Value.nugetApiKeyProvider;
             hostingConfiguration = _config.GitHub;
         }
         finally
@@ -380,7 +381,7 @@ public partial class ReleaserApp
         // Draft if we are just building and not publishing (to allow to update the changelog)
         if (buildInformation.BuildKind == BuildKind.Publish || buildInformation.PublishNuGet)
         {
-            await PublishPackagesAndChangelog(nugetApiToken, buildInformation, hostingConfiguration, devHosting, devHostingExtra, changelog, forceUpload);
+            await PublishPackagesAndChangelog(nugetApiKeyProvider, buildInformation, hostingConfiguration, devHosting, devHostingExtra, changelog, forceUpload);
         }
 
         // ------------------------------------------------------------------

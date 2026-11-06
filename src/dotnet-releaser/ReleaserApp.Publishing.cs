@@ -6,7 +6,7 @@ namespace DotNetReleaser;
 
 public partial class ReleaserApp
 {
-    private async Task PublishPackagesAndChangelog(string? nugetApiToken, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration,
+    private async Task PublishPackagesAndChangelog(NuGetApiKeyProvider? nugetApiKeyProvider, BuildInformation buildInformation, GitHubDevHostingConfiguration hostingConfiguration,
         IDevHosting? devHosting, IDevHosting? devHostingExtra, ChangelogResult? changelog, bool forceUpload)
     {
         bool groupStarted = false;
@@ -21,9 +21,9 @@ public partial class ReleaserApp
 
             foreach (var (packageInfo, buildPackageInformation) in buildInformation.BuildPackages)
             {
-                if (nugetApiToken is not null && buildInformation.PublishNuGet)
+                if (nugetApiKeyProvider is not null && buildInformation.PublishNuGet)
                 {
-                    await PublishNuGet(buildPackageInformation.NuGetPackages, nugetApiToken);
+                    await PublishNuGet(buildPackageInformation.NuGetPackages, nugetApiKeyProvider);
                 }
 
                 // Don't try to continue publishing if we had errors with NuGet publishing
