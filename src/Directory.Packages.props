@@ -24,7 +24,7 @@
     <PackageVersion Include="Scriban" Version="7.6.1" />
     <PackageVersion Include="Tomlyn" Version="2.11.1" />
     <PackageVersion Include="Wcwidth" Version="4.0.1" />
-    <PackageVersion Include="XenoAtom.MsBuildPipeLogger" Version="2.0.0" />
+    <PackageVersion Include="XenoAtom.MsBuildPipeLogger" Version="2.0.1" />
     <PackageVersion Include="XenoAtom.Terminal" Version="2.5.0" />
     <PackageVersion Include="XenoAtom.Terminal.UI" Version="3.11.0" />
   </ItemGroup>
