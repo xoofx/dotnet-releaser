@@ -10,7 +10,6 @@ using DotNetReleaser.Configuration;
 using DotNetReleaser.Coverage;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Logging;
-using Microsoft.Build.Locator;
 using XenoAtom.CommandLine;
 using XenoAtom.CommandLine.Terminal;
 using XenoAtom.Logging;
@@ -61,8 +60,6 @@ public partial class ReleaserApp
     /// <returns>0 if successful; 1 otherwise.</returns>
     public static async Task<int> Run(string[] args)
     {
-        MSBuildLocator.RegisterDefaults();
-
         Console.OutputEncoding = Encoding.UTF8;
         var runningOnGitHubAction = GitHubActionHelper.IsRunningOnGitHubAction;
         var exeName = "dotnet-releaser";

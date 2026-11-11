@@ -7,19 +7,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using CliWrap;
 using DotNetReleaser.Logging;
-using Microsoft.Build.Framework;
 using XenoAtom.MsBuildPipeLogger;
 
 namespace DotNetReleaser.Runners;
 
-public record MSBuildResult(CommandResult CommandResult, string CommandLine, string Output, Dictionary<string, List<ITaskItem>> TargetOutputs) : CommandResulExtended(CommandResult, CommandLine, Output);
+public record MSBuildResult(CommandResult CommandResult, string CommandLine, string Output, Dictionary<string, List<PipeItem>> TargetOutputs) : CommandResulExtended(CommandResult, CommandLine, Output);
 
 public class MSBuildRunner : DotNetRunnerBase
 {
     private static readonly TimeSpan PipeLoggerReaderCompletionTimeout = TimeSpan.FromSeconds(5);
 
     private readonly string _artifactFolder;
-    private string? _pipeHandle;
+    private string? _pipeName;
 
     public MSBuildRunner(string artifactFolder) : base("msbuild")
     {
@@ -60,9 +59,9 @@ public class MSBuildRunner : DotNetRunnerBase
         
         arguments.Add($"-bl:{Path.Combine(msbuildLogFolder, $"msbuild-{Process.GetCurrentProcess().Id}-{Guid.CreateVersion7():N}-{targetText}.binlog")}");
 
-        if (_pipeHandle is not null)
+        if (_pipeName is not null)
         {
-            arguments.Add($"-logger:{PipeLoggerServer.GetLoggerSpecification(_pipeHandle)}");
+            arguments.Add($"-logger:{PipeLoggerServer.GetLoggerSpecification($"name={_pipeName}")}");
         }
 
         foreach (var target in Targets)
@@ -94,65 +93,37 @@ public class MSBuildRunner : DotNetRunnerBase
     {
         if (string.IsNullOrEmpty(Project)) throw new InvalidOperationException("MSBuildRunner.Project cannot be empty");
 
-        // Create the server
+        // Create the server. A named pipe serves every build submission of the msbuild process,
+        // while an anonymous pipe would only receive the events of the first one.
         var readerSource = new CancellationTokenSource();
-        var reader = new AnonymousPipeLoggerServer(readerSource.Token);
-
-        // Get the pipe handle
-        _pipeHandle = reader.GetClientHandle();
+        _pipeName = PipeLoggerServer.CreateUniquePipeName();
+        var reader = new NamedPipeLoggerServer(_pipeName, readerSource.Token);
 
         Thread? readerThread = null;
-
-        //logger.Info($"MSBuild handle {_pipeHandle}");
-
-        //var taskReader = Task.Factory.StartNew(() =>
-        //{
-        //    Console.WriteLine($"ReadingAll {Thread.CurrentThread.ManagedThreadId}");
-        //    reader.ReadAll();
-        //    Console.WriteLine($"Finished ReadingAll {Thread.CurrentThread.ManagedThreadId}");
-        //});
 
         try
         {
             var targets = new HashSet<string>(Targets, StringComparer.OrdinalIgnoreCase);
-            var targetOutputs = new Dictionary<string, List<ITaskItem>>(StringComparer.OrdinalIgnoreCase);
-            //reader.MessageRaised += (sender, args) =>
-            //{
-            //    if (args.Importance == MessageImportance.High)
-            //    {
-            //        logger.Info($"{args.Message} [{args.ProjectFile}]");
-            //    }
-            //};
-            reader.WarningRaised += (sender, args) => { logger.Warn($"{args.File}({args.LineNumber},{args.ColumnNumber}): warning {args.Code}: {args.Message} [{args.ProjectFile}]"); };
-            reader.ErrorRaised += (sender, args) => { logger.Error($"{args.File}({args.LineNumber},{args.ColumnNumber}): error {args.Code}: {args.Message} [{args.ProjectFile}]"); };
-            reader.TargetFinished += (sender, args) =>
+            var targetOutputs = new Dictionary<string, List<PipeItem>>(StringComparer.OrdinalIgnoreCase);
+            reader.WarningRaised += args => { logger.Warn($"{args.File}({args.LineNumber},{args.ColumnNumber}): warning {args.Code}: {args.Message} [{args.ProjectFile}]"); };
+            reader.ErrorRaised += args => { logger.Error($"{args.File}({args.LineNumber},{args.ColumnNumber}): error {args.Code}: {args.Message} [{args.ProjectFile}]"); };
+            reader.TargetFinished += args =>
             {
-                var outputs = args.TargetOutputs?.OfType<ITaskItem>().ToList();
-                if (!targets.Contains(args.TargetName)) return;
-                if (outputs is not null)
-                {
-                    targetOutputs[args.TargetName] = outputs;
-                }
+                if (args.TargetName is null || !targets.Contains(args.TargetName)) return;
+                targetOutputs[args.TargetName] = args.TargetOutputs.ToList();
             };
 
-            RunAfterStart = () =>
+            readerThread = new Thread(reader.ReadAll)
             {
-                readerThread = new Thread(() =>
-                    {
-                        //Console.WriteLine($"Start ReadAll {Thread.CurrentThread.ManagedThreadId}");
-                        reader.ReadAll();
-                        //Console.WriteLine($"End ReadAll {Thread.CurrentThread.ManagedThreadId}");
-                    }
-                )
-                {
-                    Name = "AnonymousPipeLoggerServer.ReadAll",
-                    IsBackground = true,
-                };
-                readerThread.Start();
-                
+                Name = "NamedPipeLoggerServer.ReadAll",
+                IsBackground = true,
             };
+            readerThread.Start();
+
             var result = await base.RunImpl();
 
+            // The msbuild process has exited: no new client can connect, let the received events drain.
+            reader.StopListening();
             if (!WaitForReaderThread(readerThread))
             {
                 logger.Warn("Timed out waiting for the MSBuild pipe logger reader to finish. Some target outputs may be unavailable.");
@@ -162,7 +133,7 @@ public class MSBuildRunner : DotNetRunnerBase
             if (result.CommandResult.ExitCode != 0)
             {
                 logger.Error($"Failing to run {result.CommandLine}. Reason: {result.Output}");
-                return new MSBuildResult(result.CommandResult, result.CommandLine, result.Output, new Dictionary<string, List<ITaskItem>>());
+                return new MSBuildResult(result.CommandResult, result.CommandLine, result.Output, new Dictionary<string, List<PipeItem>>());
             }
 
             return new MSBuildResult(result.CommandResult, result.CommandLine, result.Output, targetOutputs);
@@ -184,8 +155,7 @@ public class MSBuildRunner : DotNetRunnerBase
             }) { IsBackground = true };
             disposeReader.Start();
 
-            _pipeHandle = null;
-            RunAfterStart = null;
+            _pipeName = null;
         }
 
     }

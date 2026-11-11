@@ -47,27 +47,14 @@
     <PackageReference Include="System.Security.Cryptography.Xml" />
     <PackageReference Include="XenoAtom.CommandLine" />
     <PackageReference Include="XenoAtom.CommandLine.Terminal" />
-    <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime">
-      <NoWarn>NU1608</NoWarn>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime">
-      <NoWarn>NU1608</NoWarn>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Build.Tasks.Core" ExcludeAssets="runtime">
-      <NoWarn>NU1608</NoWarn>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime">
-      <NoWarn>NU1608</NoWarn>
-    </PackageReference>
     <PackageReference Include="XenoAtom.Logging" />
     <PackageReference Include="XenoAtom.Logging.Terminal" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" />
-    <PackageReference Include="Microsoft.Build.Locator" />
     <PackageReference Include="MinVer">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NuGet.Frameworks" ExcludeAssets="runtime" />
+    <PackageReference Include="NuGet.Frameworks" />
     <PackageReference Include="NuGet.Versioning" />
     <PackageReference Include="Octokit" />
     <PackageReference Include="Scriban" />

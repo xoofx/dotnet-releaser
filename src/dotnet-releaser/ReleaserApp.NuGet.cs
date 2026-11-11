@@ -70,7 +70,7 @@ public partial class ReleaserApp
 
         // Copy to artifacts
         var list = new List<string>();
-        var files = CollectNuGetPackageOutputs(outputs.Select(x => x.ItemSpec), projectPackageInfo);
+        var files = CollectNuGetPackageOutputs(outputs.Select(x => x.EvaluatedInclude), projectPackageInfo);
         for (var i = 0; i < files.Count; i++)
         {
             var output = files[i];

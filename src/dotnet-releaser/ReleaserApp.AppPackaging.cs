@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -227,7 +227,7 @@ public partial class ReleaserApp
             }
 
             // Copy the file to the output
-            var path = result[0].ItemSpec;
+            var path = result[0].EvaluatedInclude;
             if (target == ReleaserConstants.DotNetReleaserPublishAndCreateTar)
             {
                 path = CompressionHelper.MakeTarGz(projectPackageInfo, path, _config.ArtifactsFolder, rid);

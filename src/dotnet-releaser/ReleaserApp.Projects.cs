@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DotNetReleaser.Helpers;
 using DotNetReleaser.Runners;
-using Microsoft.Build.Framework;
+using XenoAtom.MsBuildPipeLogger;
 using NuGet.Frameworks;
 using XenoAtom.Terminal.UI;
 using XenoAtom.Terminal.UI.Controls;
@@ -169,16 +169,16 @@ public partial class ReleaserApp
 
         try
         {
-            var packageId = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageId).ItemSpec!;
-            var assemblyName = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.AssemblyName).ItemSpec!;
-            var packageVersion = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageVersion).ItemSpec;
-            var packageDescription = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageDescription)?.ItemSpec;
-            var packageLicenseExpression = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageLicenseExpression)?.ItemSpec;
-            var packageOutputType = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.ItemSpec?.Trim() ?? string.Empty;
-            var packageProjectUrl = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageProjectUrl)?.ItemSpec ?? $"{_config.GitHub.GetUrl()}";
-            var isNuGetPackable = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsNuGetPackable)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
-            var isTestProject = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestProject)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
-            var isTestingPlatformApplication = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestingPlatformApplication)?.ItemSpec?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+            var packageId = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageId).EvaluatedInclude;
+            var assemblyName = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.AssemblyName).EvaluatedInclude;
+            var packageVersion = outputs.First(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageVersion).EvaluatedInclude;
+            var packageDescription = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageDescription)?.EvaluatedInclude;
+            var packageLicenseExpression = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageLicenseExpression)?.EvaluatedInclude;
+            var packageOutputType = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageOutputType)?.EvaluatedInclude?.Trim() ?? string.Empty;
+            var packageProjectUrl = outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.PackageProjectUrl)?.EvaluatedInclude ?? $"{_config.GitHub.GetUrl()}";
+            var isNuGetPackable = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsNuGetPackable)?.EvaluatedInclude?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+            var isTestProject = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestProject)?.EvaluatedInclude?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+            var isTestingPlatformApplication = string.Equals(outputs.FirstOrDefault(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.IsTestingPlatformApplication)?.EvaluatedInclude?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
 
             var builder = new StringBuilder();
             var currentProjectDirectory = Path.GetDirectoryName(projectFullFilePath)!;
@@ -186,7 +186,7 @@ public partial class ReleaserApp
             foreach (var projectReference in outputs.Where(x => x.GetMetadata(ReleaserConstants.ItemSpecKind) == ReleaserConstants.ProjectReference))
             {
                 var projectReferenceFullPath =
-                    Path.GetFullPath(Path.Combine(currentProjectDirectory, projectReference.ItemSpec));
+                    Path.GetFullPath(Path.Combine(currentProjectDirectory, projectReference.EvaluatedInclude));
                 projectReferences.Add(projectReferenceFullPath);
             }
 
@@ -200,7 +200,7 @@ public partial class ReleaserApp
         }
         catch (Exception ex)
         {
-            Error($"Unexpected error while trying to read build results for target `{ReleaserConstants.DotNetReleaserGetPackageInfo}`. Outputs: {string.Join(", ", outputs.Select(x => x.ItemSpec))}. Reason: {ex}");
+            Error($"Unexpected error while trying to read build results for target `{ReleaserConstants.DotNetReleaserGetPackageInfo}`. Outputs: {string.Join(", ", outputs.Select(x => x.EvaluatedInclude))}. Reason: {ex}");
             return null;
         }
     }
@@ -452,7 +452,7 @@ public partial class ReleaserApp
         Info($"Packages and Projects", table);
     }
 
-    private async Task<List<ITaskItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, string? configuration = null, params string[] arguments)
+    private async Task<List<PipeItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, string? configuration = null, params string[] arguments)
     {
         using var program = new MSBuildRunner(_config.ArtifactsFolder)
         {
@@ -494,7 +494,7 @@ public partial class ReleaserApp
         }
         else if (!result.HasErrors)
         {
-            return new List<ITaskItem>();
+            return new List<PipeItem>();
         }
 
         return null;
