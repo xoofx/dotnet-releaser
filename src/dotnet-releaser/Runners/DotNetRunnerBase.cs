@@ -17,6 +17,11 @@ public record CommandResulExtended(CommandResult CommandResult, string CommandLi
 [DebuggerDisplay("{" + nameof(ToDebuggerDisplay) + "(),nq}")]
 public abstract class DotNetRunnerBase : IDisposable
 {
+    // The dotnet CLI and MSBuild export the paths of their SDK to their child processes. When dotnet-releaser
+    // is itself started by one of them (e.g. from `dotnet test`), these paths can belong to another SDK than
+    // the one selected by the global.json of the project: remove them so that dotnet resolves its own SDK.
+    private static readonly string[] InheritedSdkEnvironmentVariables = ["MSBUILD_EXE_PATH", "MSBuildExtensionsPath", "MSBuildSDKsPath"];
+
     protected DotNetRunnerBase(string command)
     {
         Command = command ?? throw new ArgumentNullException(nameof(command));
@@ -101,10 +106,16 @@ public abstract class DotNetRunnerBase : IDisposable
             .WithStandardErrorPipe(LogStandardError is not null ? PipeTarget.ToDelegate(LogStandardError) : PipeTarget.ToStringBuilder(stdOutAndErrorBuffer))
             .WithValidation(CommandResultValidation.None);
 
-        if (EnvironmentVariables.Count > 0)
+        var environmentVariables = new Dictionary<string, string?>();
+        foreach (var name in InheritedSdkEnvironmentVariables)
         {
-            commandLine = commandLine.WithEnvironmentVariables(EnvironmentVariables);
+            environmentVariables[name] = null;
         }
+        foreach (var environmentVariable in EnvironmentVariables)
+        {
+            environmentVariables[environmentVariable.Key] = environmentVariable.Value;
+        }
+        commandLine = commandLine.WithEnvironmentVariables(environmentVariables);
 
         var wrap = commandLine
             .ExecuteAsync();
