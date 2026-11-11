@@ -26,10 +26,11 @@
     </Otherwise>
   </Choose>
 
+  <!-- The coverage package is only added when the test project does not already reference it -->
   <Choose>
     <When Condition="'$(ManagePackageVersionsCentrally)' == 'true' AND '$(CentralPackageVersionsFileImported)' == 'true' AND '$(DotNetReleaserCoverage)' == 'true' AND '$(IsTestProject)' == 'true'">
       <ItemGroup>
-        <PackageReference Include="$(DotNetReleaserCoveragePackage)" VersionOverride="$(DotNetReleaserCoverageVersion)">
+        <PackageReference Include="$(DotNetReleaserCoveragePackage)" VersionOverride="$(DotNetReleaserCoverageVersion)" Condition="'@(PackageReference->WithMetadataValue('Identity', '$(DotNetReleaserCoveragePackage)'))' == ''">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
@@ -37,7 +38,7 @@
     </When>
     <When Condition="'$(DotNetReleaserCoverage)' == 'true' AND '$(IsTestProject)' == 'true'">
       <ItemGroup>
-        <PackageReference Include="$(DotNetReleaserCoveragePackage)" Version="$(DotNetReleaserCoverageVersion)">
+        <PackageReference Include="$(DotNetReleaserCoveragePackage)" Version="$(DotNetReleaserCoverageVersion)" Condition="'@(PackageReference->WithMetadataValue('Identity', '$(DotNetReleaserCoveragePackage)'))' == ''">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>

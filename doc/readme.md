@@ -441,7 +441,7 @@ Coverage will produce artifacts in the output folder.
 |----------------------------|------------|----------------------------|
 | `enable`                   | `bool`     | Specifies whether or not to run coverage when running tests. Default is `true`.
 | `package`                  | `string`   | The name of the NuGet package used to generate the coverage. Default is `coverlet.collector`
-| `version`                  | `string`   | The version of the NuGet package used. Default is `3.1.*`.
+| `version`                  | `string`   | The version of the NuGet package used. Default is `3.1.*`. A test project that already references the package keeps its own reference and version.
 | `format`                   | `string[]` | Coverage output format. These are either `json` (the default always added), `cobertura`, `lcov`, `opencover` or `teamcity` as well as combinations of these formats.
 | `single_hit`               | `bool`     | Specifies whether to limit code coverage hit reporting to a single hit for each location. Default is `false`
 | `source_link`              | `bool`     | Specifies whether to use SourceLink URIs in place of file system paths. Default is `true`.
