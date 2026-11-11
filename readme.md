@@ -15,7 +15,7 @@ In practice, `dotnet-releaser` will automate the build and publish process of yo
 - `dotnet nuget push` to publish your package to a NuGet registry
 - [Pretty changelog](https://github.com/xoofx/dotnet-releaser/blob/main/doc/changelog_user_guide.md#11-overview) creation from pull-requests and commits.
 - Create and upload the changelog and all the packages packed to your GitHub repository associated with the release tag.
-- `dotnet-releaser` tool requires .NET 9.0 runtime to be installed.
+- `dotnet-releaser` tool requires .NET 10.0 runtime or a newer one to be installed. It can build projects with any installed .NET SDK selected by your `global.json`.
   
 ![overview](https://raw.githubusercontent.com/xoofx/dotnet-releaser/main/doc/overview.drawio.svg)
 
