@@ -117,6 +117,9 @@ public abstract class DotNetRunnerBase : IDisposable
         }
         commandLine = commandLine.WithEnvironmentVariables(environmentVariables);
 
+        // Reading the output of the process can block pool threads for as long as it runs.
+        ChildProcessConcurrency.EnsureThreadPoolCapacity(processes: 1);
+
         var wrap = commandLine
             .ExecuteAsync();
         

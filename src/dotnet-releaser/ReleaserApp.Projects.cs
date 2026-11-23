@@ -283,49 +283,28 @@ public partial class ReleaserApp
         }
 
         // Load TargetFrameworks
+        var allProjects = solutionToProjects.SelectMany(x => x.Value.Select(project => (Solution: x.Key, Project: project))).ToList();
         var projectToTargetFrameworkInfo = new Dictionary<string, TargetFrameworkInfo>(pathComparer);
-        var tasks = new List<Task>();
-        foreach (var (solution, projects) in solutionToProjects)
+        await ChildProcessConcurrency.ForEachAsync(allProjects, async item =>
         {
-            foreach (var project in projects)
+            var targetFrameworkInfo = await GetTargetFrameworks(item.Project);
+            if (targetFrameworkInfo is not null)
             {
-                var task = Task.Run(async () =>
+                lock (projectToTargetFrameworkInfo)
                 {
-                    var targetFrameworkInfo = await GetTargetFrameworks(project);
-                    if (targetFrameworkInfo is not null)
-                    {
-                        lock (projectToTargetFrameworkInfo)
-                        {
-                            projectToTargetFrameworkInfo.Add(project, targetFrameworkInfo);
-                        }
-                    }
-                }); 
-                tasks.Add(task);
+                    projectToTargetFrameworkInfo.Add(item.Project, targetFrameworkInfo);
+                }
             }
-        }
-        await Task.WhenAll(tasks);
+        });
 
         if (HasErrors) return null;
 
-
-        var results = new ConcurrentQueue<(string, ProjectPackageInfo?)>();
         // Load projects from solutions
-        tasks.Clear();
-        foreach (var (solution, projects) in solutionToProjects)
+        var results = new ConcurrentQueue<(string, ProjectPackageInfo?)>();
+        await ChildProcessConcurrency.ForEachAsync(allProjects, async item =>
         {
-            foreach (var project in projects)
-            {
-                Debug.Assert(projectToTargetFrameworkInfo.ContainsKey(project));
-                var task = Task.Run(async () =>
-                {
-                    var result = (solution, await LoadPackageInfo(project, projectToTargetFrameworkInfo[project]));
-                    results.Enqueue(result);
-                });
-                tasks.Add(task);
-            }
-        }
-
-        await Task.WhenAll(tasks);
+            results.Enqueue((item.Solution, await LoadPackageInfo(item.Project, projectToTargetFrameworkInfo[item.Project])));
+        });
 
         // Collect results
         var solutionToProjectPackageInfoCollections = new Dictionary<string, List<ProjectPackageInfo>>();

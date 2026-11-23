@@ -333,6 +333,8 @@ artifacts_folder = "myfolder"
 ```
 ### 2.2. MSBuild
 
+dotnet-releaser reads the metadata of the projects with one `dotnet msbuild` per project, running at most as many of them at once as the machine has processors.
+
 If dotnet-releaser cannot read required project metadata after MSBuild succeeds, the error identifies the project, target, and matching binary log under `artifacts_folder/msbuild_logs`. It distinguishes a missing `TargetFinished` event from one with no output items. Keep that binlog from the failing CI job to compare MSBuild's recorded outputs with what the pipe logger received.
 
 This section defines:
