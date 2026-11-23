@@ -99,12 +99,12 @@ public partial class ReleaserApp
  
     private async Task<TargetFrameworkInfo?> GetTargetFrameworks(string projectFullFilePath)
     {
-        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetTargetFramework, injectViaProps: true);
+        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetTargetFramework, injectViaProps: true, requireTargetOutputs: true);
         if (outputs is null) return null;
 
         if (outputs.Count != 1)
         {
-            Error($"Unexpected error. Unable to read build results for target `{ReleaserConstants.DotNetReleaserGetTargetFramework}`");
+            Error($"Expected one output item from MSBuild target `{ReleaserConstants.DotNetReleaserGetTargetFramework}` in `{projectFullFilePath}`, but received {outputs.Count}.");
             return null;
         }
 
@@ -158,14 +158,8 @@ public partial class ReleaserApp
             properties["TargetFramework"] = targetFrameworkInfo.TargetFrameworks[^1];
         }
 
-        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetPackageInfo, properties);
+        var outputs = await RunMSBuild(projectFullFilePath, ReleaserConstants.DotNetReleaserGetPackageInfo, properties, requireTargetOutputs: true);
         if (outputs is null) return null;
-
-        if (outputs.Count == 0)
-        {
-            Error($"Unexpected error. Unable to read build results for target `{ReleaserConstants.DotNetReleaserGetPackageInfo}`");
-            return null;
-        }
 
         try
         {
@@ -452,12 +446,13 @@ public partial class ReleaserApp
         Info($"Packages and Projects", table);
     }
 
-    private async Task<List<PipeItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, string? configuration = null, params string[] arguments)
+    private async Task<List<PipeItem>?> RunMSBuild(string project, string target, IDictionary<string, object>? properties = null, bool buildDebug = false, bool injectViaProps = false, string? configuration = null, bool requireTargetOutputs = false, params string[] arguments)
     {
         using var program = new MSBuildRunner(_config.ArtifactsFolder)
         {
             Project = project,
             Configuration = configuration ?? (buildDebug ? _config.MSBuild.ConfigurationDebug : _config.MSBuild.Configuration),
+            RequireTargetOutputs = requireTargetOutputs,
             Targets =
             {
                 target
@@ -486,17 +481,14 @@ public partial class ReleaserApp
             program.Arguments.Add(argument);
         }
 
-        var result = await program.Run(_logger);
+        var result = await program.Run(_logger).ConfigureAwait(false);
+        if (result.HasErrors) return null;
 
-        if (result.TargetOutputs.TryGetValue(target, out var outputs))
+        if (result.TargetOutputs.TryGetValue(target, out var outputs) && (outputs.Count > 0 || !requireTargetOutputs))
         {
             return outputs;
         }
-        else if (!result.HasErrors)
-        {
-            return new List<PipeItem>();
-        }
 
-        return null;
+        return requireTargetOutputs ? null : new List<PipeItem>();
     }
 }
